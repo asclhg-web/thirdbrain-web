@@ -1,6 +1,6 @@
 site:
   name: 서드브레인
-  site: 'https://www.thirdbrain.kr'
+  site: 'https://thirdbrain.kr'
   base: '/'
   trailingSlash: false
 
