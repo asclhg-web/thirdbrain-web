@@ -1,14 +1,15 @@
 import { getPermalink, getBlogPermalink } from './utils/permalinks';
 
 // 외부 링크 (런칭 시 실제 주소로 교체)
-const BOOKK_URL = '#'; // 부크크 구매 링크 자리
+const BOOKK_URL = '#'; // 부크크 구매 링크 자리 (1순위 행동)
 const TALLY_PROGRAM = getPermalink('/program') + '#apply'; // 30일 몰입 신청
-const EEG_RESERVE = getPermalink('/eeg') + '#reserve'; // EEG 사전예약
+const EEG_RESERVE = getPermalink('/eeg') + '#reserve'; // EEG 프로젝트 사전예약
 
 export const headerData = {
+  // 우선순위 순서: 책 → 프로그램(부록) → EEG(프로젝트)
   links: [
     { text: '홈', href: getPermalink('/') },
-    { text: 'EEG', href: getPermalink('/eeg') },
+    { text: '책 소개', href: getPermalink('/#book') },
     {
       text: '프로그램',
       links: [
@@ -16,43 +17,43 @@ export const headerData = {
         { text: '서드브레인 부트캠프', href: getPermalink('/program') + '#bootcamp' },
       ],
     },
+    { text: 'EEG 프로젝트', href: getPermalink('/eeg') },
     { text: '자료실', href: getBlogPermalink() },
     { text: '소개', href: getPermalink('/about') },
   ],
+  // 헤더 버튼: '책 사기'를 1순위(primary)로
   actions: [
-    { text: '책 사기', href: BOOKK_URL, target: '_blank' },
-    { text: 'EEG 사전예약', href: EEG_RESERVE },
-    { text: '30일 몰입 시작', href: TALLY_PROGRAM, variant: 'primary' },
+    { text: '30일 몰입', href: TALLY_PROGRAM },
+    { text: '책 사기', href: BOOKK_URL, target: '_blank', variant: 'primary' },
   ],
 };
 
 export const footerData = {
   links: [
     {
-      title: '서드브레인',
+      title: '책 (1순위)',
       links: [
-        { text: '세 번째 뇌란?', href: getPermalink('/#features') },
         { text: '책 소개', href: getPermalink('/#book') },
+        { text: '세 개의 뇌', href: getPermalink('/#features') },
         { text: '추천사', href: getPermalink('/#testimonials') },
         { text: '책 사기', href: BOOKK_URL },
       ],
     },
     {
-      title: '프로그램',
+      title: '부록 · 프로그램',
       links: [
         { text: '30일 몰입 프로그램', href: getPermalink('/program') + '#thirty' },
         { text: '서드브레인 부트캠프', href: getPermalink('/program') + '#bootcamp' },
-        { text: 'EEG 몰입 측정', href: getPermalink('/eeg') },
-        { text: 'EEG 사전예약', href: EEG_RESERVE },
+        { text: '30일 몰입 신청', href: TALLY_PROGRAM },
       ],
     },
     {
-      title: '둘러보기',
+      title: 'EEG 프로젝트',
       links: [
+        { text: 'EEG 수면·인지개선', href: getPermalink('/eeg') },
+        { text: '프로젝트 사전예약', href: EEG_RESERVE },
         { text: '자료실', href: getBlogPermalink() },
         { text: '소개', href: getPermalink('/about') },
-        { text: '자주 묻는 질문', href: getPermalink('/#faq') },
-        { text: '문의', href: getPermalink('/about') + '#contact' },
       ],
     },
   ],

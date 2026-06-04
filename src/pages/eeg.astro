@@ -9,8 +9,9 @@ import FAQs from '~/components/widgets/FAQs.astro';
 import CallToAction from '~/components/widgets/CallToAction.astro';
 
 const metadata = {
-  title: 'EEG · 몰입 측정',
-  description: '뇌파(EEG)로 몰입을 측정합니다. 막연한 집중이 아니라, 데이터로 보이는 진짜 몰입 — 서드브레인 EEG.',
+  title: 'EEG 수면·인지개선 프로젝트',
+  description:
+    '뇌파(EEG)를 활용해 수면과 인지(집중·몰입)를 개선하는 서드브레인의 진행 중 프로젝트. 막연한 노력이 아니라, 데이터로 보이는 변화.',
 };
 ---
 
@@ -19,19 +20,49 @@ const metadata = {
 
   <Hero
     actions={[
-      { variant: 'primary', text: 'EEG 사전예약', href: '#reserve', icon: 'tabler:bell-ringing' },
+      { variant: 'primary', text: '프로젝트 사전예약', href: '#reserve', icon: 'tabler:bell-ringing' },
       { text: '과학적 근거 보기', href: '#science' },
     ]}
-    image={{ src: '~/assets/images/flow-eeg.png', alt: '몰입 3단계 뇌 인포그래픽' }}
+    image={{ src: '~/assets/images/flow-eeg.png', alt: '뇌파와 몰입 단계 인포그래픽' }}
   >
     <Fragment slot="title">
-      몰입은 <span class="text-accent dark:text-white">측정</span>할 수 있다
+      잠과 생각을 <span class="text-accent dark:text-white">데이터</span>로 바꾸다
     </Fragment>
     <Fragment slot="subtitle">
-      "더 집중하라"는 말은 이제 그만. 서드브레인 EEG는 당신의 뇌파를 읽어
-      몰입의 깊이와 단계를 실시간 데이터로 보여줍니다.
+      <span class="font-semibold">진행 중인 프로젝트.</span> 서드브레인은 뇌파(EEG)를 활용해
+      <span class="font-semibold"> 수면과 인지(집중·몰입)</span>를 개선하는 방법을 연구·개발하고 있습니다.
+      막연한 노력이 아니라, 보이는 변화를 향해.
     </Fragment>
   </Hero>
+
+  <!-- 무엇을 개선하나 ************** -->
+
+  <Features
+    id="goals"
+    tagline="무엇을 개선하나"
+    title="수면, 그리고 인지"
+    subtitle="EEG로 측정하고, 데이터에 근거해 두 가지를 개선합니다."
+    items={[
+      {
+        title: '① 수면의 질',
+        description:
+          '깊은 잠과 얕은 잠의 패턴을 살펴, 더 잘 자고 더 잘 회복하도록 돕습니다. 수면은 기억 공고화와 뇌 회복의 핵심입니다.',
+        icon: 'tabler:moon',
+      },
+      {
+        title: '② 집중·인지',
+        description:
+          '집중과 몰입 상태를 데이터로 확인해, 산만함을 줄이고 인지 수행을 끌어올립니다.',
+        icon: 'tabler:brain',
+      },
+      {
+        title: '③ 데이터로 보이는 변화',
+        description:
+          '“더 노력하라”가 아니라, 뇌파 데이터로 무엇이 어떻게 나아지는지 보여줍니다.',
+        icon: 'tabler:chart-line',
+      },
+    ]}
+  />
 
   <!-- 어떻게 작동하나 *************** -->
 
@@ -42,26 +73,26 @@ const metadata = {
     items={[
       {
         title: '1. 착용한다',
-        description: '간편한 EEG 밴드를 머리에 착용합니다. 복잡한 장비 없이 몇 초면 준비 완료.',
+        description: '간편한 EEG 밴드를 착용합니다. 복잡한 장비 없이 몇 초면 준비 완료.',
         icon: 'tabler:device-watch',
       },
       {
         title: '2. 측정한다',
-        description: '집중·이완·몰입 상태에 따라 달라지는 뇌파(알파·세타·베타)를 실시간으로 읽습니다.',
+        description: '수면·집중·몰입 상태에 따라 달라지는 뇌파(알파·세타·베타)를 읽습니다.',
         icon: 'tabler:wave-square',
       },
       {
         title: '3. 본다',
-        description: '몰입의 깊이와 단계가 화면에 그래프로 나타납니다. 내 집중이 눈에 보입니다.',
+        description: '수면의 질과 집중의 깊이가 그래프로 나타납니다. 내 뇌 상태가 눈에 보입니다.',
         icon: 'tabler:chart-line',
       },
       {
-        title: '4. 깊어진다',
-        description: '데이터를 바탕으로 어떻게 더 깊은 몰입으로 들어갈지 안내받습니다.',
-        icon: 'tabler:arrow-down-circle',
+        title: '4. 개선한다',
+        description: '데이터를 바탕으로 수면 습관과 집중 루틴을 어떻게 바꿀지 안내받습니다.',
+        icon: 'tabler:arrow-up-circle',
       },
     ]}
-    image={{ src: '~/assets/images/flow-eeg.png', alt: '몰입 단계 측정' }}
+    image={{ src: '~/assets/images/flow-eeg.png', alt: '뇌 상태 측정' }}
   />
 
   <!-- 과학적 근거 ****************** -->
@@ -69,9 +100,15 @@ const metadata = {
   <Features
     id="science"
     tagline="과학적 근거"
-    title="몰입의 신경과학"
-    subtitle="서드브레인 EEG는 검증된 몰입 연구에 기반합니다. (3부 「몰입의 신경과학」 참고)"
+    title="수면·인지의 신경과학"
+    subtitle="서드브레인 EEG 프로젝트는 검증된 수면·몰입 연구에 기반합니다. (책 3부 참고)"
     items={[
+      {
+        title: '수면과 기억 공고화',
+        description:
+          '깊은 수면(서파수면)과 렘수면은 낮에 배운 것을 장기기억으로 굳히고 뇌를 회복시킵니다. 수면의 질이 인지의 질입니다.',
+        icon: 'tabler:moon-stars',
+      },
       {
         title: '하이포프론탈리티',
         description:
@@ -79,15 +116,9 @@ const metadata = {
         icon: 'tabler:brain',
       },
       {
-        title: '신경화학물질',
-        description:
-          '도파민·노르에피네프린·엔도르핀·아난다마이드·세로토닌 — 몰입 상태에서 분비되는 화학물질이 집중과 쾌감을 끌어올립니다.',
-        icon: 'tabler:flask',
-      },
-      {
         title: '뇌파의 변화',
         description:
-          '베타에서 알파·세타 경계로 이동하는 뇌파 패턴이 몰입의 신호입니다. EEG는 이 변화를 포착합니다.',
+          '베타에서 알파·세타로 이동하는 뇌파 패턴이 이완·집중·수면의 신호입니다. EEG는 이 변화를 포착합니다.',
         icon: 'tabler:activity',
       },
     ]}
@@ -95,21 +126,19 @@ const metadata = {
 
   <!-- 사전예약 ******************** -->
 
-  <Content id="reserve" isReversed tagline="사전예약" title="가장 먼저 경험하세요">
+  <Content id="reserve" isReversed tagline="프로젝트 사전예약" title="가장 먼저 경험하세요">
     <Fragment slot="content">
-      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-3">EEG 사전예약</h3>
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-3">EEG 프로젝트 사전예약</h3>
       <p class="mb-5">
-        서드브레인 EEG 몰입 측정은 현재 준비 중입니다. 사전예약하시면 가장 먼저 소식을 받아보고,
-        얼리버드 혜택을 안내해 드립니다.
+        EEG 수면·인지개선 프로젝트는 현재 준비 중입니다. 사전예약하시면 가장 먼저 소식을 받아보고,
+        얼리버드 혜택과 참여 안내를 드립니다.
       </p>
-      <!-- 런칭 시 Tally 폼 임베드 자리 (예: <iframe src="https://tally.so/embed/..."></iframe>) -->
-      <div
-        class="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center text-muted"
-      >
+      <!-- 런칭 시 Tally 폼 임베드 자리 -->
+      <div class="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center text-muted">
         📋 사전예약 신청 폼(Tally) 자리 — 런칭 시 연결됩니다.
       </div>
       <div class="mt-5">
-        <a class="btn btn-primary" href="#">EEG 사전예약 신청</a>
+        <a class="btn btn-primary" href="#">EEG 프로젝트 사전예약</a>
       </div>
     </Fragment>
     <Fragment slot="bg">
@@ -120,13 +149,13 @@ const metadata = {
   <!-- FAQ ************************* -->
 
   <FAQs
-    title="EEG 자주 묻는 질문"
+    title="EEG 프로젝트 자주 묻는 질문"
     tagline="FAQ"
     items={[
       {
-        title: 'EEG가 정확한가요?',
+        title: '의료기기인가요?',
         description:
-          '소비자용 EEG는 의료 진단용이 아니라 몰입·집중의 경향을 보여주는 도구입니다. 자신의 상태를 인식하고 훈련하는 데 충분히 유용합니다.',
+          '아닙니다. 소비자용 EEG는 의료 진단용이 아니라 수면·집중의 경향을 보여주는 도구입니다. 자신의 상태를 인식하고 습관을 개선하는 데 활용합니다.',
       },
       {
         title: '아프거나 위험하지 않나요?',
@@ -134,9 +163,14 @@ const metadata = {
           '전혀 아닙니다. EEG는 뇌파를 "읽기"만 합니다. 어떤 전기나 자극도 뇌에 흘려보내지 않습니다.',
       },
       {
-        title: '책이나 프로그램 없이 EEG만 쓸 수 있나요?',
+        title: '책·프로그램과 어떤 관계인가요?',
         description:
-          '가능합니다. 다만 「서드브레인」과 30일 몰입 프로그램과 함께 쓰면 측정 결과를 훨씬 잘 활용할 수 있습니다.',
+          '책과 프로그램이 "방법"이라면, EEG 프로젝트는 그 변화를 "데이터로 확인"하는 다음 단계입니다. 책만으로도 시작할 수 있습니다.',
+      },
+      {
+        title: '지금 참여할 수 있나요?',
+        description:
+          '현재는 준비 단계로 사전예약을 받고 있습니다. 예약하시면 오픈 시 가장 먼저 안내드립니다.',
       },
     ]}
   />
@@ -144,9 +178,9 @@ const metadata = {
   <!-- CTA ************************* -->
 
   <CallToAction
-    actions={[{ variant: 'primary', text: 'EEG 사전예약', href: '#reserve', icon: 'tabler:bell-ringing' }]}
+    actions={[{ variant: 'primary', text: '프로젝트 사전예약', href: '#reserve', icon: 'tabler:bell-ringing' }]}
   >
-    <Fragment slot="title">보이지 않던 몰입을, 보이게</Fragment>
-    <Fragment slot="subtitle">서드브레인 EEG의 첫 사용자가 되어보세요.</Fragment>
+    <Fragment slot="title">보이지 않던 변화를, 보이게</Fragment>
+    <Fragment slot="subtitle">EEG 수면·인지개선 프로젝트의 첫 참여자가 되어보세요.</Fragment>
   </CallToAction>
 </Layout>
