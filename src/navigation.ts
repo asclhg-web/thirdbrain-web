@@ -21,10 +21,10 @@ export const headerData = {
     { text: '자료실', href: getBlogPermalink() },
     { text: '소개', href: getPermalink('/about') },
   ],
-  // 헤더 버튼: '책 사기'를 1순위(primary)로
+  // 헤더 버튼: '책 구매'를 1순위(primary)로
   actions: [
     { text: '30일 몰입', href: TALLY_PROGRAM },
-    { text: '책 사기', href: BOOKK_URL, target: '_blank', variant: 'primary' },
+    { text: '책 구매', href: BOOKK_URL, target: '_blank', variant: 'primary' },
   ],
 };
 
@@ -36,7 +36,7 @@ export const footerData = {
         { text: '책 소개', href: getPermalink('/#book') },
         { text: '세 개의 뇌', href: getPermalink('/#features') },
         { text: '추천사', href: getPermalink('/#testimonials') },
-        { text: '책 사기', href: BOOKK_URL },
+        { text: '책 구매', href: BOOKK_URL },
       ],
     },
     {

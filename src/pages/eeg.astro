@@ -64,6 +64,23 @@ const metadata = {
     ]}
   />
 
+  <!-- 수면·집중의 뇌파 (인포그래픽) -->
+
+  <Content
+    isReversed
+    tagline="뇌파로 본다"
+    title="수면과 집중, 뇌파로 보입니다"
+    image={{ src: '~/assets/images/eeg-brainwaves.png', alt: '뇌파 변화 다이어그램' }}
+  >
+    <Fragment slot="content">
+      <p>
+        베타에서 알파·세타로 — 이완·집중·수면의 상태에 따라 뇌파가 달라집니다.
+        EEG는 이 변화를 데이터로 포착해, 지금 내 뇌가 어떤 상태인지 보여줍니다.
+      </p>
+    </Fragment>
+    <Fragment slot="bg"><div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div></Fragment>
+  </Content>
+
   <!-- 어떻게 작동하나 *************** -->
 
   <Steps
@@ -123,6 +140,37 @@ const metadata = {
       },
     ]}
   />
+
+  <!-- 신경과학 인포그래픽 ********* -->
+
+  <Content
+    isAfterContent
+    tagline="몰입의 신경화학"
+    title="집중을 끌어올리는 뇌 속 화학"
+    image={{ src: '~/assets/images/eeg-neurochemicals.png', alt: '몰입 신경화학물질 인포그래픽' }}
+  >
+    <Fragment slot="content">
+      <p>
+        도파민·노르에피네프린·엔도르핀 등 — 깊은 집중과 몰입에서 분비되는 신경화학물질이
+        수행과 쾌감을 높입니다. 좋은 수면은 이 균형의 토대가 됩니다.
+      </p>
+    </Fragment>
+    <Fragment slot="bg"><div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div></Fragment>
+  </Content>
+
+  <Content
+    isReversed
+    tagline="전전두엽의 변화"
+    title="하이포프론탈리티"
+    image={{ src: '~/assets/images/eeg-hypofrontality.png', alt: '하이포프론탈리티 다이어그램' }}
+  >
+    <Fragment slot="content">
+      <p>
+        깊은 몰입에서는 전전두엽의 과활성이 일시적으로 잦아듭니다(transient hypofrontality).
+        자의식이 옅어지고 행위에 온전히 빠져드는 상태입니다.
+      </p>
+    </Fragment>
+  </Content>
 
   <!-- 사전예약 ******************** -->
 
