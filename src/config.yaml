@@ -49,13 +49,13 @@ apps:
         index: true
 
     category:
-      isEnabled: true
+      isEnabled: false # 한글 카테고리는 별도 페이지 비활성화(슬러그 이슈). 목록·글은 정상.
       pathname: 'category' # Category main path /category/some-category, you can change this to "group" (/group/some-category)
       robots:
         index: true
 
     tag:
-      isEnabled: true
+      isEnabled: false # 한글 태그는 별도 페이지 비활성화(슬러그 이슈). 목록·글은 정상.
       pathname: 'tag' # Tag main path /tag/some-tag, you can change this to "topics" (/topics/some-category)
       robots:
         index: false

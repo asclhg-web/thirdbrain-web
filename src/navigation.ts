@@ -1,7 +1,8 @@
 import { getPermalink, getBlogPermalink } from './utils/permalinks';
+import { LINKS } from './data/links';
 
-// 외부 링크 (런칭 시 실제 주소로 교체)
-const BOOKK_URL = '#'; // 부크크 구매 링크 자리 (1순위 행동)
+// 외부 링크 (실제 주소는 src/data/links.ts 에서 관리)
+const BOOKK_URL = LINKS.bookk; // 부크크 구매 링크 (1순위 행동)
 const TALLY_PROGRAM = getPermalink('/program') + '#apply'; // 30일 몰입 신청
 const EEG_RESERVE = getPermalink('/eeg') + '#reserve'; // EEG 프로젝트 사전예약
 

@@ -11,6 +11,7 @@ import Testimonials from '~/components/widgets/Testimonials.astro';
 import FAQs from '~/components/widgets/FAQs.astro';
 import Stats from '~/components/widgets/Stats.astro';
 import CallToAction from '~/components/widgets/CallToAction.astro';
+import { LINKS } from '~/data/links';
 
 const metadata = {
   title: '서드브레인 — 세 번째 뇌를 깨워라',
@@ -26,7 +27,7 @@ const metadata = {
       {
         variant: 'primary',
         text: '책 구매',
-        href: '#',
+        href: LINKS.bookk,
         icon: 'tabler:book',
       },
       { text: '책 미리보기', href: '#book', icon: 'tabler:arrow-down' },
@@ -125,7 +126,7 @@ const metadata = {
       </ul>
       어려운 개념도 그림과 이야기로 쉽게. 읽는 동안 "아, 그래서 이렇게 하면 되는구나"가 쌓입니다.
       <div class="mt-5 flex flex-wrap gap-3">
-        <a class="btn btn-primary" href="#">📕 책 구매 (부크크)</a>
+        <a class="btn btn-primary" href={LINKS.bookk}>📕 책 구매 (부크크)</a>
         <a class="btn" href="/about">저자 이야기</a>
       </div>
     </Fragment>
@@ -134,6 +135,49 @@ const metadata = {
       <div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div>
     </Fragment>
   </Content>
+
+  <!-- 목차 미리보기 *************** -->
+
+  <section id="toc" class="px-4 py-12 sm:px-6 mx-auto max-w-6xl">
+    <div class="mb-8 text-center">
+      <p class="text-base text-secondary font-bold tracking-wide uppercase">목차 미리보기</p>
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight dark:text-white">무엇을 읽게 되나요</h2>
+      <p class="mt-2 text-muted">프롤로그부터 부록까지, 세 개의 뇌를 잇는 한 권의 흐름.</p>
+    </div>
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40">
+        <h3 class="text-xl font-bold text-accent dark:text-white mb-3">1부 · 몸경영</h3>
+        <ul class="space-y-1.5 text-muted text-sm list-disc list-inside">
+          <li>인간의 뇌</li>
+          <li>신경가소성 — 뇌는 평생 변한다</li>
+          <li>뇌와 창의성</li>
+          <li>의식·감정·예측</li>
+        </ul>
+      </div>
+      <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40">
+        <h3 class="text-xl font-bold text-accent dark:text-white mb-3">2부 · 지식경영</h3>
+        <ul class="space-y-1.5 text-muted text-sm list-disc list-inside">
+          <li>세컨드브레인의 탄생</li>
+          <li>CAPTURE · RETRIEVE · CONNECT</li>
+          <li>옵시디언 · 노션 활용</li>
+          <li>AI 통합</li>
+        </ul>
+      </div>
+      <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40">
+        <h3 class="text-xl font-bold text-accent dark:text-white mb-3">3부 · 뇌·지식·AI 융합</h3>
+        <ul class="space-y-1.5 text-muted text-sm list-disc list-inside">
+          <li>서드브레인의 탄생</li>
+          <li>몰입의 신경과학</li>
+          <li>AI와의 협업</li>
+          <li>AI 시대의 미래</li>
+        </ul>
+      </div>
+    </div>
+    <p class="mt-6 text-center text-sm text-muted">＋ 프롤로그 · 에필로그 · 부록(뇌운동과 뇌식품)</p>
+    <div class="mt-6 text-center">
+      <a class="btn btn-primary" href={LINKS.bookk}>📕 책 구매 (부크크)</a>
+    </div>
+  </section>
 
   <!-- Stats ************************ -->
 
@@ -335,7 +379,7 @@ const metadata = {
       {
         variant: 'primary',
         text: '책 구매',
-        href: '#',
+        href: LINKS.bookk,
         icon: 'tabler:book',
       },
       {
