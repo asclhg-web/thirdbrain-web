@@ -1,0 +1,100 @@
+---
+import Hero from '~/components/widgets/Hero.astro';
+import Content from '~/components/widgets/Content.astro';
+import Features3 from '~/components/widgets/Features3.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+import Layout from '~/layouts/PageLayout.astro';
+
+const metadata = {
+  title: '소개',
+  description: '서드브레인은 무엇이고, 누가 왜 썼는가. 몸·지식·AI를 잇는 새로운 뇌경영의 이야기.',
+};
+---
+
+<Layout metadata={metadata}>
+  <!-- Hero ************************** -->
+
+  <Hero
+    tagline="소개"
+    image={{ src: '~/assets/images/left-right-brain.png', alt: '좌뇌와 우뇌' }}
+  >
+    <Fragment slot="title">
+      대체되지 않는 인간의 <br />
+      <span class="text-accent dark:text-white">새로운 뇌경영</span>
+    </Fragment>
+    <Fragment slot="subtitle">
+      서드브레인은 몸(1st)·지식(2nd)·AI(3rd)를 하나로 잇는 사고의 운영체제입니다.
+      AI 시대에 인간이 더 인간다워지는 길을 제안합니다.
+    </Fragment>
+  </Hero>
+
+  <!-- 왜 서드브레인인가 ********** -->
+
+  <Content
+    isReversed
+    tagline="왜 지금인가"
+    title="AI가 대체하는 시대, 무엇이 우리를 지키는가"
+    items={[
+      {
+        title: '대체의 시대',
+        description: 'AI는 많은 일을 인간보다 빠르게 합니다. 두려움이 아니라 질문이 필요합니다 — 무엇이 인간만의 것인가?',
+      },
+      {
+        title: '곱셈의 가능성',
+        description: '몸과 지식 위에 AI를 더하면 능력은 덧셈이 아니라 곱셈으로 확장됩니다. 이것이 서드브레인입니다.',
+      },
+      {
+        title: '측정 가능한 몰입',
+        description: '몰입은 더 이상 막연하지 않습니다. EEG로 보고, 30일로 습관화합니다.',
+      },
+    ]}
+    image={{ src: '~/assets/images/multiply.png', alt: '서드브레인 곱셈의 수학' }}
+  >
+    <Fragment slot="bg">
+      <div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div>
+    </Fragment>
+  </Content>
+
+  <!-- 저자 ********************** -->
+
+  <Content tagline="저자" title="이형근" image={{ src: '~/assets/images/cover.png', alt: '서드브레인' }}>
+    <Fragment slot="content">
+      <p class="mb-4">
+        뇌과학과 생산성, AI를 융합해 "대체되지 않는 인간"의 길을 연구하고 씁니다. 「서드브레인」은
+        몸·지식·AI를 하나로 잇는 뇌경영의 실천서입니다.
+      </p>
+      <p>
+        이 책은 자기계발의 구호가 아니라, 뇌가 실제로 작동하는 원리에서 출발합니다.
+        뇌과학자 서유헌 교수의 추천을 받았습니다.
+      </p>
+    </Fragment>
+  </Content>
+
+  <!-- 세 개의 뇌 요약 ********** -->
+
+  <Features3
+    title="세 개의 뇌"
+    subtitle="서드브레인의 핵심 구조"
+    columns={3}
+    items={[
+      { title: '1st Brain · 몸', description: '신경가소성·창의성·의식. 평생 변하는 생물학적 뇌.', icon: 'tabler:brain' },
+      { title: '2nd Brain · 지식', description: '세컨드브레인으로 외부에 쌓는 기억과 지식 자산.', icon: 'tabler:database' },
+      { title: '3rd Brain · AI', description: '몸과 지식 위에 AI를 얹어 사고를 곱셈으로 확장.', icon: 'tabler:cpu' },
+    ]}
+  />
+
+  <!-- 문의 ******************** -->
+
+  <CallToAction
+    id="contact"
+    actions={[
+      { variant: 'primary', text: '30일 몰입 시작', href: '/program#apply', icon: 'tabler:flame' },
+      { text: 'EEG 사전예약', href: '/eeg#reserve' },
+    ]}
+  >
+    <Fragment slot="title">함께 시작하시겠어요?</Fragment>
+    <Fragment slot="subtitle">
+      강연·도입·협업 문의는 서드브레인 채널로 연락 주세요. (런칭 시 문의 폼이 연결됩니다.)
+    </Fragment>
+  </CallToAction>
+</Layout>

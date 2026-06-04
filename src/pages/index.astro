@@ -1,0 +1,352 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+
+import Hero from '~/components/widgets/Hero.astro';
+import Note from '~/components/widgets/Note.astro';
+import Features from '~/components/widgets/Features.astro';
+import Steps from '~/components/widgets/Steps.astro';
+import Content from '~/components/widgets/Content.astro';
+import Pricing from '~/components/widgets/Pricing.astro';
+import Testimonials from '~/components/widgets/Testimonials.astro';
+import FAQs from '~/components/widgets/FAQs.astro';
+import Stats from '~/components/widgets/Stats.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+
+const metadata = {
+  title: '서드브레인 — 세 번째 뇌를 깨워라',
+  ignoreTitleTemplate: true,
+};
+---
+
+<Layout metadata={metadata}>
+  <!-- Hero Widget ******************* -->
+
+  <Hero
+    actions={[
+      {
+        variant: 'primary',
+        text: '30일 몰입 시작',
+        href: '/program#apply',
+        icon: 'tabler:flame',
+      },
+      { text: '책 사기', href: '#book', icon: 'tabler:book' },
+    ]}
+    image={{ src: '~/assets/images/cover.png', alt: '서드브레인 책 표지' }}
+  >
+    <Fragment slot="title">
+      세 번째 뇌를 <br />
+      <span class="text-accent dark:text-white">깨워라</span>
+    </Fragment>
+
+    <Fragment slot="subtitle">
+      AI가 인간을 대체하는 것이 아니라, <span class="font-semibold">서드브레인을 가진 인간</span>이
+      그렇지 않은 인간을 대체합니다.<br class="hidden md:inline" />
+      몸·지식·AI를 하나로 잇는 새로운 인간의 뇌경영 — 「서드브레인」.
+    </Fragment>
+  </Hero>
+
+  <!-- Note Widget ******************* -->
+
+  <Note title="한 줄 약속:" description="AI 시대, 대체되지 않는 사람은 '세 번째 뇌'를 가진 사람입니다." />
+
+  <!-- Features Widget — 세 개의 뇌 *** -->
+
+  <Features
+    id="features"
+    tagline="세 개의 뇌, 하나의 시스템"
+    title="당신은 이미 두 개의 뇌를 쓰고 있습니다"
+    subtitle="첫 번째 뇌(몸)와 두 번째 뇌(지식)에, 세 번째 뇌(AI)를 연결할 때 인간의 능력은 곱셈으로 확장됩니다."
+    items={[
+      {
+        title: '1st Brain · 몸경영 (1부)',
+        description:
+          '신경가소성·창의성·의식. 평생 변하는 생물학적 뇌를 최적의 상태로 단련하는 법. 뇌는 쓰는 대로 바뀝니다.',
+        icon: 'tabler:brain',
+      },
+      {
+        title: '2nd Brain · 지식경영 (2부)',
+        description:
+          '세컨드브레인으로 외부에 기억을 쌓습니다. CAPTURE·RETRIEVE·CONNECT, 옵시디언·노션으로 흩어진 지식을 자산으로.',
+        icon: 'tabler:database',
+      },
+      {
+        title: '3rd Brain · 뇌·지식·AI 융합 (3부)',
+        description:
+          '몸과 지식 위에 AI를 얹어 사고를 증폭합니다. 몰입의 신경과학과 AI 협업으로 인간 능력을 곱셈으로 키웁니다.',
+        icon: 'tabler:cpu',
+      },
+      {
+        title: '몰입, 측정할 수 있다',
+        description:
+          'EEG로 몰입 상태를 데이터로 확인합니다. 막연한 집중이 아니라, 뇌파로 보이는 진짜 몰입.',
+        icon: 'tabler:wave-square',
+      },
+      {
+        title: '30일이면 습관이 된다',
+        description:
+          '하루 한 걸음씩, 30일 몰입 프로그램으로 서드브레인을 일상의 루틴으로 만듭니다.',
+        icon: 'tabler:calendar-stats',
+      },
+      {
+        title: '검증된 뇌과학',
+        description:
+          '서유헌 교수(대한민국 대표 뇌과학자)의 추천. 자기계발이 아니라, 뇌가 작동하는 원리에서 출발합니다.',
+        icon: 'tabler:microscope',
+      },
+    ]}
+  />
+
+  <!-- Content Widget — 책 소개 ******* -->
+
+  <Content
+    id="book"
+    isReversed
+    tagline="책 소개"
+    title="「서드브레인」 — 몸·지식·AI를 잇다"
+    items={[
+      {
+        title: '1부 · 몸경영',
+        description: '인간의 뇌, 신경가소성, 뇌와 창의성, 의식·감정·예측 — 첫 번째 뇌를 깨우는 토대.',
+      },
+      {
+        title: '2부 · 지식경영',
+        description: '세컨드브레인의 탄생, CAPTURE·RETRIEVE·CONNECT, 옵시디언·노션·AI 통합.',
+      },
+      {
+        title: '3부 · 뇌·지식·AI 융합',
+        description: '서드브레인의 탄생, 몰입의 신경과학, AI와의 협업, 그리고 AI 시대의 미래.',
+      },
+    ]}
+    image={{
+      src: '~/assets/images/cover.png',
+      alt: '서드브레인 책 표지',
+    }}
+  >
+    <Fragment slot="content">
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-2">읽고 끝나는 책이 아닙니다</h3>
+      각 부의 끝에는 바로 적용하는 실천 도구가 있습니다. 책으로 이해하고, 30일 프로그램으로 몸에 익히고,
+      EEG로 확인하세요.
+      <div class="mt-5">
+        <a class="btn btn-primary" href="#">📕 책 사기 (부크크)</a>
+      </div>
+    </Fragment>
+
+    <Fragment slot="bg">
+      <div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div>
+    </Fragment>
+  </Content>
+
+  <!-- Content Widget — EEG 미리보기 ** -->
+
+  <Content
+    id="eeg-preview"
+    isAfterContent
+    tagline="EEG · 몰입 측정"
+    title="몰입은 측정할 수 있다"
+    items={[
+      {
+        title: '어떻게 작동하나',
+        description: '간편한 EEG 밴드로 뇌파를 읽어, 몰입의 깊이와 단계를 실시간으로 보여줍니다.',
+      },
+      {
+        title: '과학적 근거',
+        description: '하이포프론탈리티, 신경화학물질, 뇌파 변화 — 몰입의 신경과학에 기반합니다.',
+      },
+    ]}
+    image={{
+      src: '~/assets/images/flow-eeg.png',
+      alt: '몰입 3단계 뇌 인포그래픽',
+    }}
+  >
+    <Fragment slot="content">
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-2">막연한 집중이 아니라, 보이는 몰입</h3>
+      "더 집중하라"는 말은 이제 그만. 서드브레인 EEG는 당신의 몰입을 데이터로 보여주고,
+      어떻게 더 깊이 들어갈지 안내합니다.
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a class="btn btn-primary" href="/eeg#reserve">🔔 EEG 사전예약</a>
+        <a class="btn" href="/eeg">자세히 보기</a>
+      </div>
+    </Fragment>
+
+    <Fragment slot="bg">
+      <div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div>
+    </Fragment>
+  </Content>
+
+  <!-- Steps Widget — 30일 몰입 흐름 ** -->
+
+  <Steps
+    id="program-flow"
+    title="서드브레인이 만들어지는 30일"
+    items={[
+      {
+        title: '1주차: <span class="font-medium">몸을 깨운다</span>',
+        description: '신경가소성의 원리를 이해하고, 뇌를 최적 상태로 만드는 루틴을 시작합니다.',
+        icon: 'tabler:run',
+      },
+      {
+        title: '2주차: <span class="font-medium">지식을 쌓는다</span>',
+        description: '세컨드브레인(옵시디언·노션)으로 흩어진 정보를 나만의 지식 자산으로 만듭니다.',
+        icon: 'tabler:notebook',
+      },
+      {
+        title: '3주차: <span class="font-medium">AI를 잇는다</span>',
+        description: 'AI 협업으로 사고를 증폭합니다. 세 번째 뇌가 작동하기 시작합니다.',
+        icon: 'tabler:cpu',
+      },
+      {
+        title: '4주차: <span class="font-medium">몰입을 측정한다</span>',
+        description: 'EEG로 몰입을 확인하며 루틴을 내 것으로 정착시킵니다.',
+        icon: 'tabler:wave-square',
+      },
+      {
+        title: '서드브레인 완성!',
+        icon: 'tabler:check',
+      },
+    ]}
+    image={{
+      src: '~/assets/images/multiply.png',
+      alt: '서드브레인 곱셈의 수학',
+    }}
+  />
+
+  <!-- Stats Widget ****************** -->
+
+  <Stats
+    stats={[
+      { title: '부', amount: '3' },
+      { title: '핵심 개념', amount: '15+' },
+      { title: '실천 도표', amount: '64' },
+      { title: '몰입 프로그램', amount: '30일' },
+    ]}
+  />
+
+  <!-- Pricing Widget — 프로그램 ****** -->
+
+  <Pricing
+    id="pricing"
+    title="어떻게 시작할까요?"
+    subtitle="책으로 시작해, 프로그램으로 몸에 익히세요."
+    prices={[
+      {
+        title: '서드브레인 부트캠프',
+        subtitle: '집중 워크숍으로 빠르게 시작',
+        price: '사전문의',
+        period: '오프라인 / 온라인',
+        items: [
+          { description: '핵심 개념 집중 강의' },
+          { description: '세컨드브레인 셋업 실습' },
+          { description: 'AI 협업 워크플로 구축' },
+          { description: '소수 정예 그룹 코칭' },
+        ],
+        callToAction: { text: '부트캠프 문의', href: '/program#bootcamp' },
+      },
+      {
+        title: '30일 몰입 프로그램',
+        subtitle: '하루 한 걸음, 습관이 되는 30일',
+        price: '오픈예정',
+        period: '4주 온라인 프로그램',
+        items: [
+          { description: '몸 → 지식 → AI → 몰입 4주 커리큘럼' },
+          { description: '매일 실천 미션과 체크리스트' },
+          { description: 'EEG 몰입 측정 연계 (옵션)' },
+          { description: '커뮤니티와 함께하는 성찰' },
+        ],
+        callToAction: { text: '30일 몰입 신청', href: '/program#apply' },
+        hasRibbon: true,
+        ribbonTitle: '추천',
+      },
+    ]}
+  />
+
+  <!-- Testimonials Widget *********** -->
+
+  <Testimonials
+    id="testimonials"
+    title="먼저 만난 사람들의 이야기"
+    subtitle="서드브레인을 경험한 분들의 목소리입니다. (일부는 출간 전 추천사입니다.)"
+    testimonials={[
+      {
+        testimonial:
+          '뇌과학의 최신 통찰을 일과 삶에 연결한 보기 드문 책이다. 몸·지식·AI를 하나로 잇는 관점이 신선하다.',
+        name: '서유헌 교수',
+        job: '뇌과학자 · 추천사',
+      },
+      {
+        testimonial:
+          '세컨드브레인까지는 들어봤지만, 거기에 AI를 얹는 "세 번째 뇌"라는 틀이 머릿속을 정리해 주었다.',
+        name: '독자 A',
+        job: '지식노동자',
+      },
+      {
+        testimonial:
+          'EEG로 내 몰입을 처음 "봤을" 때의 충격. 집중이 막연한 의지가 아니라 다룰 수 있는 데이터가 되었다.',
+        name: '독자 B',
+        job: '30일 프로그램 참여자',
+      },
+    ]}
+  />
+
+  <!-- FAQs Widget ******************* -->
+
+  <FAQs
+    id="faq"
+    title="자주 묻는 질문"
+    subtitle="「서드브레인」과 프로그램·EEG에 대해 궁금한 점을 모았습니다."
+    tagline="FAQ"
+    classes={{ container: 'max-w-6xl' }}
+    items={[
+      {
+        title: '서드브레인이 정확히 무엇인가요?',
+        description:
+          '첫 번째 뇌(생물학적 뇌·몸)와 두 번째 뇌(세컨드브레인·외부 지식) 위에, 세 번째 뇌(AI)를 연결해 사고를 곱셈으로 확장하는 개념입니다.',
+      },
+      {
+        title: '뇌과학이나 IT를 몰라도 읽을 수 있나요?',
+        description:
+          '네. 전공 지식 없이도 따라올 수 있도록 핵심부터 쉽게 풀었고, 옵시디언·노션·AI 활용법도 단계별로 안내합니다.',
+      },
+      {
+        title: '30일 몰입 프로그램은 무엇인가요?',
+        description:
+          '책의 내용을 4주(몸 → 지식 → AI → 몰입)에 걸쳐 매일 작은 미션으로 실천하는 온라인 프로그램입니다. 현재 오픈 준비 중이며 사전신청을 받습니다.',
+      },
+      {
+        title: 'EEG 몰입 측정은 꼭 필요한가요?',
+        description:
+          '필수는 아닙니다. 다만 자신의 몰입 상태를 데이터로 확인하고 싶다면 EEG가 큰 도움이 됩니다. 현재 사전예약을 받고 있습니다.',
+      },
+      {
+        title: '책은 어디서 살 수 있나요?',
+        description:
+          '부크크(POD)를 통해 구매할 수 있습니다. 상단의 "책 사기" 버튼으로 연결됩니다. (링크는 출간 시 활성화됩니다.)',
+      },
+    ]}
+  />
+
+  <!-- CallToAction Widget *********** -->
+
+  <CallToAction
+    id="cta"
+    actions={[
+      {
+        variant: 'primary',
+        text: '30일 몰입 시작',
+        href: '/program#apply',
+        icon: 'tabler:flame',
+      },
+      {
+        text: 'EEG 사전예약',
+        href: '/eeg#reserve',
+        icon: 'tabler:bell-ringing',
+      },
+    ]}
+  >
+    <Fragment slot="title">세 번째 뇌, 지금 깨우세요</Fragment>
+
+    <Fragment slot="subtitle">
+      대체되는 사람이 아니라, 대체할 수 없는 사람으로.<br class="hidden md:inline" />
+      서드브레인의 여정을 함께 시작합니다.
+    </Fragment>
+  </CallToAction>
+</Layout>

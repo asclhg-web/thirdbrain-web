@@ -1,0 +1,49 @@
+---
+// 서드브레인 브랜드 폰트: Pretendard (한글 가독성 최적)
+// 폰트는 tailwind.css 상단의 @import (CDN)로 불러옵니다.
+---
+
+<style is:inline>
+  :root {
+    /* 한글 우선 — Pretendard, 영문/숫자도 동일 폰트로 자연스럽게 */
+    --aw-font-sans: 'Pretendard Variable';
+    --aw-font-serif: 'Pretendard Variable';
+    --aw-font-heading: 'Pretendard Variable';
+
+    /* 서드브레인 팔레트 */
+    --aw-color-primary: rgb(194 107 74); /* 테라코타 #C26B4A — 버튼·강조 */
+    --aw-color-secondary: rgb(168 86 56); /* 진한 테라코타 #A85638 — hover */
+    --aw-color-accent: rgb(31 42 68); /* 딥네이비 #1F2A44 — 강조 텍스트 */
+
+    --aw-color-text-heading: rgb(31 42 68); /* 딥네이비 — 제목 */
+    --aw-color-text-default: rgb(42 48 64); /* 본문 */
+    --aw-color-text-muted: rgb(31 42 68 / 66%);
+    --aw-color-bg-page: rgb(250 243 233); /* 크림 #FAF3E9 — 배경 */
+
+    --aw-color-bg-page-dark: rgb(23 31 51); /* 더 깊은 네이비 */
+
+    ::selection {
+      background-color: rgb(194 107 74 / 25%);
+    }
+  }
+
+  .dark {
+    --aw-font-sans: 'Pretendard Variable';
+    --aw-font-serif: 'Pretendard Variable';
+    --aw-font-heading: 'Pretendard Variable';
+
+    --aw-color-primary: rgb(212 130 99); /* 다크모드: 살짝 밝은 테라코타 */
+    --aw-color-secondary: rgb(194 107 74);
+    --aw-color-accent: rgb(232 180 120); /* 따뜻한 골드 액센트 */
+
+    --aw-color-text-heading: rgb(250 243 233); /* 크림 */
+    --aw-color-text-default: rgb(231 226 216);
+    --aw-color-text-muted: rgb(231 226 216 / 66%);
+    --aw-color-bg-page: rgb(23 31 51);
+
+    ::selection {
+      background-color: rgb(212 130 99 / 30%);
+      color: snow;
+    }
+  }
+</style>

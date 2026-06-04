@@ -1,0 +1,72 @@
+site:
+  name: 서드브레인
+  site: 'https://www.thirdbrain.kr'
+  base: '/'
+  trailingSlash: false
+
+  googleSiteVerificationId: ''
+
+# Default SEO metadata
+metadata:
+  title:
+    default: 서드브레인 — 세 번째 뇌를 깨워라
+    template: '%s — 서드브레인'
+  description: "🧠 몸·지식·AI를 하나로 잇는 새로운 인간의 뇌경영. AI가 인간을 대체하는 것이 아니라, 서드브레인을 가진 인간이 그렇지 않은 인간을 대체합니다. 신경가소성·몰입·세컨드브레인·AI 융합까지 — 책과 30일 몰입 프로그램, EEG 몰입 측정."
+  robots:
+    index: true
+    follow: true
+  openGraph:
+    site_name: 서드브레인
+    images:
+      - url: '~/assets/images/default.png'
+        width: 1200
+        height: 628
+    type: website
+  twitter:
+    handle: ''
+    site: ''
+    cardType: summary_large_image
+
+i18n:
+  language: ko
+  textDirection: ltr
+
+apps:
+  blog:
+    isEnabled: true
+    postsPerPage: 6
+
+    post:
+      isEnabled: true
+      permalink: '/%slug%' # Variables: %slug%, %year%, %month%, %day%, %hour%, %minute%, %second%, %category%
+      robots:
+        index: true
+
+    list:
+      isEnabled: true
+      pathname: 'blog' # Blog main path, you can change this to "articles" (/articles)
+      robots:
+        index: true
+
+    category:
+      isEnabled: true
+      pathname: 'category' # Category main path /category/some-category, you can change this to "group" (/group/some-category)
+      robots:
+        index: true
+
+    tag:
+      isEnabled: true
+      pathname: 'tag' # Tag main path /tag/some-tag, you can change this to "topics" (/topics/some-category)
+      robots:
+        index: false
+
+    isRelatedPostsEnabled: true
+    relatedPostsCount: 4
+
+analytics:
+  vendors:
+    googleAnalytics:
+      id: null # or "G-XXXXXXXXXX"
+
+ui:
+  theme: 'light' # 크림 배경의 따뜻한 톤을 기본으로 (다크 토글 유지). Values: "system" | "light" | "dark" | "light:only" | "dark:only"

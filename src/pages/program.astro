@@ -1,0 +1,148 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+
+import Hero from '~/components/widgets/Hero.astro';
+import Steps from '~/components/widgets/Steps.astro';
+import Pricing from '~/components/widgets/Pricing.astro';
+import Content from '~/components/widgets/Content.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+
+const metadata = {
+  title: '프로그램 · 30일 몰입 & 부트캠프',
+  description: '책으로 이해하고, 프로그램으로 몸에 익힙니다. 서드브레인 30일 몰입 프로그램과 부트캠프.',
+};
+---
+
+<Layout metadata={metadata}>
+  <!-- Hero ************************** -->
+
+  <Hero
+    actions={[
+      { variant: 'primary', text: '30일 몰입 신청', href: '#apply', icon: 'tabler:flame' },
+      { text: '부트캠프 문의', href: '#bootcamp' },
+    ]}
+    image={{ src: '~/assets/images/multiply.png', alt: '서드브레인 곱셈의 수학' }}
+  >
+    <Fragment slot="title">
+      읽는 데서 끝내지 않습니다 <br />
+      <span class="text-accent dark:text-white">몸에 익힙니다</span>
+    </Fragment>
+    <Fragment slot="subtitle">
+      서드브레인은 개념이 아니라 습관입니다. 30일 몰입 프로그램과 부트캠프로
+      몸·지식·AI를 하나로 잇는 루틴을 만듭니다.
+    </Fragment>
+  </Hero>
+
+  <!-- 30일 커리큘럼 *************** -->
+
+  <Steps
+    id="thirty"
+    title="30일 몰입 프로그램 — 4주 커리큘럼"
+    tagline="30-Day Flow"
+    items={[
+      {
+        title: '1주차 · 몸을 깨운다',
+        description: '신경가소성의 원리와 뇌 최적화 루틴. 첫 번째 뇌를 단련하는 한 주.',
+        icon: 'tabler:run',
+      },
+      {
+        title: '2주차 · 지식을 쌓는다',
+        description: '세컨드브레인 셋업(옵시디언·노션). CAPTURE·RETRIEVE·CONNECT를 매일 실천합니다.',
+        icon: 'tabler:notebook',
+      },
+      {
+        title: '3주차 · AI를 잇는다',
+        description: 'AI 협업 워크플로 구축. 세 번째 뇌로 사고를 증폭하는 훈련.',
+        icon: 'tabler:cpu',
+      },
+      {
+        title: '4주차 · 몰입을 측정한다',
+        description: 'EEG 연계로 몰입을 확인하고, 30일의 루틴을 내 것으로 정착시킵니다.',
+        icon: 'tabler:wave-square',
+      },
+      { title: '서드브레인 완성!', icon: 'tabler:check' },
+    ]}
+    image={{ src: '~/assets/images/flow-eeg.png', alt: '몰입 단계' }}
+  />
+
+  <!-- 가격 / 신청 ***************** -->
+
+  <Pricing
+    id="apply"
+    title="프로그램 선택"
+    subtitle="목표와 일정에 맞게 선택하세요. (현재 사전신청 단계입니다.)"
+    prices={[
+      {
+        title: '서드브레인 부트캠프',
+        subtitle: '집중 워크숍으로 빠르게',
+        price: '사전문의',
+        period: '오프라인 / 온라인',
+        items: [
+          { description: '핵심 개념 집중 강의' },
+          { description: '세컨드브레인 셋업 실습' },
+          { description: 'AI 협업 워크플로 구축' },
+          { description: '소수 정예 그룹 코칭' },
+        ],
+        callToAction: { text: '부트캠프 문의', href: '#bootcamp' },
+      },
+      {
+        title: '30일 몰입 프로그램',
+        subtitle: '하루 한 걸음, 습관이 되는 30일',
+        price: '오픈예정',
+        period: '4주 온라인',
+        items: [
+          { description: '몸 → 지식 → AI → 몰입 4주 커리큘럼' },
+          { description: '매일 실천 미션과 체크리스트' },
+          { description: 'EEG 몰입 측정 연계 (옵션)' },
+          { description: '커뮤니티 성찰 모임' },
+        ],
+        callToAction: { text: '30일 몰입 사전신청', href: '#apply-form' },
+        hasRibbon: true,
+        ribbonTitle: '추천',
+      },
+    ]}
+  />
+
+  <!-- 신청 폼 ******************** -->
+
+  <Content id="apply-form" isReversed tagline="사전신청" title="지금 사전신청하세요">
+    <Fragment slot="content">
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-3">30일 몰입 사전신청</h3>
+      <p class="mb-5">
+        프로그램이 열리면 가장 먼저 안내받고, 얼리버드 혜택을 드립니다.
+        아래 폼으로 신청해 주세요.
+      </p>
+      <!-- 런칭 시 Tally 폼 임베드 자리 -->
+      <div class="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center text-muted">
+        📋 사전신청 폼(Tally) 자리 — 런칭 시 연결됩니다.
+      </div>
+    </Fragment>
+    <Fragment slot="bg">
+      <div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div>
+    </Fragment>
+  </Content>
+
+  <!-- 부트캠프 문의 ************** -->
+
+  <Content id="bootcamp" title="부트캠프 문의" tagline="Bootcamp">
+    <Fragment slot="content">
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-3">서드브레인 부트캠프</h3>
+      <p class="mb-5">
+        기업·기관·소그룹을 위한 집중 워크숍입니다. 일정과 인원에 맞춰 맞춤형으로 진행합니다.
+        도입 문의는 아래로 연락 주세요.
+      </p>
+      <div class="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center text-muted">
+        📋 부트캠프 문의 폼(Tally) 자리 — 런칭 시 연결됩니다.
+      </div>
+    </Fragment>
+  </Content>
+
+  <!-- CTA ************************* -->
+
+  <CallToAction
+    actions={[{ variant: 'primary', text: '30일 몰입 사전신청', href: '#apply-form', icon: 'tabler:flame' }]}
+  >
+    <Fragment slot="title">습관이 되는 30일을 시작하세요</Fragment>
+    <Fragment slot="subtitle">읽는 사람에서, 사는 사람으로.</Fragment>
+  </CallToAction>
+</Layout>
