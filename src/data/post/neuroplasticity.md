@@ -2,7 +2,7 @@
 publishDate: 2026-06-03T00:00:00Z
 title: 신경가소성 — 뇌는 평생 변한다
 excerpt: '"성인의 뇌는 굳어 있다"는 건 옛말입니다. 쓰는 대로 회로가 바뀌는 신경가소성의 원리와, 첫 번째 뇌를 단련하는 일상의 방법.'
-image: '~/assets/images/cover.png'
+image: '~/assets/images/cover.jpg'
 category: 뇌과학
 tags:
   - 신경가소성
