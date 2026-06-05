@@ -183,6 +183,37 @@ const metadata = {
     </Fragment>
   </Content>
 
+  <!-- 장별 자세히 읽기 (전문) *** -->
+
+  <section class="px-4 py-12 sm:px-6 mx-auto max-w-5xl">
+    <div class="mb-8 text-center">
+      <p class="text-base text-secondary font-bold tracking-wide uppercase">원고 전문</p>
+      <h2 class="text-3xl font-bold tracking-tight dark:text-white">장별로 자세히 읽기</h2>
+      <p class="mt-2 text-muted">부록 원고 6개 장의 전문을 블로그에서 읽을 수 있습니다.</p>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2">
+      {
+        [
+          { n: '1장', t: '수면과 꿈, 글림프 시스템의 발견', d: '수면 중 뇌의 청소 · 매튜 워커 · 70세 수면 전략', href: '/appendix-1-sleep' },
+          { n: '2장', t: '뇌 운동, BDNF의 분비를 깨우는 길', d: 'HIIT·저강도·근력 3축 운동과 70세의 균형', href: '/appendix-2-exercise' },
+          { n: '3장', t: '명상, 멍때리기, 복식 호흡', d: '8주가 바꾸는 뇌 · 명상 4종류 · 4-4-8 호흡', href: '/appendix-3-meditation' },
+          { n: '4장', t: '뇌 식품, 매일 먹는 음식의 진실', d: '장-뇌 축 · 7가지 식품 · 아침 주스 레시피', href: '/appendix-4-food' },
+          { n: '5장', t: '치매·파킨슨·뇌졸중의 예방', d: '12가지 위험요인 · 7단계 예방 · 오토파지', href: '/appendix-5-prevention' },
+          { n: '6장', t: '통합 — 70세의 표준 하루', d: '모든 권고를 하나의 하루로', href: '/appendix-6-routine' },
+        ].map((c) => (
+          <a
+            href={c.href}
+            class="block p-5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40 hover:border-primary transition"
+          >
+            <div class="text-sm font-bold text-secondary mb-1">{c.n}</div>
+            <div class="text-lg font-bold text-accent dark:text-white mb-1">{c.t}</div>
+            <div class="text-sm text-muted">{c.d}</div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
   <!-- CTA ******************** -->
 
   <CallToAction
