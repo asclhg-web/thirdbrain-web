@@ -1,0 +1,57 @@
+# Pages CMS 설정 (app.pagescms.org)
+# 워드프레스식 관리 화면에서 블로그 글과 홈 문구를 편집합니다.
+
+media:
+  input: src/assets/images # 업로드된 이미지가 저장되는 폴더
+  output: ~/assets/images # 콘텐츠에 기록되는 이미지 경로(아스트로 규칙)
+
+content:
+  # 1) 블로그 글 — 추가/수정/삭제
+  - name: posts
+    label: 블로그 글
+    type: collection
+    path: src/data/post
+    # 파일명은 자동(날짜시간)으로 생성 → 주소(슬러그) 안정화
+    filename: '{year}{month}{day}{hour}{minute}{second}.md'
+    view:
+      fields: [title, publishDate, category]
+    fields:
+      - { name: title, label: 제목, type: string }
+      - { name: publishDate, label: 발행일, type: date }
+      - { name: excerpt, label: 요약(목록에 보이는 설명), type: text }
+      - { name: category, label: 카테고리, type: string }
+      - { name: tags, label: 태그, type: string, list: true }
+      - { name: image, label: 대표 이미지, type: image }
+      - { name: author, label: 저자, type: string }
+      - { name: body, label: 본문, type: rich-text }
+
+  # 2) 홈 화면 주요 문구 — 코드 없이 편집
+  - name: home
+    label: 홈 화면 문구
+    type: file
+    path: src/data/home.json
+    fields:
+      - name: hero
+        label: 맨 위(히어로)
+        type: object
+        fields:
+          - { name: titleLine1, label: 큰 제목 1줄, type: string }
+          - { name: titleLine2, label: 큰 제목 2줄(강조색), type: string }
+          - { name: subtitle, label: 부제 설명, type: text }
+          - { name: primaryButton, label: 메인 버튼 글자, type: string }
+      - { name: promiseTitle, label: 약속 한줄 제목, type: string }
+      - { name: promise, label: 약속 한줄 문구, type: string }
+      - name: book
+        label: 책 소개
+        type: object
+        fields:
+          - { name: title, label: 제목, type: string }
+          - { name: recommendIntro, label: 추천 소제목, type: string }
+          - { name: recommend, label: 추천 대상(목록), type: string, list: true }
+          - { name: closing, label: 마무리 문구, type: text }
+      - name: links
+        label: 링크
+        type: object
+        fields:
+          - { name: bookk, label: 부크크 구매 링크(URL), type: string }
+          - { name: stibee, label: 뉴스레터 링크(URL), type: string }
