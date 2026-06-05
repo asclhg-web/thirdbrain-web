@@ -39,6 +39,7 @@ content:
           - { name: titleLine2, label: 큰 제목 2줄(강조색), type: string }
           - { name: subtitle, label: 부제 설명, type: text }
           - { name: primaryButton, label: 메인 버튼 글자, type: string }
+          - { name: releaseNote, label: 출간 예정 표시(버튼 아래), type: string }
       - { name: promiseTitle, label: 약속 한줄 제목, type: string }
       - { name: promise, label: 약속 한줄 문구, type: string }
       - name: book
@@ -53,5 +54,5 @@ content:
         label: 링크
         type: object
         fields:
-          - { name: bookk, label: 부크크 구매 링크(URL), type: string }
+          - { name: bookk, label: 교보문고 구매 링크(URL), type: string }
           - { name: stibee, label: 뉴스레터 링크(URL), type: string }

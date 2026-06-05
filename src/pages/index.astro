@@ -33,6 +33,7 @@ const metadata = {
       },
       { text: '책 미리보기', href: '#book', icon: 'tabler:arrow-down' },
     ]}
+    content={`<div class="mt-5 text-base font-semibold text-secondary dark:text-amber-300">${home.hero.releaseNote}</div>`}
     image={{ src: '~/assets/images/cover.jpg', alt: '서드브레인 책 표지' }}
   >
     <Fragment slot="title">
@@ -121,7 +122,7 @@ const metadata = {
       </ul>
       {home.book.closing}
       <div class="mt-5 flex flex-wrap gap-3">
-        <a class="btn btn-primary" href={LINKS.bookk}>📕 책 구매 (부크크)</a>
+        <a class="btn btn-primary" href={LINKS.bookk}>📕 책 구매 (교보문고)</a>
         <a class="btn" href="/about">저자 이야기</a>
       </div>
     </Fragment>
@@ -168,9 +169,11 @@ const metadata = {
         </ul>
       </div>
     </div>
-    <p class="mt-6 text-center text-sm text-muted">＋ 프롤로그 · 에필로그 · 부록(뇌운동과 뇌식품)</p>
+    <p class="mt-6 text-center text-sm text-muted">
+      ＋ 프롤로그 · 에필로그 · <a class="underline hover:text-primary" href="/appendix">부록 — 뇌운동과 뇌영양식품</a>
+    </p>
     <div class="mt-6 text-center">
-      <a class="btn btn-primary" href={LINKS.bookk}>📕 책 구매 (부크크)</a>
+      <a class="btn btn-primary" href={LINKS.bookk}>📕 책 구매 (교보문고)</a>
     </div>
   </section>
 
@@ -216,14 +219,14 @@ const metadata = {
   <!-- ② 부록 · 실천 프로그램 ****** -->
 
   <Note
-    title="부록 · 책을 삶으로:"
+    title="함께하면 좋은:"
     description="책을 읽었다면, 함께하면 좋은 실천 프로그램 — 부트캠프와 30일 몰입."
   />
 
   <Steps
     id="program-flow"
-    title="부록 ① 서드브레인이 만들어지는 30일"
-    tagline="부록 · 실천 프로그램"
+    title="실천 ① 서드브레인이 만들어지는 30일"
+    tagline="실천 프로그램"
     items={[
       {
         title: '1주차: <span class="font-medium">몸을 깨운다</span>',
@@ -258,7 +261,7 @@ const metadata = {
 
   <Pricing
     id="pricing"
-    title="부록 ② 함께하면 좋은 프로그램"
+    title="실천 ② 함께하면 좋은 프로그램"
     subtitle="책으로 시작해, 프로그램으로 몸에 익히세요. (현재 사전신청 단계)"
     prices={[
       {
@@ -351,12 +354,12 @@ const metadata = {
       {
         title: '책은 어디서 살 수 있나요?',
         description:
-          '부크크(POD)를 통해 구매할 수 있습니다. 상단의 "책 구매" 버튼으로 연결됩니다. (링크는 출간 시 활성화됩니다.)',
+          '교보문고를 통해 구매할 수 있습니다. 상단의 "책 구매" 버튼으로 연결됩니다. 2026년 7월 10일 출간 예정입니다.',
       },
       {
         title: '프로그램(부트캠프·30일)은 꼭 들어야 하나요?',
         description:
-          '아닙니다. 책만으로도 충분합니다. 프로그램은 책 내용을 함께 실천하고 싶은 분을 위한 부록입니다. 현재 사전신청을 받습니다.',
+          '아닙니다. 책만으로도 충분합니다. 프로그램은 책 내용을 함께 실천하고 싶은 분을 위한 선택 과정입니다. 현재 사전신청을 받습니다.',
       },
       {
         title: 'EEG 프로젝트는 무엇인가요?',

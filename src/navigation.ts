@@ -1,13 +1,13 @@
 import { getPermalink, getBlogPermalink } from './utils/permalinks';
 import { LINKS } from './data/links';
 
-// 외부 링크 (실제 주소는 src/data/links.ts 에서 관리)
-const BOOKK_URL = LINKS.bookk; // 부크크 구매 링크 (1순위 행동)
+// 외부 링크 (실제 주소는 src/data/links.ts / home.json 에서 관리)
+const BOOKK_URL = LINKS.bookk; // 교보문고 구매 링크 (1순위 행동)
 const TALLY_PROGRAM = getPermalink('/program') + '#apply'; // 30일 몰입 신청
 const EEG_RESERVE = getPermalink('/eeg') + '#reserve'; // EEG 프로젝트 사전예약
 
 export const headerData = {
-  // 우선순위 순서: 책 → 프로그램(부록) → EEG(프로젝트)
+  // 구성: 홈 · 책 소개 · 프로그램 · EEG 프로젝트 · 뇌건강 부록 · 블로그 · 소개
   links: [
     { text: '홈', href: getPermalink('/') },
     { text: '책 소개', href: getPermalink('/#book') },
@@ -19,6 +19,7 @@ export const headerData = {
       ],
     },
     { text: 'EEG 프로젝트', href: getPermalink('/eeg') },
+    { text: '뇌건강 부록', href: getPermalink('/appendix') },
     { text: '블로그', href: getBlogPermalink() },
     { text: '소개', href: getPermalink('/about') },
   ],
@@ -41,7 +42,7 @@ export const footerData = {
       ],
     },
     {
-      title: '부록 · 프로그램',
+      title: '실천 프로그램',
       links: [
         { text: '30일 몰입 프로그램', href: getPermalink('/program') + '#thirty' },
         { text: '서드브레인 부트캠프', href: getPermalink('/program') + '#bootcamp' },
@@ -49,10 +50,10 @@ export const footerData = {
       ],
     },
     {
-      title: 'EEG 프로젝트',
+      title: '더 보기',
       links: [
         { text: 'EEG 수면·인지개선', href: getPermalink('/eeg') },
-        { text: '프로젝트 사전예약', href: EEG_RESERVE },
+        { text: '뇌건강 부록(뇌운동·뇌영양)', href: getPermalink('/appendix') },
         { text: '블로그', href: getBlogPermalink() },
         { text: '소개', href: getPermalink('/about') },
       ],
