@@ -2,7 +2,7 @@
 publishDate: 2026-06-13T00:00:00Z
 title: '부록 4장 — 뇌 식품, 매일 먹는 음식의 한 진실'
 excerpt: 장-뇌 축의 발견과 2026년의 7가지 핵심 뇌 식품, 한식 한 끼가 세계 최고의 뇌 식단인 이유, 그리고 저자의 70세 아침 주스 레시피.
-image: '~/assets/images/cover.jpg'
+image: '~/assets/images/biological-brain.jpg'
 category: 뇌건강 부록
 tags:
   - 뇌식품
