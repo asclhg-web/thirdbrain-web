@@ -19,7 +19,7 @@ export const headerData = {
       ],
     },
     { text: 'EEG 프로젝트', href: getPermalink('/eeg') },
-    { text: '자료실', href: getBlogPermalink() },
+    { text: '블로그', href: getBlogPermalink() },
     { text: '소개', href: getPermalink('/about') },
   ],
   // 헤더 버튼: '책 구매'를 1순위(primary)로
@@ -53,7 +53,7 @@ export const footerData = {
       links: [
         { text: 'EEG 수면·인지개선', href: getPermalink('/eeg') },
         { text: '프로젝트 사전예약', href: EEG_RESERVE },
-        { text: '자료실', href: getBlogPermalink() },
+        { text: '블로그', href: getBlogPermalink() },
         { text: '소개', href: getPermalink('/about') },
       ],
     },

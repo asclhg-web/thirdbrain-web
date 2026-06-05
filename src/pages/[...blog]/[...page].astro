@@ -24,7 +24,7 @@ const currentPage = page.currentPage ?? 1;
 // const allTags = await findTags();
 
 const metadata = {
-  title: `자료실${currentPage > 1 ? ` — ${currentPage}페이지` : ''}`,
+  title: `블로그${currentPage > 1 ? ` — ${currentPage}페이지` : ''}`,
   robots: {
     index: blogListRobots?.index && currentPage === 1,
     follow: blogListRobots?.follow,
@@ -40,7 +40,7 @@ const metadata = {
     <Headline
       subtitle="서드브레인의 뇌과학·지식경영·AI 활용 인사이트. 책에 다 담지 못한 이야기와 실천 팁을 나눕니다."
     >
-      자료실
+      블로그
     </Headline>
     <BlogList posts={page.data} />
     <Pagination prevUrl={page.url.prev} nextUrl={page.url.next} />

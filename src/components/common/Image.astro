@@ -87,7 +87,7 @@ const aspectRatio = w && h ? w / h : undefined;
 // --- Layout → inline style mapping -----------------------------------------
 const px = (v?: number) => (v == null ? undefined : `${v}px`);
 const declarations: Array<[string, string | undefined]> = [
-  ['object-fit', 'cover'],
+  ['object-fit', 'contain'], // 전체 그림이 잘리지 않고 보이도록 (서드브레인: 인포그래픽/표지 전체 노출)
   ['object-position', 'center'],
 ];
 
