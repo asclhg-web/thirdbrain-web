@@ -9,7 +9,7 @@
   "promiseTitle": "이 책 한 권:",
   "promise": "AI 시대, 대체되지 않는 사람이 되는 가장 쉬운 시작.",
   "book": {
-    "title": "「서드브레인」 — 몸·지식·AI를 잇다",
+    "title": "「서드브레인」 — 몸(1st Brain)+지식(2st Brain)+AI(좌뇌)+몰입(우뇌)를 융합",
     "recommendIntro": "이런 분께 추천합니다",
     "recommend": [
       "AI 시대에 '나는 무엇을 해야 하나' 막막한 분",
@@ -21,6 +21,5 @@
   "links": {
     "bookk": "#",
     "stibee": "#"
-  },
-  "kakaoJsKey": ""
+  }
 }
