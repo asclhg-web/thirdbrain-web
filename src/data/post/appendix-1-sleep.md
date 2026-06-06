@@ -2,7 +2,7 @@
 publishDate: 2026-06-10T00:00:00Z
 title: '부록 1장 — 수면과 꿈, 글림프 시스템의 발견'
 excerpt: 수면 중 뇌는 자기 자신을 청소합니다. 글림프 시스템의 발견과 매튜 워커의 수면 과학, 그리고 70세의 깊은 수면을 위한 다섯 가지 전략.
-image: '~/assets/images/dmn.jpg'
+image: '~/assets/images/sleep-melatonin.png'
 category: 뇌건강 부록
 tags:
   - 수면

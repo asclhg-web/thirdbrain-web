@@ -19,7 +19,7 @@ export const headerData = {
       ],
     },
     { text: 'EEG 프로젝트', href: getPermalink('/eeg') },
-    { text: '뇌건강 부록', href: getPermalink('/appendix') },
+    { text: '뇌건강', href: getPermalink('/appendix') },
     { text: '블로그', href: getBlogPermalink() },
     { text: '소개', href: getPermalink('/about') },
   ],
@@ -53,7 +53,7 @@ export const footerData = {
       title: '더 보기',
       links: [
         { text: 'EEG 수면·인지개선', href: getPermalink('/eeg') },
-        { text: '뇌건강 부록(뇌운동·뇌영양)', href: getPermalink('/appendix') },
+        { text: '뇌건강(뇌운동·뇌영양)', href: getPermalink('/appendix') },
         { text: '블로그', href: getBlogPermalink() },
         { text: '소개', href: getPermalink('/about') },
       ],
