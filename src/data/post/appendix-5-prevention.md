@@ -2,7 +2,7 @@
 publishDate: 2026-06-14T00:00:00Z
 title: '부록 5장 — 뇌혈관과 뇌 단백질, 치매·파킨슨·뇌졸중의 예방'
 excerpt: 알츠하이머 위험의 80%는 생활습관이 결정합니다. 12가지 위험요인과 7단계 예방, 파킨슨·뇌졸중 대비, 그리고 노벨상이 밝힌 오토파지(간헐적 단식).
-image: '~/assets/images/neuron-synapse.jpg'
+image: '~/assets/images/prevention.png'
 category: 뇌건강 부록
 tags:
   - 치매예방
