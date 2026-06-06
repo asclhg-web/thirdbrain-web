@@ -56,6 +56,7 @@ export const footerData = {
         { text: '뇌건강(뇌운동·뇌영양)', href: getPermalink('/appendix') },
         { text: '블로그', href: getBlogPermalink() },
         { text: '소개', href: getPermalink('/about') },
+        { text: '함께 알리기', href: getPermalink('/share') },
       ],
     },
   ],

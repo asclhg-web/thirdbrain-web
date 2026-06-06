@@ -1,0 +1,87 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+import { LINKS } from '~/data/links';
+
+const metadata = {
+  title: '함께 알리기',
+  description: '서드브레인을 SNS·카카오톡·블로그로 함께 알려주세요. 포스터·QR·PDF를 자유롭게 다운로드하고 공유할 수 있습니다.',
+};
+---
+
+<Layout metadata={metadata}>
+  <!-- 소개 ************************* -->
+  <section class="px-4 py-12 sm:px-6 mx-auto max-w-5xl text-center">
+    <p class="text-base text-secondary font-bold tracking-wide uppercase">함께 알리기</p>
+    <h1 class="text-4xl md:text-5xl font-bold tracking-tight dark:text-white mt-2">서드브레인을 알려주세요</h1>
+    <p class="mt-4 text-lg text-muted max-w-2xl mx-auto">
+      포스터를 SNS·카카오톡·블로그에 공유해 주세요. QR을 스캔하거나 포스터(PDF)를 탭하면
+      <span class="font-semibold">thirdbrain.kr</span>로 바로 연결됩니다.
+    </p>
+  </section>
+
+  <!-- 포스터 2종 ****************** -->
+  <section class="px-4 sm:px-6 mx-auto max-w-5xl grid md:grid-cols-2 gap-10 pb-8">
+    <!-- 기본 포스터 -->
+    <div class="text-center">
+      <a href="/" aria-label="서드브레인 홈으로">
+        <img
+          src="/share/thirdbrain-poster.png"
+          alt="서드브레인 포스터"
+          class="w-full max-w-sm mx-auto rounded-xl shadow-lg border border-gray-200 dark:border-slate-700"
+          loading="lazy"
+        />
+      </a>
+      <h3 class="mt-5 font-bold text-xl text-accent dark:text-white">기본 포스터</h3>
+      <p class="text-sm text-muted mt-1">탭하면 사이트로 연결되는 클릭형 PDF</p>
+      <div class="mt-4 flex flex-wrap gap-3 justify-center">
+        <a class="btn btn-primary" href="/share/thirdbrain-poster.pdf" target="_blank">PDF 열기(클릭형)</a>
+        <a class="btn" href="/share/thirdbrain-poster.png" download>이미지 저장</a>
+      </div>
+    </div>
+
+    <!-- QR 포스터 -->
+    <div class="text-center">
+      <img
+        src="/share/thirdbrain-poster-qr.png"
+        alt="서드브레인 포스터 (QR 코드 포함)"
+        class="w-full max-w-sm mx-auto rounded-xl shadow-lg border border-gray-200 dark:border-slate-700"
+        loading="lazy"
+      />
+      <h3 class="mt-5 font-bold text-xl text-accent dark:text-white">QR 포스터 (스캔용)</h3>
+      <p class="text-sm text-muted mt-1">인스타·인쇄물에 — 스마트폰으로 스캔</p>
+      <div class="mt-4 flex flex-wrap gap-3 justify-center">
+        <a class="btn btn-primary" href="/share/thirdbrain-poster-qr.png" download>이미지 저장</a>
+        <a class="btn" href="/share/thirdbrain-poster-qr.pdf" target="_blank">PDF 열기</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 공유 방법 안내 ************** -->
+  <section class="px-4 sm:px-6 mx-auto max-w-3xl pb-16">
+    <div class="rounded-xl border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40 p-6">
+      <h3 class="text-2xl font-bold text-accent dark:text-white mb-4">이렇게 공유하세요</h3>
+      <ul class="space-y-3 text-muted">
+        <li>💬 <span class="font-semibold">카카오톡</span> — 위 PDF를 파일로 보내면, 받는 분이 포스터를 탭해서 바로 사이트로 들어옵니다.</li>
+        <li>📷 <span class="font-semibold">인스타그램 · 페이스북</span> — QR 포스터 이미지를 올리세요. 보는 분이 QR을 스캔해 접속합니다. (본문/프로필엔 <span class="font-semibold">thirdbrain.kr</span> 링크)</li>
+        <li>📝 <span class="font-semibold">블로그 · 카페</span> — 포스터 이미지 + 링크(thirdbrain.kr)를 함께 올리세요.</li>
+        <li>🖨️ <span class="font-semibold">인쇄물 · 명함</span> — QR 포스터를 인쇄하면 오프라인에서도 스캔으로 연결됩니다.</li>
+      </ul>
+      <div class="mt-5 p-4 rounded-lg bg-primary/5 text-center">
+        <span class="text-sm text-muted">공유 링크</span>
+        <div class="font-bold text-lg text-primary">https://thirdbrain.kr</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA ************************* -->
+  <CallToAction
+    actions={[
+      { variant: 'primary', text: '책 구매', href: LINKS.bookk, icon: 'tabler:book' },
+      { text: '홈으로', href: '/' },
+    ]}
+  >
+    <Fragment slot="title">함께 알리면, 더 멀리 갑니다</Fragment>
+    <Fragment slot="subtitle">서드브레인을 한 사람에게 더 알려주세요. 🙏</Fragment>
+  </CallToAction>
+</Layout>
