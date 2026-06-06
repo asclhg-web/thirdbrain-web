@@ -18,6 +18,7 @@ content:
     fields:
       - { name: title, label: 제목, type: string }
       - { name: publishDate, label: 발행일, type: date }
+      - { name: draft, label: 임시저장(체크하면 사이트에 안 보임), type: boolean }
       - { name: excerpt, label: 요약(목록에 보이는 설명), type: text }
       - { name: category, label: 카테고리, type: string }
       - { name: tags, label: 태그, type: string, list: true }
@@ -56,3 +57,4 @@ content:
         fields:
           - { name: bookk, label: 교보문고 구매 링크(URL), type: string }
           - { name: stibee, label: 뉴스레터 링크(URL), type: string }
+      - { name: kakaoJsKey, label: 카카오 공유 JavaScript 키(선택 — 입력 시 카톡 리치 공유), type: string }

@@ -1,5 +1,6 @@
 ---
 import { Icon } from 'astro-icon/components';
+import home from '~/data/home.json';
 
 export interface Props {
   text: string;
@@ -8,58 +9,119 @@ export interface Props {
 }
 
 const { text, url, class: className = 'inline-block' } = Astro.props;
+const kakaoKey = (home as Record<string, unknown>).kakaoJsKey || '';
 ---
 
-<div class={className}>
-  <span class="align-super font-bold text-slate-500 dark:text-slate-400">Share:</span>
+<div class={className} data-share-root data-share-url={String(url)} data-share-text={text} data-kakao-key={kakaoKey}>
+  <span class="align-super font-bold text-slate-500 dark:text-slate-400 mr-1">공유:</span>
+
+  <!-- 카카오톡 -->
   <button
-    class="ml-2 rtl:ml-0 rtl:mr-2"
-    title="Twitter Share"
-    data-aw-social-share="twitter"
-    data-aw-url={url}
-    data-aw-text={text}
-    ><Icon
-      name="tabler:brand-x"
-      class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-black dark:hover:text-slate-300"
-    />
+    type="button"
+    data-share="kakao"
+    title="카카오톡으로 공유"
+    class="ml-1 inline-flex items-center gap-1 rounded-full bg-[#FEE500] text-[#3C1E1E] text-sm font-semibold px-3 py-1 hover:brightness-95 align-middle"
+  >
+    <Icon name="tabler:message-circle-2" class="w-4 h-4" /> 카카오톡
   </button>
-  <button class="ml-2 rtl:ml-0 rtl:mr-2" title="Facebook Share" data-aw-social-share="facebook" data-aw-url={url}
-    ><Icon
-      name="tabler:brand-facebook"
-      class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-black dark:hover:text-slate-300"
-    />
-  </button>
+
+  <!-- 네이버 -->
   <button
-    class="ml-2 rtl:ml-0 rtl:mr-2"
-    title="Linkedin Share"
-    data-aw-social-share="linkedin"
-    data-aw-url={url}
-    data-aw-text={text}
-    ><Icon
-      name="tabler:brand-linkedin"
-      class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-black dark:hover:text-slate-300"
-    />
+    type="button"
+    data-share="naver"
+    title="네이버로 공유"
+    class="ml-1 inline-flex items-center rounded-full bg-[#03C75A] text-white text-sm font-bold px-3 py-1 hover:brightness-95 align-middle"
+  >
+    N 네이버
   </button>
-  <button
-    class="ml-2 rtl:ml-0 rtl:mr-2"
-    title="Whatsapp Share"
-    data-aw-social-share="whatsapp"
-    data-aw-url={url}
-    data-aw-text={text}
-    ><Icon
-      name="tabler:brand-whatsapp"
-      class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-black dark:hover:text-slate-300"
-    />
+
+  <!-- 페이스북 -->
+  <button type="button" data-share="facebook" title="페이스북 공유" class="ml-2 align-middle">
+    <Icon name="tabler:brand-facebook" class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-[#1877F2]" />
   </button>
-  <button
-    class="ml-2 rtl:ml-0 rtl:mr-2"
-    title="Email Share"
-    data-aw-social-share="mail"
-    data-aw-url={url}
-    data-aw-text={text}
-    ><Icon
-      name="tabler:mail"
-      class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-black dark:hover:text-slate-300"
-    />
+
+  <!-- X -->
+  <button type="button" data-share="twitter" title="X(트위터) 공유" class="ml-2 align-middle">
+    <Icon name="tabler:brand-x" class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-black dark:hover:text-white" />
+  </button>
+
+  <!-- 링크 복사 -->
+  <button type="button" data-share="copy" title="링크 복사" class="ml-2 align-middle">
+    <Icon name="tabler:link" class="w-6 h-6 text-gray-400 dark:text-slate-500 hover:text-primary" />
   </button>
 </div>
+
+<script>
+  function initShare() {
+    const enc = encodeURIComponent;
+    const open = (u: string) => window.open(u, '_blank', 'noopener,noreferrer,width=600,height=640');
+
+    document.querySelectorAll('[data-share-root]').forEach((root) => {
+      if ((root as HTMLElement).dataset.shareBound) return;
+      (root as HTMLElement).dataset.shareBound = '1';
+
+      const url = root.getAttribute('data-share-url') || window.location.href;
+      const text = root.getAttribute('data-share-text') || document.title;
+      const kakaoKey = root.getAttribute('data-kakao-key') || '';
+
+      const copyLink = (msg: string) => {
+        navigator.clipboard?.writeText(url).then(
+          () => alert(msg),
+          () => alert('링크: ' + url)
+        );
+      };
+
+      const ensureKakao = (cb: (ok: boolean) => void) => {
+        if (!kakaoKey) return cb(false);
+        const K = (window as any).Kakao;
+        if (K && K.isInitialized && K.isInitialized()) return cb(true);
+        if (K) {
+          try {
+            K.init(kakaoKey);
+          } catch (e) {}
+          return cb(K.isInitialized());
+        }
+        const s = document.createElement('script');
+        s.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
+        s.crossOrigin = 'anonymous';
+        s.onload = () => {
+          try {
+            (window as any).Kakao.init(kakaoKey);
+          } catch (e) {}
+          cb((window as any).Kakao?.isInitialized?.() || false);
+        };
+        s.onerror = () => cb(false);
+        document.head.appendChild(s);
+      };
+
+      root.querySelectorAll('[data-share]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const type = btn.getAttribute('data-share');
+          if (type === 'facebook') open('https://www.facebook.com/sharer/sharer.php?u=' + enc(url));
+          else if (type === 'twitter') open('https://twitter.com/intent/tweet?url=' + enc(url) + '&text=' + enc(text));
+          else if (type === 'naver')
+            open('https://share.naver.com/web/shareView?url=' + enc(url) + '&title=' + enc(text));
+          else if (type === 'copy') copyLink('링크가 복사되었습니다. 원하는 곳에 붙여넣기 하세요!');
+          else if (type === 'kakao') {
+            ensureKakao((ok) => {
+              const K = (window as any).Kakao;
+              if (ok && K?.Share) {
+                try {
+                  K.Share.sendScrap({ requestUrl: url });
+                } catch (err) {
+                  copyLink('링크가 복사되었습니다. 카카오톡에 붙여넣으세요!');
+                }
+              } else {
+                copyLink('링크가 복사되었습니다. 카카오톡 대화창에 붙여넣으면 미리보기가 나옵니다!');
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
+  initShare();
+  document.addEventListener('astro:after-swap', initShare);
+</script>
