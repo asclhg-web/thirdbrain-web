@@ -1,5 +1,5 @@
 ---
-publishDate: 2026-06-12T00:00:00Z
+publishDate: 2026-05-27T00:00:00Z
 title: '부록 3장 — 명상, 멍때리기, 복식 호흡'
 excerpt: 8주 명상이 뇌의 해부학적 구조를 바꿉니다. 명상 4종류, 멍때리기(DMN)의 가치, 그리고 가장 단순하지만 강력한 도구 복식 호흡.
 image: '~/assets/images/meditation.png'

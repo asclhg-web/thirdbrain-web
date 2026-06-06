@@ -1,5 +1,5 @@
 ---
-publishDate: 2026-06-11T00:00:00Z
+publishDate: 2026-05-26T00:00:00Z
 title: '부록 2장 — 뇌 운동, BDNF의 분비를 깨우는 길'
 excerpt: 운동은 뇌를 자라게 합니다. BDNF라는 '뇌의 기적의 비료'와 HIIT·저강도·근력의 3축 운동, 그리고 나이 들수록 정교해지는 균형.
 image: '~/assets/images/exercise-bdnf.png'

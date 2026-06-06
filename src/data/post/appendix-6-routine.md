@@ -1,5 +1,5 @@
 ---
-publishDate: 2026-06-15T00:00:00Z
+publishDate: 2026-05-30T00:00:00Z
 title: '부록 6장 — 통합, 뇌 건강을 위한 표준 하루'
 excerpt: 수면·운동·명상·식품·예방의 모든 권고를 하나의 실행 가능한 하루로 통합합니다. 매일 이 하루의 80%를 살면, 미래의 깊이가 달라집니다.
 image: '~/assets/images/daily-routine.png'
