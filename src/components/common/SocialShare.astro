@@ -110,10 +110,10 @@ const kakaoKey = (home as Record<string, unknown>).kakaoJsKey || '';
                 try {
                   K.Share.sendScrap({ requestUrl: url });
                 } catch (err) {
-                  copyLink('링크가 복사되었습니다. 카카오톡에 붙여넣으세요!');
+                  copyLink('🔗 링크가 복사되었습니다!\n카카오톡을 열고 보낼 대화방(테스트는 「나와의 채팅」)에 붙여넣기 하세요.');
                 }
               } else {
-                copyLink('링크가 복사되었습니다. 카카오톡 대화창에 붙여넣으면 미리보기가 나옵니다!');
+                copyLink('🔗 링크가 복사되었습니다!\n카카오톡을 열고 보낼 대화방(테스트는 「나와의 채팅」)에 붙여넣기 하세요.');
               }
             });
           }
