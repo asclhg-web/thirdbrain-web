@@ -1,0 +1,39 @@
+---
+// 홍보 카드 전용 링크 페이지.
+// 카톡·페이스북·문자에 https://thirdbrain.kr/card 를 붙여넣으면
+// 홍보 포스터 이미지가 담긴 카드가 자동 생성되고, 카드를 누르면 교보문고로 이동합니다.
+// (SNS 크롤러는 JS를 실행하지 않으므로 아래 OG 태그로 카드를 만들고,
+//  실제 방문자는 JS로 교보문고로 즉시 이동합니다.)
+import { LINKS } from '~/data/links';
+const target = LINKS.bookk;
+const site = 'https://thirdbrain.kr';
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>서드브레인 — AI시대, 새로운 인지시스템 탄생</title>
+    <meta name="robots" content="noindex" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="서드브레인" />
+    <meta property="og:title" content="《서드브레인》 — AI시대, 새로운 인지시스템 탄생" />
+    <meta
+      property="og:description"
+      content="뇌과학자 서울대 의대 서유헌 명예교수 강력 추천! 몸·지식·AI를 잇는 새로운 뇌경영. 교보문고에서 만나보세요."
+    />
+    <meta property="og:image" content={`${site}/share/thirdbrain-promo.jpg`} />
+    <meta property="og:image:width" content="800" />
+    <meta property="og:image:height" content="1203" />
+    <meta property="og:url" content={`${site}/card`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script is:inline define:vars={{ target }}>
+      location.replace(target);
+    </script>
+  </head>
+  <body>
+    <p style="font-family: sans-serif; text-align: center; margin-top: 3rem;">
+      교보문고로 이동 중입니다… 자동으로 이동하지 않으면 <a href={target}>여기</a>를 눌러주세요.
+    </p>
+  </body>
+</html>
