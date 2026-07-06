@@ -1,0 +1,25 @@
+---
+// 교보문고 구매 페이지로 즉시 이동하는 중계 페이지.
+// 카카오톡 공유 카드의 '더 알아보기' 버튼은 등록된 도메인(thirdbrain.kr)만 허용되므로
+// 이 페이지를 거쳐 교보문고로 연결합니다. 링크는 home.json(links.bookk)에서 관리됩니다.
+import { LINKS } from '~/data/links';
+const target = LINKS.bookk;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>교보문고로 이동 중…</title>
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0;url=${target}`} />
+    <script is:inline define:vars={{ target }}>
+      location.replace(target);
+    </script>
+  </head>
+  <body>
+    <p style="font-family: sans-serif; text-align: center; margin-top: 3rem;">
+      교보문고로 이동 중입니다… 자동으로 이동하지 않으면 <a href={target}>여기</a>를 눌러주세요.
+    </p>
+  </body>
+</html>
