@@ -1,0 +1,355 @@
+<title>피지컬 AI 가상 시연 — 하루를 함께하는 비서</title>
+<style>
+:root{
+  --bg:#f5f3ef; --ink:#26221c; --sub:#6f675c; --card:#ffffff; --line:#e2ddd4;
+  --amber:#c77d1f; --teal:#177f78; --chip:#eee9e0;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#191c21; --ink:#e8e4dc; --sub:#9a948a; --card:#20242b; --line:#31363f; --amber:#e0a04a; --teal:#4fc0b8; --chip:#2a2f38; }
+}
+:root[data-theme="dark"]{ --bg:#191c21; --ink:#e8e4dc; --sub:#9a948a; --card:#20242b; --line:#31363f; --amber:#e0a04a; --teal:#4fc0b8; --chip:#2a2f38; }
+:root[data-theme="light"]{ --bg:#f5f3ef; --ink:#26221c; --sub:#6f675c; --card:#ffffff; --line:#e2ddd4; --amber:#c77d1f; --teal:#177f78; --chip:#eee9e0; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+.eyebrow{font-size:12px;letter-spacing:.18em;color:var(--amber);font-weight:700}
+h1{font-size:clamp(22px,3.4vw,30px);margin:6px 0 4px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--sub);font-size:14.5px;max-width:62ch;margin:0 0 18px}
+.player{background:#12151b;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+  box-shadow:0 14px 40px rgba(0,0,0,.18)}
+.screen{position:relative;width:100%}
+canvas{display:block;width:100%;height:auto}
+.caption{min-height:52px;padding:10px 18px;background:#0c0e12;color:#e9e5db;
+  font-size:15px;display:flex;align-items:center;gap:10px;border-top:1px solid #232833}
+.caption .who{flex:none;font-size:11px;letter-spacing:.12em;color:#8fd6cf;font-weight:700}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;
+  background:var(--card);border-top:1px solid var(--line)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--chip);
+  color:var(--ink);border-radius:8px;padding:7px 14px;font-size:14px}
+button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+button.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:700;min-width:86px}
+button.scene[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:#fff;font-weight:700}
+.spacer{flex:1}
+.progress{height:6px;background:#242a34;cursor:pointer}
+.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--amber))}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat b{display:block;font-size:11px;letter-spacing:.14em;color:var(--sub);font-weight:700;margin-bottom:4px}
+.stat span{font-size:19px;font-variant-numeric:tabular-nums;font-weight:700}
+.stat.log{grid-column:1/-1}
+.stat.log ul{margin:4px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--sub)}
+.stat.log li{padding:2px 0;border-bottom:1px dashed var(--line)}
+.stat.log li:last-child{border:none}
+.note{margin-top:18px;font-size:13px;color:var(--sub);max-width:70ch}
+.note b{color:var(--ink)}
+@media (prefers-reduced-motion: reduce){ .progress>i{transition:none} }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">가상 시연 · 4부 신설 장 「모바일 매니퓰레이터」</div>
+  <h1>아침 7시, 로봇이 혈압약을 건넨다 — 하루 3장면 시뮬레이션</h1>
+  <p class="lede">책에서 설계한 시나리오 A·B·C가 실제 아파트에서 어떻게 움직이는지, 평면도 위에서 재생해 봅니다. ▶ 재생을 누르거나 장면을 선택하세요.</p>
+
+  <div class="player">
+    <div class="screen"><canvas id="cv" width="960" height="580" aria-label="로봇 시연 애니메이션"></canvas></div>
+    <div class="progress" id="prog" title="진행"><i id="progFill"></i></div>
+    <div class="caption"><span class="who" id="capWho">내레이션</span><span id="capText">재생을 누르면 아침 장면부터 시작합니다.</span></div>
+    <div class="controls">
+      <button class="primary" id="playBtn">▶ 재생</button>
+      <button class="scene" data-scene="0" aria-pressed="true">🌅 아침 · 복약 서빙</button>
+      <button class="scene" data-scene="1" aria-pressed="false">☀️ 낮 · 혈당 대응</button>
+      <button class="scene" data-scene="2" aria-pressed="false">🌙 저녁 · 내일 준비</button>
+      <button class="scene" data-scene="3" aria-pressed="false">🏡 부모님 댁 · 원격 케어</button>
+      <span class="spacer"></span>
+      <button id="spdBtn" title="재생 속도">1×</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>시나리오 시각</b><span id="stClock">06:50</span></div>
+    <div class="stat"><b>로봇 상태</b><span id="stState">대기 (홈스테이션)</span></div>
+    <div class="stat"><b>배터리</b><span id="stBatt">100%</span></div>
+    <div class="stat log"><b>지식그래프 이벤트 로그</b><ul id="stLog"><li>시스템 대기 중…</li></ul></div>
+  </div>
+
+  <p class="note"><b>이 화면이 곧 아키텍처입니다.</b> 이동 경로는 Nav2(내비 노드), 트레이 집기는 모방학습 정책(조작 노드), 말풍선은 TTS(음성 노드), 오른쪽 아래 로그는 홈서버 지식그래프에 기록되는 이벤트 노드입니다 — 15.4절의 설계 4원칙이 그대로 재생되고 있습니다.</p>
+</div>
+
+<script>
+"use strict";
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const capWho=document.getElementById('capWho'),capText=document.getElementById('capText');
+const stClock=document.getElementById('stClock'),stState=document.getElementById('stState'),
+      stBatt=document.getElementById('stBatt'),stLog=document.getElementById('stLog');
+const playBtn=document.getElementById('playBtn'),spdBtn=document.getElementById('spdBtn');
+const progFill=document.getElementById('progFill'),prog=document.getElementById('prog');
+
+/* ---- 무대 좌표 ---- */
+const P={ HOME:[760,470], SHELF:[856,132], SHELF_OUT:[790,190], TABLE:[600,238],
+  TABLE_SIDE:[672,270], SOFA:[236,420], SOFA_SIDE:[330,420], DOOR:[556,530],
+  BED:[188,150], HALL:[560,420], KHALL:[700,330] };
+const PERSON={ BED:[150,168], TABLE:[560,210], SOFA:[236,392], DOOR:[556,498], OUT:[556,585] };
+
+/* ---- 장면 스크립트 ----
+ step: {d:초, cap:[누가,자막], say:로봇말풍선, move:[경유점...], person:[from,to],
+        arm:1/-1, tray:'pick'|'place:KEY'|'serve', state, clock:[from,to], log, batt} */
+const SCENES=[
+{ name:'아침 · 복약 서빙', clock0:'06:50', batt0:100,
+  robot0:P.HOME, person0:PERSON.BED, tray0:{shelf:true,shelf2:true}, sleep:true,
+  steps:[
+   {d:2.4,cap:['내레이션','06:50. 로봇은 홈스테이션에서 조용히 대기 중입니다.'],state:'대기 (홈스테이션)'},
+   {d:2.6,cap:['감지층','스마트워치가 기상을 감지했습니다. 홈서버가 아침 복약 규칙을 조회합니다.'],wake:true,log:'기상 감지 → 복약규칙 조회(그래프)',clock:['06:50','06:58']},
+   {d:3.4,cap:['내비 노드','오케스트레이터 명령: 이동(부엌 약 선반). Nav2가 경로를 계획합니다.'],move:[P.HOME,P.KHALL,P.SHELF_OUT],state:'이동 중 → 약 선반',batt:-2,clock:['06:58','07:00']},
+   {d:3.0,cap:['조작 노드','시각 마커로 정차 오차를 보정하고, 오늘 아침 칸 트레이를 집습니다.'],arm:1,tray:'pick',state:'조작 중 (집기)',log:'아침 트레이 픽업 완료'},
+   {d:3.2,cap:['내비 노드','트레이를 싣고 식탁으로 이동합니다.'],move:[P.SHELF_OUT,P.KHALL,P.TABLE_SIDE],state:'이동 중 → 식탁',batt:-2,person:[PERSON.BED,PERSON.TABLE],clock:['07:00','07:03']},
+   {d:3.0,cap:['조작 노드','식탁 위, 물컵 옆에 트레이를 내려놓습니다.'],arm:1,tray:'serve',state:'조작 중 (서빙)'},
+   {d:3.4,cap:['음성 노드',''],say:'안녕히 주무셨어요. 혈압부터 재실까요? 약은 식전 30분입니다.',state:'대화 중'},
+   {d:3.0,cap:['사용자','"먹었어" — 복약 완료가 그래프에 기록됩니다.'],log:'복약 완료 이벤트 생성 ✓',clock:['07:03','07:10']},
+   {d:3.2,cap:['음성 노드',''],say:'사흘 연속 복약 성공입니다!',move:[P.TABLE_SIDE,P.HALL,P.HOME],state:'복귀 → 홈스테이션',batt:-2},
+   {d:2.0,cap:['내레이션','아침 임무 완료. 프롤로그의 그 장면이 지금 재생되었습니다.'],state:'충전 중',clock:['07:10','07:15']}
+  ]},
+{ name:'낮 · 혈당 대응', clock0:'13:38', batt0:82,
+  robot0:P.HOME, person0:PERSON.SOFA, tray0:{shelf2:true},
+  steps:[
+   {d:2.4,cap:['내레이션','점심 후. 사용자는 거실 소파에 있습니다.'],state:'대기 (홈스테이션)'},
+   {d:2.8,cap:['감지층','CGM 혈당이 개인 기준선보다 빠르게 오르고 있습니다. (1층 규칙 통과 → 2층 AI 판단)'],spike:true,log:'혈당 급등 감지 → 식사 이벤트 확인',clock:['13:38','13:41']},
+   {d:3.4,cap:['내비 노드','오케스트레이터 명령: 이동(거실 소파). 사용자에게 다가갑니다.'],move:[P.HOME,P.HALL,P.SOFA_SIDE],state:'이동 중 → 거실',batt:-2},
+   {d:3.6,cap:['음성 노드',''],say:'식후 혈당이 빠르게 오르고 있어요. 10분만 같이 걸어볼까요?',state:'대화 중 (권유 1회)'},
+   {d:3.4,cap:['내레이션','사용자가 수락했습니다. 현관까지 동행합니다.'],move:[P.SOFA_SIDE,P.HALL,P.DOOR],person:[PERSON.SOFA,PERSON.DOOR],state:'에스코트 → 현관',batt:-2,clock:['13:41','13:45']},
+   {d:2.8,cap:['감지층','산책 세션 시작 — 워치가 걸음을 기록합니다.'],person:[PERSON.DOOR,PERSON.OUT],log:'산책 활동 노드 생성 (10분)',say:'다녀오세요! 걸음은 제가 세고 있을게요.'},
+   {d:3.0,cap:['내레이션','로봇은 홈스테이션으로 복귀합니다. 잔소리는 한 번이면 충분합니다(넛지 원칙).'],move:[P.DOOR,P.HALL,P.HOME],state:'복귀 → 충전',batt:-1,clock:['13:45','13:50']}
+  ]},
+{ name:'저녁 · 브리핑과 내일 준비', clock0:'21:00', batt0:64,
+  robot0:P.HOME, person0:PERSON.SOFA, tray0:{shelf2:true},
+  steps:[
+   {d:2.4,cap:['내레이션','21:00. 취침 1시간 전 — 저녁 루틴이 시작됩니다.'],state:'대기'},
+   {d:3.2,cap:['내비 노드','거실로 이동해 하루를 보고합니다.'],move:[P.HOME,P.HALL,P.SOFA_SIDE],state:'이동 중 → 거실',batt:-2,clock:['21:00','21:03']},
+   {d:4.2,cap:['음성 노드',''],say:'오늘 복약 2회 완료, 걷기 38분, 혈당 스파이크 1회였어요. 지난주보다 좋아지고 있습니다.',state:'브리핑 중',log:'일일 리포트 발행 → 그래프 기록'},
+   {d:3.4,cap:['내비 노드','내일 아침을 위해 약 선반으로 이동합니다.'],move:[P.SOFA_SIDE,P.HALL,P.KHALL,P.SHELF_OUT],state:'이동 중 → 약 선반',batt:-2,clock:['21:03','21:07']},
+   {d:3.0,cap:['조작 노드','내일 아침 칸 트레이를 꺼내 준비 위치에 세팅합니다 — 밤의 내가 아침의 나를 돕습니다.'],arm:1,tray:'pick2',state:'조작 중 (내일 준비)'},
+   {d:3.0,cap:['조작 노드','준비 위치에 내려놓기 완료.'],move:[P.SHELF_OUT,P.KHALL,P.TABLE_SIDE],tray:'serve',state:'세팅 완료',log:'내일 아침 트레이 준비 완료 ✓'},
+   {d:3.2,cap:['내레이션','홈스테이션 복귀, 충전 시작. 로봇의 하루가 끝났습니다.'],move:[P.TABLE_SIDE,P.HALL,P.HOME],person:[PERSON.SOFA,PERSON.BED],state:'충전 중',batt:-1,clock:['21:07','21:12']},
+   {d:2.6,cap:['내레이션','내일 아침 6시 50분, 이 하루는 다시 시작됩니다 — 잊지 않고, 지치지 않고.'],sleep:true}
+  ]},
+{ name:'부모님 댁 · 원격 케어', clock0:'07:10', batt0:88,
+  robot0:P.HOME, person0:PERSON.BED, tray0:{shelf:true,shelf2:true}, sleep:true,
+  steps:[
+   {d:3.0,cap:['내레이션','이 로봇은 300km 떨어진 부모님 댁 거실에 삽니다. 아들은 서울에서 VPN으로 상태만 봅니다.'],state:'대기 (부모님 댁)',phone:'상태 정상 · 배터리 88% · 어젯밤 이상 없음'},
+   {d:2.6,cap:['감지층','아버지의 워치가 기상을 감지했습니다.'],wake:true,log:'기상 감지 → 아침 규칙 조회',clock:['07:10','07:16']},
+   {d:3.2,cap:['내비 노드','약 선반으로 이동해 아침 트레이를 준비합니다.'],move:[P.HOME,P.KHALL,P.SHELF_OUT],state:'이동 중 → 약 선반',batt:-2},
+   {d:2.6,cap:['조작 노드','오늘 아침 칸 트레이 픽업.'],arm:1,tray:'pick',state:'조작 중 (집기)'},
+   {d:3.2,cap:['내비 노드','식탁으로 서빙하러 갑니다.'],move:[P.SHELF_OUT,P.KHALL,P.TABLE_SIDE],person:[PERSON.BED,PERSON.TABLE],state:'이동 중 → 식탁',batt:-2,clock:['07:16','07:20']},
+   {d:3.2,cap:['음성 노드',''],say:'아버님, 좋은 아침입니다. 약 드시기 전에 혈압부터 재실까요?',arm:1,tray:'serve',state:'서빙·측정 대기'},
+   {d:3.0,cap:['감지층','블루투스 혈압계 측정 — 132/84. 측정값 노드가 그래프에 생성됩니다.'],bp:true,log:'혈압 132/84 측정값 노드 생성',clock:['07:20','07:24']},
+   {d:2.8,cap:['음성 노드',''],say:'드셨으면 "먹었다" 하고 말씀해 주세요.',state:'복약 확인 대기'},
+   {d:2.8,cap:['오케스트레이터','1차 무응답 — 20분 뒤 한 번만 재알림합니다. 미확인은 미확인으로 정직하게 기록됩니다.'],log:'복약 1차 무응답 → 재알림 예약',clock:['07:24','07:31']},
+   {d:2.8,cap:['사용자','아버지: "먹었다" — 복약 완료. 그 순간, 서울의 아들 폰이 조용히 울립니다.'],log:'복약 완료 이벤트 ✓',phone:'아버지 복약 완료 07:31 ✓'},
+   {d:3.4,cap:['내레이션','주말, 주간 리포트가 도착합니다. 로봇은 전화를 대체하지 않습니다 — 전화할 거리를 만듭니다.'],move:[P.TABLE_SIDE,P.HALL,P.HOME],state:'복귀 → 충전',batt:-2,phone:'주간 리포트: 걷기 목표 달성 🏆',clock:['07:31','07:35']},
+   {d:3.2,cap:['아들(전화)','"아버지, 이번 주 걷기 1등이시던데요?" — 13장의 문장이 현실이 되는 순간입니다.'],state:'충전 중',log:'주간 리포트 발송 → 가족 공유'}
+  ]}
+];
+
+/* ---- 상태 ---- */
+let scene=0, playing=false, speed=1, si=0, st=0, last=0;
+let R={x:0,y:0,a:0}, PE={x:0,y:0}, arm=0, carrying=null, served=[], trays={}, wake=0, spike=0, sleepZ=0;
+let batt=100, clockStr='06:50', logs=[];
+
+function resetScene(k){
+  scene=k; const S=SCENES[k]; si=0; st=0;
+  R={x:S.robot0[0],y:S.robot0[1],a:0}; PE={x:S.person0[0],y:S.person0[1]};
+  arm=0; carrying=null; served=[]; trays=Object.assign({},S.tray0);
+  wake=0; spike=0; sleepZ=S.sleep?1:0;
+  batt=S.batt0; clockStr=S.clock0; logs=['— '+S.name+' —'];
+  document.querySelectorAll('.scene').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===k)));
+  setCap('내레이션', S.name+' 장면. ▶ 재생을 누르세요.');
+  syncStats(); draw();
+}
+function setCap(w,t){capWho.textContent=w;capText.textContent=t;}
+function syncStats(){
+  stClock.textContent=clockStr; stBatt.textContent=Math.round(batt)+'%';
+  stLog.innerHTML=logs.slice(-3).map(x=>'<li>'+x+'</li>').join('');
+}
+function lerp(a,b,t){return a+(b-a)*t;}
+function pathPos(pts,t){ // t 0..1 over polyline
+  let segs=[],tot=0;
+  for(let i=0;i<pts.length-1;i++){const d=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);segs.push(d);tot+=d;}
+  let dist=t*tot;
+  for(let i=0;i<segs.length;i++){
+    if(dist<=segs[i]||i===segs.length-1){const u=segs[i]?dist/segs[i]:1;
+      return {x:lerp(pts[i][0],pts[i+1][0],u),y:lerp(pts[i][1],pts[i+1][1],u),
+              a:Math.atan2(pts[i+1][1]-pts[i][1],pts[i+1][0]-pts[i][0])};}
+    dist-=segs[i];
+  } return {x:pts[0][0],y:pts[0][1],a:0};
+}
+function timeLerp(t){ // clock interpolation
+  const step=SCENES[scene].steps[si];
+  if(!step.clock) return;
+  const [a,b]=step.clock, m=s=>{const[p,q]=s.split(':');return +p*60+ +q;};
+  const cur=Math.round(lerp(m(a),m(b),t));
+  clockStr=String(Math.floor(cur/60)).padStart(2,'0')+':'+String(cur%60).padStart(2,'0');
+}
+
+function advance(dt){
+  const S=SCENES[scene]; if(si>=S.steps.length){pause();return;}
+  const step=S.steps[si]; st+=dt;
+  const t=Math.min(1,st/step.d), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; // easeInOut
+  if(st===dt){ // step entry
+    setCap(step.cap[0], step.say?('"'+step.say+'"'):step.cap[1]);
+    if(step.state) stState.textContent=step.state;
+    if(step.log){logs.push(clockStr+' · '+step.log);}
+    if(step.wake) wake=1; if(step.spike) spike=1;
+    if(step.sleep!==undefined) sleepZ=1;
+  }
+  if(step.move){const p=pathPos(step.move,e);R.x=p.x;R.y=p.y;R.a=p.a; if(wake&&t>0.2)sleepZ=0;}
+  if(step.person){PE.x=lerp(step.person[0][0],step.person[1][0],e);PE.y=lerp(step.person[0][1],step.person[1][1],e);}
+  if(step.arm){arm=step.arm>0?Math.sin(Math.min(1,t)*Math.PI):arm;}
+  if(step.tray&&t>0.55){
+    if(step.tray==='pick'&&trays.shelf){trays.shelf=false;carrying='A';}
+    if(step.tray==='pick2'&&trays.shelf2){trays.shelf2=false;carrying='B';}
+    if(step.tray==='serve'&&carrying){served.push({x:step.move?P.TABLE_SIDE[0]-46:R.x-46,y:(step.move?P.TABLE_SIDE[1]:R.y)-30});carrying=null;}
+  }
+  if(step.batt){ batt=Math.max(5,batt+step.batt*dt/step.d); }
+  timeLerp(t);
+  if(t>=1){si++;st=0;arm=0;wake=0;spike=0;
+    if(si>=S.steps.length){pause();setCap('내레이션','장면 종료 — 다른 장면을 선택하거나 다시 재생하세요.');stState.textContent='대기';}}
+  // progress
+  let done=0,tot=0;S.steps.forEach((s,i)=>{tot+=s.d;if(i<si)done+=s.d;});done+=Math.min(st,step?step.d:0);
+  progFill.style.width=(100*done/tot)+'%';
+  syncStats();
+}
+
+/* ---- 그리기 ---- */
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function draw(){
+  const W=cv.width,H=cv.height;
+  // 배경(시간대 톤)
+  const tone=scene===0?['#1b2027','#232b34']:scene===1?['#20242a','#2a3038']:scene===3?['#221f1b','#2b2620']:['#171a22','#1e2230'];
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,tone[0]);g.addColorStop(1,tone[1]);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.save();
+  // 아파트 외벽
+  ctx.strokeStyle='#4a5260';ctx.lineWidth=3;rr(60,50,840,470,10);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.02)';rr(60,50,840,470,10);ctx.fill();
+  // 방 구획
+  ctx.strokeStyle='#39404c';ctx.lineWidth=2;
+  line(60,300,340,300); line(340,50,340,230); line(340,300,340,520);
+  line(470,300,470,520); line(470,300,900,300); line(470,395,900,395);
+  // 문 개구부 지우기(복도 통로)
+  ctx.strokeStyle=tone[1];ctx.lineWidth=6;
+  line(340,240,340,295); line(470,430,470,500); line(620,300,700,300); line(560,395,660,395);
+  // 라벨
+  label('침실',90,80); label('거실',90,330); label('부엌',760,80); label('식탁',560,330,'#8b93a3'); label('복도·홈스테이션',480,430,'#8b93a3'); label('현관',520,505,'#8b93a3');
+  // 가구
+  furn(110,110,120,70,'#3a4150');            // 침대
+  ctx.fillStyle='#59637a';ctx.fillRect(118,118,44,54); // 베개
+  furn(180,400,120,52,'#3a4150');            // 소파
+  furn(540,200,120,66,'#464e3e');            // 식탁
+  ctx.fillStyle='#c9cfda';ctx.beginPath();ctx.arc(586,233,7,0,7);ctx.fill(); // 물컵
+  furn(828,80,56,120,'#4d4436');             // 약 선반
+  label('약\n선반',842,102,'#d8cba9');
+  // 선반 트레이
+  if(trays.shelf) tray(838,150,'#e0a04a','오늘');
+  if(trays.shelf2) tray(838,178,'#9fb2d8','내일');
+  // 서빙된 트레이
+  served.forEach(s=>tray(s.x,s.y,'#e0a04a',''));
+  // 홈스테이션(도크)
+  ctx.strokeStyle='#4fc0b8';ctx.lineWidth=2;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.arc(P.HOME[0],P.HOME[1],26,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#4fc0b8';ctx.font='10px sans-serif';ctx.fillText('⚡ dock',P.HOME[0]-18,P.HOME[1]+42);
+  // 현관 매트
+  furn(528,510,58,14,'#3d4450');
+  // 사람
+  person(PE.x,PE.y);
+  if(sleepZ){ctx.fillStyle='#9aa3b5';ctx.font='16px sans-serif';ctx.fillText('z z',PERSON.BED[0]+26,PERSON.BED[1]-18);}
+  if(wake){pulse(PERSON.BED[0],PERSON.BED[1]-14,'#e0a04a');}
+  if(spike){pulse(PE.x+22,PE.y-26,'#e2695f');ctx.fillStyle='#e2695f';ctx.font='bold 12px sans-serif';ctx.fillText('CGM ▲',PE.x+30,PE.y-30);}
+  // 로봇
+  robot(R.x,R.y,R.a);
+  // 말풍선
+  const step=SCENES[scene].steps[si];
+  if(playing&&step&&step.say&&st<step.d){bubble(R.x,R.y-52,step.say);}
+  // 혈압 측정 아이콘 (식탁 옆)
+  if(step&&step.bp){ctx.strokeStyle='#8fd6cf';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(632,214,10,0,7);ctx.stroke();
+    ctx.fillStyle='#8fd6cf';ctx.font='bold 11px sans-serif';ctx.fillText('BP 132/84',648,218);
+    pulse(632,214,'#8fd6cf');}
+  // 아들 폰 알림 (원격 케어 장면)
+  if(step&&step.phone){
+    const px=72,py=62,pw=248,ph=58;
+    ctx.fillStyle='rgba(18,21,27,.92)';rr(px,py,pw,ph,10);ctx.fill();
+    ctx.strokeStyle='#4fc0b8';ctx.lineWidth=1.5;rr(px,py,pw,ph,10);ctx.stroke();
+    ctx.fillStyle='#8fd6cf';ctx.font='bold 10px sans-serif';ctx.fillText('📱 아들 폰 (서울 · VPN)',px+12,py+18);
+    ctx.fillStyle='#e9e5db';ctx.font='12px sans-serif';
+    wrapText(step.phone,pw-24).slice(0,2).forEach((l,i)=>ctx.fillText(l,px+12,py+36+i*15));
+  }
+  ctx.restore();
+}
+function line(a,b,c,d){ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();}
+function label(t,x,y,c){ctx.fillStyle=c||'#7d8595';ctx.font='12px sans-serif';t.split('\n').forEach((s,i)=>ctx.fillText(s,x,y+i*13));}
+function furn(x,y,w,h,c){ctx.fillStyle=c;rr(x,y,w,h,6);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;rr(x,y,w,h,6);ctx.stroke();}
+function tray(x,y,c,t){ctx.fillStyle=c;rr(x-14,y-8,28,16,3);ctx.fill();
+  ctx.fillStyle='#12151b';for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(x-7+i*7,y,2.4,0,7);ctx.fill();}
+  if(t){ctx.fillStyle='#c8cedd';ctx.font='9px sans-serif';ctx.fillText(t,x-9,y+18);}}
+function person(x,y){ctx.fillStyle='#d9d3c5';ctx.beginPath();ctx.arc(x,y-14,8,0,7);ctx.fill();
+  ctx.strokeStyle='#d9d3c5';ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x,y-6);ctx.lineTo(x,y+10);ctx.stroke();}
+function robot(x,y,a){
+  ctx.save();ctx.translate(x,y);
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(0,16,18,6,0,0,7);ctx.fill();
+  ctx.rotate(a);
+  // 옴니휠 3개
+  ctx.fillStyle='#2a2f38';
+  for(let i=0;i<3;i++){const th=i*2.094+1.57;ctx.save();ctx.translate(Math.cos(th)*15,Math.sin(th)*15);ctx.rotate(th);rr(-3,-6,6,12,2);ctx.fill();ctx.restore();}
+  // 베이스
+  ctx.fillStyle='#4fc0b8';ctx.beginPath();ctx.arc(0,0,15,0,7);ctx.fill();
+  ctx.fillStyle='#12151b';ctx.beginPath();ctx.arc(0,0,10,0,7);ctx.fill();
+  // 방향
+  ctx.fillStyle='#e8e4dc';ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(4,-5);ctx.lineTo(4,5);ctx.closePath();ctx.fill();
+  // 팔
+  if(arm>0.02){ctx.strokeStyle='#e0a04a';ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(16+18*arm,0);ctx.stroke();
+    ctx.strokeStyle='#e8e4dc';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(16+18*arm,-5);ctx.lineTo(22+18*arm,0);ctx.lineTo(16+18*arm,5);ctx.stroke();}
+  ctx.restore();
+  // 캐리 중 트레이
+  if(carrying)tray(x,y-24,carrying==='A'?'#e0a04a':'#9fb2d8','');
+  // 눈(정면 표시)
+  ctx.fillStyle='#12151b';
+}
+function pulse(x,y,c){const r=6+3*Math.sin(performance.now()/180);
+  ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();}
+function bubble(x,y,text){
+  ctx.font='13px sans-serif';const w=Math.min(300,ctx.measureText(text).width+22);
+  const lines=wrapText(text,280);const h=lines.length*17+14;
+  const bx=Math.max(70,Math.min(x-w/2,cv.width-w-20)), by=Math.max(60,y-h);
+  ctx.fillStyle='#f2eee4';rr(bx,by,w,h,8);ctx.fill();
+  ctx.beginPath();ctx.moveTo(x-6,by+h);ctx.lineTo(x+6,by+h);ctx.lineTo(x,by+h+8);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#26221c';lines.forEach((l,i)=>ctx.fillText(l,bx+11,by+20+i*17));
+}
+function wrapText(t,maxw){ctx.font='13px sans-serif';const out=[];let cur='';
+  for(const ch of t){if(ctx.measureText(cur+ch).width>maxw){out.push(cur);cur=ch;}else cur+=ch;}
+  if(cur)out.push(cur);return out;}
+
+/* ---- 루프/컨트롤 ---- */
+function frame(ts){
+  if(playing){const dt=Math.min(.05,(ts-last)/1000)*speed;last=ts;advance(dt);draw();requestAnimationFrame(frame);}
+}
+function play(){if(si>=SCENES[scene].steps.length)resetScene(scene);
+  playing=true;playBtn.textContent='⏸ 일시정지';last=performance.now();requestAnimationFrame(frame);}
+function pause(){playing=false;playBtn.textContent='▶ 재생';draw();}
+playBtn.onclick=()=>playing?pause():play();
+document.querySelectorAll('.scene').forEach(b=>b.onclick=()=>{pause();resetScene(+b.dataset.scene);play();});
+spdBtn.onclick=()=>{speed=speed===1?2:speed===2?4:1;spdBtn.textContent=speed+'×';};
+prog.onclick=e=>{const S=SCENES[scene];let tot=0;S.steps.forEach(s=>tot+=s.d);
+  const target=tot*(e.offsetX/prog.clientWidth);
+  resetScene(scene);let acc=0;
+  while(si<S.steps.length){const d=S.steps[si].d;
+    if(acc+d>target){ // fast-forward within step
+      let rem=target-acc;while(rem>0){advance(Math.min(.05,rem));rem-=.05;}break;}
+    let rem=d;while(rem>0){advance(Math.min(.05,rem));rem-=.05;} acc+=d;}
+  draw();};
+resetScene(0);
+</script>
