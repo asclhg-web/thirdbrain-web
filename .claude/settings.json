@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Google_Drive__create_file",
+      "mcp__Google_Drive__search_files",
+      "mcp__Google_Drive__list_recent_files",
+      "mcp__Google_Drive__get_file_metadata",
+      "mcp__Google_Drive__read_file_content",
+      "Write",
+      "Edit",
+      "SendUserFile",
+      "Artifact",
+      "Bash(python3 *)",
+      "Bash(pip install *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push -u origin claude/*)",
+      "Bash(mkdir -p *)",
+      "Bash(base64 *)",
+      "Bash(split *)"
+    ]
+  }
+}
