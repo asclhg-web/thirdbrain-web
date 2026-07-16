@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted">안전한 파라미터(시각·on/off)만 여기서 편집합니다. 구조 편집은 <code>server/rules/*.yaml</code>에서.</p>
+{% for item in rules %}
+<div class="card">
+  <h3>{{ item.rule.name }} <span class="muted">({{ item.file }})</span></h3>
+  <form method="post" action="/scenarios/update">
+    <input type="hidden" name="file" value="{{ item.file }}">
+    {% if item.rule.trigger.at %}시각 <input name="at" value="{{ item.rule.trigger.at }}" size="6">{% endif %}
+    <label><input type="checkbox" name="enabled" {{ 'checked' if item.rule.get('enabled', True) }}> 활성</label>
+    <button>적용</button>
+  </form>
+  <p class="muted">트리거: {{ item.rule.trigger }} · 행동 {{ item.rule.actions | length }}개</p>
+  {% if item.recent %}<p class="muted">최근 실행: {% for e in item.recent %}{{ e.at[5:16] }} {% endfor %}</p>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,8 @@
+# 시나리오 B — 낮: 혈당 스파이크 대응 (권유 1회만, 쿨다운 4시간)
+name: 혈당 스파이크 대응
+enabled: true
+cooldown_hours: 4
+trigger: { type: measurement, person: 나, measurement: glucose_spikes, gte: 2 }
+actions:
+  - { type: say, person: 나, text: "식후 혈당이 빠르게 오르고 있어요({value}회째). 10분만 같이 걸어볼까요?", kind: nudge }
+  - { type: record, kind: 규칙실행, payload: 산책 권유 }

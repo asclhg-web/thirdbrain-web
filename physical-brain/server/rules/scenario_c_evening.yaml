@@ -1,0 +1,9 @@
+# 시나리오 C — 저녁: 하루 요약 + 내일 트레이 준비 + 마감
+name: 저녁 준비
+enabled: true
+trigger: { type: time, at: "21:30", person: 아버지 }
+actions:
+  - { type: say, person: 아버지, text: "오늘 하루 수고하셨어요. 내일 아침 약을 미리 준비해 둘게요.", kind: briefing }
+  - { type: move, place: 부엌 약 선반 }
+  - { type: manipulate, skill: prepare_tomorrow_tray }
+  - { type: record, person: 아버지, kind: 하루마감, payload: 내일 트레이 준비 완료 }

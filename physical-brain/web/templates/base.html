@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>피지컬브레인</title>
+<style>
+:root{--bg:#14181f;--card:#1e242e;--ink:#e8e4dc;--sub:#9aa3b0;--teal:#4fc0b8;--amber:#e0a04a;--line:#2c3440}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.5}
+nav{display:flex;gap:4px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+nav b{color:var(--teal);margin-right:12px}
+nav a{color:var(--sub);text-decoration:none;padding:6px 12px;border-radius:8px;font-size:14px}
+nav a.on,nav a:hover{background:var(--card);color:var(--ink)}
+main{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:15px;color:var(--teal)}
+.badge{display:inline-block;background:#0f3440;color:var(--teal);border-radius:99px;padding:2px 10px;font-size:12px;margin:2px}
+.muted{color:var(--sub);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.status-pending{color:var(--sub)} .status-announced{color:var(--amber)}
+.status-confirmed{color:var(--teal)} .status-unconfirmed{color:#e2695f}
+button,input,select{font:inherit;background:#0f1319;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+button{cursor:pointer;background:var(--teal);color:#0f1319;font-weight:700;border:none}
+.people a{margin-right:6px}
+</style>
+</head>
+<body>
+<nav>
+  <b>🧠 피지컬브레인</b>
+  <a href="/" class="{{ 'on' if request.url.path == '/' else '' }}">오늘</a>
+  <a href="/signals" class="{{ 'on' if request.url.path == '/signals' else '' }}">신호</a>
+  <a href="/graphview" class="{{ 'on' if request.url.path == '/graphview' else '' }}">지식그래프</a>
+  <a href="/scenarios" class="{{ 'on' if request.url.path == '/scenarios' else '' }}">시나리오</a>
+</nav>
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>

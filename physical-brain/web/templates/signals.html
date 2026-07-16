@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="people muted">사용자:
+  {% for p in people %}<a href="/signals?person={{p}}">{{ '👉' if p == person else '' }}{{p}}</a>{% endfor %}
+  &nbsp;·&nbsp; 최근 30일 · 결측은 끊긴 선으로 표시됩니다(0으로 그리지 않음)
+</p>
+{% for c in charts %}
+<div class="card">
+  <h3>{{ c.label }} <span class="muted">({{ c.unit }}) · 기록 {{ c.n }}건 · 결측일 {{ c.gaps }}</span></h3>
+  <div style="overflow-x:auto">{{ c.svg | safe }}</div>
+</div>
+{% endfor %}
+{% endblock %}

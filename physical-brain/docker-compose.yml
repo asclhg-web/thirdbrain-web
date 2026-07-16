@@ -1,0 +1,16 @@
+# 사용자 PC/GPU 서버용 (2차 이관 준비) — 개발 컨테이너에서는 SQLite 백엔드로 대체 검증됨
+services:
+  neo4j:
+    image: neo4j:5
+    ports: ["7474:7474", "7687:7687"]
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-change-me}
+    volumes:
+      - neo4j_data:/data
+  app:
+    build: .
+    ports: ["8800:8800"]
+    env_file: .env
+    depends_on: [neo4j]
+volumes:
+  neo4j_data:

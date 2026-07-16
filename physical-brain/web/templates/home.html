@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="people muted">사용자:
+  {% for p in people %}<a href="/?person={{p}}">{{ '👉' if p == person else '' }}{{p}}</a>{% endfor %}
+</p>
+
+<div class="card"><h3>☀️ 아침 브리핑</h3><p>{{ briefing }}</p></div>
+
+<div class="card"><h3>💊 오늘의 약
+  {% if adherence.rate is not none %}<span class="badge">7일 준수율 {{ adherence.rate }}%</span>{% endif %}</h3>
+<table>
+<tr><th>시각</th><th>약</th><th>조건</th><th>상태</th><th></th></tr>
+{% for t in tasks %}
+<tr>
+  <td>{{ t.time }}</td><td>{{ t.med }}{% if t.caution %} ⚠{{ t.caution }}{% endif %}</td>
+  <td class="muted">{{ t.condition }}</td>
+  <td class="status-{{ t.status }}">{{ t.status }}</td>
+  <td>{% if t.status in ('pending','announced') %}
+    <form method="post" action="/api/tasks/{{ t.id }}/confirm" style="display:inline">
+      <button>먹었어</button></form>{% endif %}</td>
+</tr>
+{% else %}<tr><td colspan="5" class="muted">오늘 등록된 복약 규칙이 없어요.</td></tr>{% endfor %}
+</table></div>
+
+<div class="card"><h3>🗒 최근 이벤트</h3>
+<table>{% for e in events %}
+<tr><td class="muted">{{ e.at[5:16] }}</td><td>{{ e.kind }}</td><td class="muted">{{ e.payload[:60] }}</td></tr>
+{% else %}<tr><td class="muted">이벤트 없음</td></tr>{% endfor %}</table></div>
+{% endblock %}

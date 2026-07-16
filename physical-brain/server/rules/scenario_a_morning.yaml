@@ -1,0 +1,7 @@
+# 시나리오 A — 아침: 브리핑 (복약 안내·서빙은 태스크 틱이 자동 수행)
+name: 아침 브리핑
+enabled: true
+trigger: { type: time, at: "07:00", person: 아버지 }
+actions:
+  - { type: briefing, person: 아버지 }
+  - { type: briefing, person: 나 }

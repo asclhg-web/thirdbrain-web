@@ -1,0 +1,7 @@
+# 주간 리포트 — 일요일 20:00 (시각 트리거는 요일 무관, 리포트 자체는 7일 창)
+name: 주간 리포트
+enabled: true
+trigger: { type: time, at: "20:00", person: 아버지 }
+actions:
+  - { type: weekly_report, person: 아버지 }
+  - { type: weekly_report, person: 나 }
