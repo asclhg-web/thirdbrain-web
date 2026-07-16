@@ -70,5 +70,5 @@ def confirm(person: str, now: datetime, task_id: int | None = None) -> dict | No
         return None
     conn.execute("UPDATE tasks SET status='confirmed' WHERE id=?", (row["id"],))
     conn.commit()
-    record_event(person, "복약완료", f"{row['med']} {row['time']}", now)
+    record_event(row["person"], "복약완료", f"{row['med']} {row['time']}", now)  # 이벤트는 태스크 소유자에게
     return dict(row)
