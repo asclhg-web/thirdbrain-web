@@ -5,6 +5,18 @@
 - GPU: **RTX 5080 16GB** (블랙웰) / 드라이버 610.62 ✅
 - WSL2: 미설치 → 1단계 / Docker: 미설치 → 2단계
 
+## 진행 상황 (2026-07-17 저녁 중단 — 여기서 재개)
+
+- 메인보드 ASUS / UEFI / CPU 가상화 **사용 안 함** → BIOS에서 켜야 함
+- BIOS 진입 시도 이력: Del 연타 실패(원인: 블루투스 키보드 → **유선 키보드 연결 완료**),
+  `shutdown /r /fw` 실패, 설정의 "지금 다시 시작" 실패
+- **내일 첫 단계**: 관리자 PowerShell에서 `powercfg /h off` → `shutdown /s /t 0`
+  (빠른 시작 끄고 완전 종료) → 전원 켜자마자 유선 키보드로 **Del 연타**
+  → 실패 시 Shift 누른 채 시작메뉴 "다시 시작" → 문제 해결 → 고급 옵션 → UEFI 펌웨어 설정
+- BIOS 진입 후: F7(Advanced Mode) → Advanced → CPU Configuration →
+  Intel (VMX) Virtualization Technology 또는 SVM Mode → **Enabled** → F10 저장
+- 이후: `wsl.exe --install --no-distribution` → 재부팅 → `wsl --install -d Ubuntu-22.04`
+
 **블랙웰(RTX 50번대) 주의**: PyTorch는 반드시 CUDA 12.8 이상 빌드로 설치
 (`pip install torch --index-url https://download.pytorch.org/whl/cu128`).
 구버전(cu121 등)은 GPU를 인식하지 못한다. Ollama·faster-whisper 도커 이미지는
