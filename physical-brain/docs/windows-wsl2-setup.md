@@ -28,13 +28,21 @@
 - 14b 승격 판단: 학습 도중 `nvidia-smi`로 학습 피크 VRAM 확인 후
   (2.2GB 상시 + 학습 피크 + 10GB) < 15GB 면 가능
 
-## Plan B — BIOS/가상화 없이 먼저 시작하는 길 (선택)
+## Plan B — BIOS/가상화 없이 먼저 시작하는 길 (✅ 2026-07-18 채택)
 
-가상화는 WSL2·도커용이며, 당장의 LLM+앱+STT는 Windows 네이티브로도 가능:
-1. Ollama Windows 설치판 (ollama.com) → `ollama pull qwen2.5:7b`
-2. 앱: Windows Python으로 `pip install -r requirements.txt` → `make init` 상당 명령 → uvicorn 실행
-3. STT: `pip install faster-whisper` (도커 서버 대신 파이썬 직접 호출)
-가상화가 꼭 필요해지는 시점은 LeRobot 학습(4단계)부터.
+가상화는 WSL2·도커용이며, 당장의 LLM+앱+STT는 Windows 네이티브로 충분하다.
+**자동 설치 스크립트 1개로 끝**: `scripts/windows/setup.ps1`
+(Git·Ollama 자동 설치 → qwen2.5:7b 다운로드 → 소스 클론 → 패키지·DB 초기화 → 테스트)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup.ps1     # 설치 (재실행 안전)
+powershell -ExecutionPolicy Bypass -File .\run.ps1       # 서버 시작 → localhost:8800
+```
+
+- STT: 도커 서버 없이 `pip install faster-whisper` 로 로컬 인식
+  (voice_client가 서버 연결 실패 시 자동으로 로컬 엔진 사용)
+- LLM 연동 경로는 모의 Ollama 서버로 사전 검증 완료 (available→/api/tags, chat→/api/chat)
+- 가상화가 꼭 필요해지는 시점은 LeRobot 학습(4단계)부터 — 그때 BIOS 작업 재개.
 
 **블랙웰(RTX 50번대) 주의**: PyTorch는 반드시 CUDA 12.8 이상 빌드로 설치
 (`pip install torch --index-url https://download.pytorch.org/whl/cu128`).

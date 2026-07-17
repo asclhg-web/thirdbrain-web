@@ -44,14 +44,38 @@ def record_wav(seconds: int = RECORD_S) -> bytes:
     return buf.getvalue()
 
 
+_LOCAL_WHISPER = None
+
+
+def stt_local(wav: bytes) -> str:
+    """Plan B(도커 없음): faster-whisper 파이썬 패키지로 직접 인식.
+    설치: pip install faster-whisper  (RTX 5080에서 medium 권장)"""
+    global _LOCAL_WHISPER
+    from faster_whisper import WhisperModel
+    if _LOCAL_WHISPER is None:
+        size = os.getenv("STT_LOCAL_SIZE", "medium")
+        try:
+            _LOCAL_WHISPER = WhisperModel(size, device="cuda", compute_type="float16")
+        except Exception:
+            _LOCAL_WHISPER = WhisperModel(size, device="cpu", compute_type="int8")
+    with open("/tmp/pb_stt.wav" if os.name != "nt" else os.path.join(os.getenv("TEMP", "."), "pb_stt.wav"), "wb") as f:
+        f.write(wav)
+        path = f.name
+    segments, _ = _LOCAL_WHISPER.transcribe(path, language="ko")
+    return "".join(s.text for s in segments).strip()
+
+
 def stt(wav: bytes) -> str:
-    """OpenAI 호환 STT(faster-whisper-server, docker compose --profile gpu)."""
-    r = requests.post(f"{STT_BASE}/audio/transcriptions",
-                      files={"file": ("q.wav", wav, "audio/wav")},
-                      data={"model": os.getenv("STT_MODEL", "Systran/faster-whisper-medium"),
-                            "language": "ko"}, timeout=60)
-    r.raise_for_status()
-    return r.json().get("text", "").strip()
+    """STT 서버(도커) 우선, 연결 불가면 로컬 faster-whisper로 자동 폴백."""
+    try:
+        r = requests.post(f"{STT_BASE}/audio/transcriptions",
+                          files={"file": ("q.wav", wav, "audio/wav")},
+                          data={"model": os.getenv("STT_MODEL", "Systran/faster-whisper-medium"),
+                                "language": "ko"}, timeout=60)
+        r.raise_for_status()
+        return r.json().get("text", "").strip()
+    except requests.exceptions.ConnectionError:
+        return stt_local(wav)
 
 
 def ask(question: str) -> str:
