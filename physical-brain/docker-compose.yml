@@ -18,6 +18,8 @@ services:
     image: ollama/ollama:latest
     ports: ["11434:11434"]
     volumes: [ollama_models:/root/.ollama]
+    environment:
+      OLLAMA_KEEP_ALIVE: 2m   # GPU 공유: 응답 후 2분 뒤 VRAM 반납 (주식학습 19:00~05:30과 동거)
     deploy:
       resources:
         reservations:

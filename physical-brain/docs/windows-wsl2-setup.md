@@ -17,6 +17,25 @@
   Intel (VMX) Virtualization Technology 또는 SVM Mode → **Enabled** → F10 저장
 - 이후: `wsl.exe --install --no-distribution` → 재부팅 → `wsl --install -d Ubuntu-22.04`
 
+## GPU 공유 원칙 (동일 서버의 주식예측시스템과 동거)
+
+이 서버에는 주식예측시스템이 함께 산다 — 상시 약 2.2GB, **학습 19:00~05:30**.
+
+- LLM은 **7~8b급 소형 모델**로 시작 (VRAM ~5GB): `ollama pull qwen2.5:7b`, `.env LLM_MODEL=qwen2.5:7b`
+- Ollama `OLLAMA_KEEP_ALIVE=2m` (compose에 반영됨) — 응답 후 2분 뒤 VRAM 자동 반납
+- 아침 브리핑 07:00은 학습 종료(05:30) 후라 충돌 없음. 저녁 리포트 21:30은 학습과
+  겹치지만 GPU 사용이 수십 초 + 실패 시 규칙 기반 폴백으로 리포트는 항상 나간다
+- 14b 승격 판단: 학습 도중 `nvidia-smi`로 학습 피크 VRAM 확인 후
+  (2.2GB 상시 + 학습 피크 + 10GB) < 15GB 면 가능
+
+## Plan B — BIOS/가상화 없이 먼저 시작하는 길 (선택)
+
+가상화는 WSL2·도커용이며, 당장의 LLM+앱+STT는 Windows 네이티브로도 가능:
+1. Ollama Windows 설치판 (ollama.com) → `ollama pull qwen2.5:7b`
+2. 앱: Windows Python으로 `pip install -r requirements.txt` → `make init` 상당 명령 → uvicorn 실행
+3. STT: `pip install faster-whisper` (도커 서버 대신 파이썬 직접 호출)
+가상화가 꼭 필요해지는 시점은 LeRobot 학습(4단계)부터.
+
 **블랙웰(RTX 50번대) 주의**: PyTorch는 반드시 CUDA 12.8 이상 빌드로 설치
 (`pip install torch --index-url https://download.pytorch.org/whl/cu128`).
 구버전(cu121 등)은 GPU를 인식하지 못한다. Ollama·faster-whisper 도커 이미지는
