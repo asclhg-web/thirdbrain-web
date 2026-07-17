@@ -20,9 +20,23 @@ server/     FastAPI 백엔드 (사서·안전망·브리핑·오케스트레이�
 web/        대시보드 템플릿 (Jinja2+HTMX, 서버렌더)
 graph/      온톨로지 v1 스키마·저장소·샘플 볼트·시더
 pipelines/  볼트 동기화·건강 목업·CSV 인제스트
-robot/      로봇 어댑터 (2차, 현재 시뮬레이션 스텁)
-tests/      pytest (가상 하루 시뮬레이터 포함)
+robot/      로봇 어댑터·가상 로봇·음성 클라이언트 (T23·T25)
+docker/     GPU 서버 셋업·헬스체크 (T21)
+docs/       온톨로지·체크리스트·데이터셋 스펙·학습 런북·어댑터 규약
+tests/      pytest (가상 하루 시뮬레이터 + 로봇 종단 테스트)
 ```
+
+## 2차(GPU 서버) 산출물 — T21~T25
+
+| Task | 산출물 | 이 환경 검증 |
+| --- | --- | --- |
+| T21 | `docker/gpu-setup.sh`, `docker/healthcheck_gpu.py`, compose GPU 프로파일 | 스크립트 문법 (GPU는 서버에서) |
+| T22 | `scripts/llm_compare.py` → `docs/llm-comparison.md` | 폴백 경로 (모델 비교는 서버에서) |
+| T23 | `robot/voice_client.py` (푸시투토크: STT→사서→TTS, 지연 로깅) | ✅ 타자 모드 실동작 (STT는 서버에서) |
+| T24 | `docs/dataset-spec.md`, `docs/lerobot-training-runbook.md` | 문서 (학습은 서버에서) |
+| T25 | `robot/bus.py`·`adapter.py`·`fake_robot.py`, `docs/robot-adapter-v1.md` | ✅ 시나리오 A 종단 테스트 통과 |
+
+GPU 서버에서: `bash docker/gpu-setup.sh` → `docker compose --profile gpu up -d` → 런북 순서대로.
 
 ## 그래프 저장소에 대하여
 

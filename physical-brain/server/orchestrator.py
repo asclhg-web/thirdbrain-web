@@ -38,6 +38,12 @@ class RobotStub:
 ROBOT = RobotStub
 
 
+def use_robot(robot) -> None:
+    """로봇 교체 지점 — 2차: use_robot(RobotAdapter(bus)) 한 줄이면 실물/가상 로봇 연결."""
+    global ROBOT
+    ROBOT = robot
+
+
 def load_rules() -> list[dict]:
     rules = []
     for fn in sorted(os.listdir(RULES_DIR)):

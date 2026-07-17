@@ -12,5 +12,25 @@ services:
     ports: ["8800:8800"]
     env_file: .env
     depends_on: [neo4j]
+  # ── 2차: GPU 프로파일 (docker compose --profile gpu up -d) ──
+  ollama:
+    profiles: ["gpu"]
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: [ollama_models:/root/.ollama]
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+  stt:
+    profiles: ["gpu"]
+    image: fedirz/faster-whisper-server:latest-cuda   # OpenAI 호환 STT 서버
+    ports: ["8801:8000"]
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
 volumes:
   neo4j_data:
+  ollama_models:
