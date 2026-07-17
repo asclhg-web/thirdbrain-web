@@ -65,11 +65,18 @@ python -m lerobot.record \
 sudo apt install -y mosquitto && pip install paho-mqtt
 ```
 
-## 부록 — 자연스러운 한국어 TTS (음성 클라이언트용)
+## 부록 — 한국어 TTS 설치 (D-07 확정: piper)
 
 ```bash
 pip install piper-tts
-# 한국어 모델 1회 다운로드 후:
-echo "약 드실 시간이에요" | piper -m ko_KR-...-medium.onnx -f out.wav && aplay out.wav
+# 한국어 모델 1회 다운로드 후 .env에 경로 지정:
+#   PIPER_MODEL=/opt/piper/ko_KR-...-medium.onnx
+echo "약 드실 시간이에요" | piper -m $PIPER_MODEL -f out.wav && aplay out.wav
 ```
-`robot/voice_client.py`의 `tts()`에서 espeak-ng 대신 piper 호출로 교체 가능.
+`robot/voice_client.py`는 PIPER_MODEL이 설정되면 자동으로 piper를 쓰고,
+없으면 espeak-ng로 폴백한다. STT는 D-08 확정으로 medium이 기본이다.
+
+## 참고 — 학습을 클라우드에서 돌릴 때
+
+홈 서버가 비서 업무로 바쁘거나 병렬 실험이 필요하면 `docs/gpu-hybrid-plan.md`의
+클라우드 스팟 절차(데이터셋만 업로드 → 3단계 학습 → 체크포인트 회수)를 따른다.

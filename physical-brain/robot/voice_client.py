@@ -8,8 +8,8 @@
   python3 -m robot.voice_client --text     # 타자 모드 (마이크 없는 환경 검증용)
 
 환경변수: STT_BASE_URL(기본 http://localhost:8801/v1), APP_URL(기본 http://localhost:8800)
-TTS: espeak-ng(오프라인, 즉시) → 없으면 텍스트만 출력. 자연스러운 한국어가
-필요하면 piper-tts 권장(런북: docs/lerobot-training-runbook.md 부록).
+TTS 우선순위(D-07 확정): piper(자연스러운 한국어, PIPER_MODEL 필요) → espeak-ng → 텍스트만.
+STT 모델(D-08 확정): 기본 medium — 어르신 발화 인식률 우선, GPU에서 1초 안쪽.
 """
 import argparse
 import io
@@ -48,7 +48,7 @@ def stt(wav: bytes) -> str:
     """OpenAI 호환 STT(faster-whisper-server, docker compose --profile gpu)."""
     r = requests.post(f"{STT_BASE}/audio/transcriptions",
                       files={"file": ("q.wav", wav, "audio/wav")},
-                      data={"model": os.getenv("STT_MODEL", "Systran/faster-whisper-small"),
+                      data={"model": os.getenv("STT_MODEL", "Systran/faster-whisper-medium"),
                             "language": "ko"}, timeout=60)
     r.raise_for_status()
     return r.json().get("text", "").strip()
@@ -61,7 +61,14 @@ def ask(question: str) -> str:
 
 
 def tts(text: str) -> str:
-    """발화. espeak-ng 있으면 소리 내고, 없으면 'text' 모드로 출력만."""
+    """발화. piper(PIPER_MODEL 설정 시) → espeak-ng → 텍스트만 (D-07: piper 확정)."""
+    model = os.getenv("PIPER_MODEL", "")
+    if model and shutil.which("piper"):
+        wav = "/tmp/pb_tts.wav"
+        subprocess.run(["piper", "-m", model, "-f", wav],
+                       input=text.encode("utf-8"), capture_output=True)
+        subprocess.run(["aplay", "-q", wav], capture_output=True)
+        return "piper"
     if shutil.which("espeak-ng"):
         subprocess.run(["espeak-ng", "-v", "ko", "-s", "150", text],
                        capture_output=True)
