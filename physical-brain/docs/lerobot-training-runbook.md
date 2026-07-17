@@ -10,6 +10,8 @@
 conda create -y -n lerobot python=3.10 && conda activate lerobot
 git clone https://github.com/huggingface/lerobot.git && cd lerobot
 pip install -e ".[feetech]"        # SO-101/LeKiwi 서보 지원
+# RTX 50번대(블랙웰, 우리 서버 RTX 5080 포함)는 cu128 이상 빌드 필수:
+pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu128
 python -c "import torch; print(torch.cuda.is_available())"   # True 확인
 ```
 

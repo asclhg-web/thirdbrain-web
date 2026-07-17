@@ -18,7 +18,7 @@ wsl -e nvidia-smi 2>$null
 if (-not $?) { Write-Host "  [X] WSL 안에서 GPU 미인식 - 드라이버 최신화 + 'wsl --update' 필요" }
 
 Write-Host "`n== 5. GPU 컨테이너 스모크 테스트 (최초 1회 이미지 다운로드 수 분) =="
-docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi
 if (-not $?) { Write-Host "  [X] 컨테이너에서 GPU 실패 - Docker Desktop 설정 > Resources > WSL integration 확인" }
 
 Write-Host "`n== 점검 끝 - 위 출력 전체를 복사해 주세요 =="

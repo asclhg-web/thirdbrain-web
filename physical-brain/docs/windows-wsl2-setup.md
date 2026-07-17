@@ -1,5 +1,15 @@
 # Windows GPU 서버 셋업 런북 (DESKTOP-ACK17CB용)
 
+## 확인된 사양 (2026-07-17 점검 완료)
+
+- GPU: **RTX 5080 16GB** (블랙웰) / 드라이버 610.62 ✅
+- WSL2: 미설치 → 1단계 / Docker: 미설치 → 2단계
+
+**블랙웰(RTX 50번대) 주의**: PyTorch는 반드시 CUDA 12.8 이상 빌드로 설치
+(`pip install torch --index-url https://download.pytorch.org/whl/cu128`).
+구버전(cu121 등)은 GPU를 인식하지 못한다. Ollama·faster-whisper 도커 이미지는
+최신 태그면 문제 없음.
+
 홈 서버가 Windows인 경우의 T21 절차. 리눅스 재설치 없이 **WSL2**(Windows 안의
 우분투)로 기존 런북을 그대로 쓴다. 드라이버는 Windows 것을 WSL이 물려받으므로
 리눅스 드라이버 설치는 필요 없다.
@@ -20,7 +30,7 @@ wsl --update
 
 1. https://docker.com 에서 Docker Desktop 설치 (WSL2 backend 기본값 유지)
 2. Settings → Resources → WSL integration → Ubuntu-22.04 켜기
-3. 확인: `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi`
+3. 확인: `docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi`
 
 ## 3. 앱 배포 (WSL 우분투 셸에서 — 기존 런북과 동일)
 

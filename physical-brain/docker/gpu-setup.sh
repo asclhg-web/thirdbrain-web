@@ -42,7 +42,7 @@ else
 fi
 
 step "4. GPU 컨테이너 스모크 테스트"
-if docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi >/dev/null 2>&1; then
+if docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi >/dev/null 2>&1; then
   ok "컨테이너에서 GPU 인식"
 else
   bad "GPU 컨테이너 실패 (1~3 확인 후 재시도)"
