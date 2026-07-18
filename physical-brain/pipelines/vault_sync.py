@@ -111,7 +111,8 @@ def sync_vault(vault: str) -> dict:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vault", default=os.path.join(os.path.dirname(__file__), "..", "graph", "sample_vault"))
+    ap.add_argument("--vault", default=os.environ.get("VAULT_PATH")
+                    or os.path.join(os.path.dirname(__file__), "..", "graph", "sample_vault"))
     ap.add_argument("--watch", action="store_true")
     args = ap.parse_args()
     print(sync_vault(args.vault))

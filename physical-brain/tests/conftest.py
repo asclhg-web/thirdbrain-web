@@ -11,6 +11,7 @@ def fresh_db(tmp_path, monkeypatch):
     """테스트마다 격리된 DB + 샘플 볼트 시드."""
     monkeypatch.setenv("PB_DB", str(tmp_path / "test.db"))
     monkeypatch.setenv("LLM_MODEL", "")  # 규칙 기반 폴백 강제 (오프라인)
+    monkeypatch.setenv("PB_HEARTBEAT", "0")  # 테스트에서는 백그라운드 루프 금지
     from graph import store
     store.reset_conn()
     from pipelines.vault_sync import sync_vault

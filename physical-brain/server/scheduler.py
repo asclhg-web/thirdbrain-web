@@ -1,0 +1,50 @@
+"""실서비스 심장박동 — 서버와 함께 도는 백그라운드 루프 (T28에서 연결).
+
+- 매 분: orchestrator.run_tick()  → 아침 브리핑·복약 알림·재알림·미확인 처리
+- 5분마다: 볼트 동기화(VAULT_PATH) → 옵시디언에서 지식을 고치면 앱에 반영
+- 끄기: PB_HEARTBEAT=0 (테스트 환경)
+"""
+import os
+import threading
+import time
+import traceback
+from datetime import datetime
+
+_started = False
+SYNC_EVERY_S = 300
+
+
+def vault_path() -> str:
+    return os.environ.get("VAULT_PATH") or os.path.join(
+        os.path.dirname(__file__), "..", "graph", "sample_vault")
+
+
+def _loop():
+    from pipelines.vault_sync import sync_vault
+    from server.orchestrator import run_tick
+    last_sync = 0.0
+    while True:
+        try:
+            if time.time() - last_sync >= SYNC_EVERY_S:
+                r = sync_vault(vault_path())
+                last_sync = time.time()
+                if r["changed"] or r["archived"]:
+                    print(f"[볼트동기화] {r}", flush=True)
+            fired = run_tick(datetime.now())
+            if fired:
+                print(f"[규칙실행] {fired}", flush=True)
+        except Exception:
+            traceback.print_exc()
+        # 다음 분 경계까지 대기 (시각 트리거 07:00 등을 놓치지 않도록)
+        time.sleep(max(5, 61 - datetime.now().second))
+
+
+def start():
+    global _started
+    if _started or os.environ.get("PB_HEARTBEAT", "1") == "0":
+        return None
+    _started = True
+    t = threading.Thread(target=_loop, daemon=True, name="pb-heartbeat")
+    t.start()
+    print(f"[심장박동 시작] 볼트: {os.path.abspath(vault_path())}", flush=True)
+    return t
