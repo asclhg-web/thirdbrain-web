@@ -36,8 +36,12 @@
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\setup.ps1     # 설치 (재실행 안전)
-powershell -ExecutionPolicy Bypass -File .\run.ps1       # 서버 시작 → localhost:8800
+powershell -ExecutionPolicy Bypass -File .\run.ps1       # 서버 시작 → localhost:8810
 ```
+
+주의: 이 서버(Windows)에서는 앱 포트가 **8810**이다. 8800은 주식예측시스템의
+클라이언트가 로그인을 시도하는 포트라 충돌을 피해 옮겼다 (2026-07-18).
+음성 클라이언트를 쓸 때는 `$env:APP_URL="http://localhost:8810"` 설정.
 
 - STT: 도커 서버 없이 `pip install faster-whisper` 로 로컬 인식
   (voice_client가 서버 연결 실패 시 자동으로 로컬 엔진 사용)

@@ -62,5 +62,5 @@ python -m pytest tests/ -q
 Write-Host "`n=====================================================" -ForegroundColor Green
 Write-Host " 설치 완료! 서버 시작:" -ForegroundColor Green
 Write-Host "   powershell -ExecutionPolicy Bypass -File $Home2\physical-brain\scripts\windows\run.ps1" -ForegroundColor Green
-Write-Host " 대시보드: http://localhost:8800" -ForegroundColor Green
+Write-Host " 대시보드: http://localhost:8810" -ForegroundColor Green
 Write-Host "=====================================================" -ForegroundColor Green
