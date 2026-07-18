@@ -114,13 +114,21 @@ def spark_svg(points: list[float], w=560, h=90, missing_ok=True) -> str:
             f'<text x="10" y="{h-2}" fill="#889" font-size="10">min {lo:.0f} · max {hi:.0f}</text></svg>')
 
 
+def people_list() -> list[str]:
+    """그래프의 실제 인물 목록 (샘플 하드코딩 제거 — 볼트가 진실의 원본)."""
+    names = [p["props"].get("name", "") for p in store.nodes_by_type("Person")]
+    return [n for n in names if n] or ["나"]
+
+
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, person: str = "아버지"):
+def home(request: Request, person: str = ""):
     now = datetime.now()
+    people = people_list()
+    person = person if person in people else people[0]
     expand_today(now)
     tasks = [t for t in today(now) if t["person"] == person]
     return templates.TemplateResponse(request, "home.html", {
-        "person": person, "people": ["아버지", "나"],
+        "person": person, "people": people,
         "briefing": briefing.morning_briefing(person, now),
         "tasks": tasks, "adherence": adherence(person, 7, now),
         "events": list(reversed(store.events(person, 2, None, now)))[:8],
@@ -128,7 +136,9 @@ def home(request: Request, person: str = "아버지"):
 
 
 @app.get("/signals", response_class=HTMLResponse)
-def signals(request: Request, person: str = "아버지"):
+def signals(request: Request, person: str = ""):
+    people = people_list()
+    person = person if person in people else people[0]
     now = datetime.now()
     charts = []
     for mtype, label, unit in SIGNALS:
@@ -148,7 +158,7 @@ def signals(request: Request, person: str = "아버지"):
         charts.append({"label": label, "unit": unit, "svg": spark_svg(series),
                        "n": len(acts), "gaps": series.count(None)})
     return templates.TemplateResponse(request, "signals.html",
-                                      {"person": person, "people": ["아버지", "나"], "charts": charts})
+                                      {"person": person, "people": people, "charts": charts})
 
 
 @app.get("/graphview", response_class=HTMLResponse)
