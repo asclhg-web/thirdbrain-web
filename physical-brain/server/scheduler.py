@@ -20,6 +20,8 @@ def vault_path() -> str:
 
 
 def _loop():
+    from pipelines.ingest import process_inbox
+    from pipelines.samsung_health import process_dropbox
     from pipelines.vault_sync import sync_vault
     from server.orchestrator import run_tick
     last_sync = 0.0
@@ -30,6 +32,11 @@ def _loop():
                 last_sync = time.time()
                 if r["changed"] or r["archived"]:
                     print(f"[볼트동기화] {r}", flush=True)
+                ri = process_inbox()  # data/inbox 규약 CSV
+                inbox = os.path.join(vault_path(), "인박스")  # 볼트 인박스: 삼성 zip 등
+                rd = process_dropbox(inbox) if os.path.isdir(inbox) else {"ok": [], "failed": []}
+                if ri["ok"] or ri["failed"] or rd["ok"] or rd["failed"]:
+                    print(f"[실데이터] inbox={ri} 볼트인박스={rd}", flush=True)
             fired = run_tick(datetime.now())
             if fired:
                 print(f"[규칙실행] {fired}", flush=True)

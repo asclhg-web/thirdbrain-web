@@ -22,6 +22,15 @@
 {% else %}<tr><td colspan="5" class="muted">오늘 등록된 복약 규칙이 없어요.</td></tr>{% endfor %}
 </table></div>
 
+<div class="card"><h3>🩺 혈압 입력</h3>
+<form method="post" action="/bp">
+  <input type="hidden" name="person" value="{{person}}">
+  수축기 <input name="sys" type="number" min="50" max="300" required style="width:75px">
+  이완기 <input name="dia" type="number" min="30" max="200" required style="width:75px">
+  <button>기록</button>
+</form>
+<p class="muted">측정 직후 입력하세요 — 기준 초과 시 즉시 알림이 갑니다 (135/85 주의, 180/120 긴급).</p></div>
+
 <div class="card"><h3>🗒 최근 이벤트</h3>
 <table>{% for e in events %}
 <tr><td class="muted">{{ e.at[5:16] }}</td><td>{{ e.kind }}</td><td class="muted">{{ e.payload[:60] }}</td></tr>

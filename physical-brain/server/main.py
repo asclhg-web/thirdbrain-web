@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from graph import store
-from server import briefing, librarian, orchestrator
+from server import briefing, librarian, notify, orchestrator, safety
 from server.events import adherence
 from server.tasks_today import confirm, expand_today, today
 
@@ -51,6 +51,24 @@ def api_tasks():
 def api_confirm(task_id: int):
     r = confirm("", datetime.now(), task_id)
     return {"ok": bool(r), "task": r}
+
+
+@app.post("/bp")
+def bp_submit(person: str = Form(...), sys_v: int = Form(..., alias="sys"), dia_v: int = Form(..., alias="dia")):
+    """혈압 수동 입력 (T29) — 저장 즉시 1층 안전망 검사, 위반 시 알림."""
+    now = datetime.now()
+    pid = store.person_id(person)
+    if not store.get_node(pid):
+        store.upsert_node(pid, "Person", {"name": person})
+    for mtype, v in (("bp_sys", sys_v), ("bp_dia", dia_v)):
+        mid = f"measurement:{person}:{mtype}:{now.isoformat()}"
+        store.upsert_node(mid, "Measurement", {"type": mtype, "value": float(v),
+                                               "unit": "mmHg", "measured_at": now.isoformat(), "src": "manual"})
+        store.upsert_edge(pid, "MEASURED", mid)
+        alert = safety.check_measurement(person, mtype, float(v), now)
+        if alert:
+            notify.send(person, alert["text"], "safety", now)
+    return RedirectResponse(f"/?person={person}", status_code=303)
 
 
 @app.get("/api/briefing/today")
