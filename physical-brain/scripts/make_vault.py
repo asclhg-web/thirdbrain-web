@@ -43,6 +43,36 @@ rule_time: "21:00"
 rule_condition: 저녁 식후
 ---
 """,
+    # ── v2 삼각(몸×학습×프로젝트) 예시 — 이름·내용을 본인 것으로 수정 ──
+    "학습_AI활용.md": """---
+type: skill
+name: AI 활용
+for: "[[나]]"
+status: learning
+---
+유튜브로 제미나이·챗GPT 배우는 중.
+""",
+    "프로젝트_내프로젝트.md": """---
+type: project
+name: 내 프로젝트
+for: "[[나]]"
+status: active
+---
+예: 라인댄스 발표회, 책 출간 — 본인 프로젝트로 수정하세요.
+""",
+    "활동_예시_라인댄스연습.md": """---
+type: activity
+name: 라인댄스 연습 (예시)
+for: "[[나]]"
+date: 2026-07-19
+kind: 운동
+body: 운동 90분
+skills: "[[AI 활용]]"
+projects: "[[내 프로젝트]]"
+---
+일석삼조 활동 예시: 한 활동이 몸(kind/body)·학습(skills)·프로젝트(projects)에 동시 기여.
+활동한 날마다 이런 노트를 남기면 홈의 '삼각 밸런스'에 집계됩니다.
+""",
 }
 
 

@@ -11,7 +11,22 @@ import re
 
 from graph import store
 
-TYPE_MAP = {"person": "Person", "medication": "Medication", "place": "Place"}
+TYPE_MAP = {"person": "Person", "medication": "Medication", "place": "Place",
+            "skill": "Skill", "project": "Project", "activity": "Activity"}
+
+
+def _wiki_links(v: str) -> list[str]:
+    """'[[A]], [[B]]' → ['A', 'B']"""
+    return re.findall(r"\[\[(.+?)\]\]", v or "")
+
+
+def _link_person(meta: dict, rel: str, node_id: str):
+    """for: "[[사람]]" → (Person)-[rel]->(node)"""
+    for name in _wiki_links(meta.get("for", "")):
+        pid = store.person_id(name)
+        if not store.get_node(pid):
+            store.upsert_node(pid, "Person", {"name": name})
+        store.upsert_edge(pid, rel, node_id)
 
 
 def parse_frontmatter(text: str) -> tuple[dict, str]:
@@ -43,20 +58,17 @@ def sync_note(path: str) -> str | None:
     name = meta.get("name") or os.path.splitext(os.path.basename(path))[0]
     node_id = f"{meta['type']}:{slug(name)}"
 
-    props = {k: _num(v) for k, v in meta.items() if not k.startswith("rule_") and k not in ("type", "for")}
+    props = {k: _num(v) for k, v in meta.items()
+             if not k.startswith("rule_") and k not in ("type", "for", "skills", "projects")}
     props["name"] = name
     props["source"] = os.path.basename(path)
+    if ntype == "Activity":  # 노트 기반 활동 로그: 조회 규약(at·kind) 보정
+        props.setdefault("at", str(meta.get("date", "")))
+        props.setdefault("kind", meta.get("kind", "log"))
     store.upsert_node(node_id, ntype, props)
 
     if ntype == "Medication":
-        # 복용자 연결
-        for_ref = meta.get("for", "")
-        m = re.search(r"\[\[(.+?)\]\]", for_ref)
-        if m:
-            pid = store.person_id(m.group(1))
-            if not store.get_node(pid):
-                store.upsert_node(pid, "Person", {"name": m.group(1)})
-            store.upsert_edge(pid, "TAKES", node_id)
+        _link_person(meta, "TAKES", node_id)
         # 복약규칙
         if meta.get("rule_time"):
             rid = f"regimen:{slug(name)}"
@@ -66,6 +78,20 @@ def sync_note(path: str) -> str | None:
                 "caution": meta.get("rule_caution", ""),
             })
             store.upsert_edge(node_id, "HAS_RULE", rid)
+    elif ntype == "Skill":       # v2 삼각: 학습 꼭짓점
+        _link_person(meta, "LEARNS", node_id)
+    elif ntype == "Project":     # v2 삼각: 프로젝트 꼭짓점
+        _link_person(meta, "WORKS_ON", node_id)
+    elif ntype == "Activity":    # v2 삼각: 활동 로그 노트 (일석삼조의 심장)
+        _link_person(meta, "PERFORMED", node_id)
+        # skills/projects: "[[라인댄스 스텝]], [[발표회]]" → CONTRIBUTES_TO
+        for target, prefix, ttyp in ((meta.get("skills", ""), "skill", "Skill"),
+                                     (meta.get("projects", ""), "project", "Project")):
+            for tname in _wiki_links(target):
+                tid = f"{prefix}:{slug(tname)}"
+                if not store.get_node(tid):
+                    store.upsert_node(tid, ttyp, {"name": tname})
+                store.upsert_edge(node_id, "CONTRIBUTES_TO", tid)
     return node_id
 
 

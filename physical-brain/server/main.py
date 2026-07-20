@@ -149,6 +149,7 @@ def home(request: Request, person: str = ""):
         "person": person, "people": people,
         "briefing": briefing.morning_briefing(person, now),
         "tasks": tasks, "adherence": adherence(person, 7, now),
+        "triangle": store.triangle_week(person, now),
         "events": list(reversed(store.events(person, 2, None, now)))[:8],
     })
 

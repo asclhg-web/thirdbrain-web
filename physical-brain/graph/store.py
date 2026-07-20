@@ -122,6 +122,40 @@ def neighbors(node_id: str, rel: str | None = None, direction="out") -> list[tup
     return out
 
 
+BODY_KINDS = {"walk", "sleep", "exercise", "운동", "수면", "걷기"}
+
+
+def triangle_week(person: str, now: "datetime | None" = None) -> dict:
+    """v2 삼각(몸·학습·프로젝트): 최근 7일 활동의 영역별 기여와 교차기여율(일석삼조 비중)."""
+    now = now or datetime.now()
+    since = (now - timedelta(days=7)).isoformat()
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT n.id, n.props FROM nodes n JOIN edges e ON e.dst=n.id AND e.rel='PERFORMED' "
+        "WHERE e.src=? AND n.type='Activity' AND n.archived=0", (person_id(person),)).fetchall()
+    tally = {"몸": 0, "학습": 0, "프로젝트": 0}
+    total = multi = 0
+    for r in rows:
+        pr = json.loads(r["props"])
+        at = str(pr.get("at", ""))
+        if not (since <= at <= now.isoformat()):
+            continue
+        total += 1
+        domains = set()
+        if pr.get("kind") in BODY_KINDS or pr.get("body"):
+            domains.add("몸")
+        for _rel, n in neighbors(r["id"], "CONTRIBUTES_TO"):
+            if n["type"] == "Skill":
+                domains.add("학습")
+            elif n["type"] == "Project":
+                domains.add("프로젝트")
+        for d in domains:
+            tally[d] += 1
+        multi += 1 if len(domains) >= 2 else 0
+    return {"total": total, **tally,
+            "cross_rate": round(multi / total * 100) if total else None}
+
+
 def counts() -> dict:
     conn = get_conn()
     n = {r["type"]: r["c"] for r in conn.execute(

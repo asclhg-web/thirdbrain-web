@@ -1,16 +1,26 @@
-"""서드브레인 표준 개인 온톨로지 v1 — 노드 7종, 관계 6종."""
+"""서드브레인 표준 개인 온톨로지 v2 — 노드 9종, 관계 9종 (KG-DMAIC v2 삼각 모델).
+
+v2 추가: Skill(배움 주제)·Project(개인 프로젝트) 노드,
+LEARNS·WORKS_ON·CONTRIBUTES_TO 관계 — 한 Activity가 여러 영역(몸·학습·프로젝트)에
+동시 기여하는 '일석삼조 활동'을 그래프로 표현한다.
+"""
 from dataclasses import dataclass, field
 
-NODE_TYPES = ["Person", "Medication", "Regimen", "Measurement", "Activity", "Event", "Place"]
-REL_TYPES = ["TAKES", "HAS_RULE", "MEASURED", "PERFORMED", "OCCURRED", "RELATES_TO"]
+NODE_TYPES = ["Person", "Medication", "Regimen", "Measurement", "Activity", "Event", "Place",
+              "Skill", "Project"]
+REL_TYPES = ["TAKES", "HAS_RULE", "MEASURED", "PERFORMED", "OCCURRED", "RELATES_TO",
+             "LEARNS", "WORKS_ON", "CONTRIBUTES_TO"]
 
-# 관계의 (시작노드, 끝노드) 규약 — RELATES_TO 는 자유
+# 관계의 (시작노드, 끝노드) 규약 — RELATES_TO 는 자유. 값이 리스트면 복수 규약 허용
 REL_RULES = {
     "TAKES": ("Person", "Medication"),
     "HAS_RULE": ("Medication", "Regimen"),
     "MEASURED": ("Person", "Measurement"),
     "PERFORMED": ("Person", "Activity"),
     "OCCURRED": ("Person", "Event"),
+    "LEARNS": ("Person", "Skill"),
+    "WORKS_ON": ("Person", "Project"),
+    "CONTRIBUTES_TO": [("Activity", "Skill"), ("Activity", "Project")],
 }
 
 
@@ -64,8 +74,26 @@ class Place:
     theta: float = 0
 
 
+@dataclass
+class Skill:
+    """배움 주제 — 예: 요리, AI 활용, 라인댄스 스텝 (삼각의 '학습' 꼭짓점)."""
+    name: str
+    status: str = "learning"   # learning|paused|done
+
+
+@dataclass
+class Project:
+    """개인 프로젝트 — 예: 라인댄스 발표회, 책 출간 (삼각의 '프로젝트' 꼭짓점)."""
+    name: str
+    status: str = "active"     # active|paused|done
+    due: str = ""
+
+
 def validate_edge(rel: str, src_type: str, dst_type: str) -> bool:
     if rel == "RELATES_TO":
         return True
     rule = REL_RULES.get(rel)
-    return bool(rule) and rule == (src_type, dst_type)
+    if not rule:
+        return False
+    pairs = rule if isinstance(rule, list) else [rule]
+    return (src_type, dst_type) in pairs

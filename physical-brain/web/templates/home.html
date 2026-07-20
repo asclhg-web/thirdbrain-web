@@ -22,6 +22,14 @@
 {% else %}<tr><td colspan="5" class="muted">오늘 등록된 복약 규칙이 없어요.</td></tr>{% endfor %}
 </table></div>
 
+<div class="card"><h3>🔺 삼각 밸런스 <span class="muted">(최근 7일 활동의 영역 기여)</span></h3>
+{% if triangle.total %}
+<p>활동 {{ triangle.total }}건 — 몸 <b>{{ triangle['몸'] }}</b> · 학습 <b>{{ triangle['학습'] }}</b> · 프로젝트 <b>{{ triangle['프로젝트'] }}</b>
+{% if triangle.cross_rate is not none %} | 일석삼조(교차기여율) <b>{{ triangle.cross_rate }}%</b>{% endif %}</p>
+<p class="muted">활동 노트에 skills/projects 링크를 달면 한 활동이 여러 영역에 기여합니다 (KG-DMAIC v2).</p>
+{% else %}<p class="muted">최근 7일 기록된 활동이 없어요. 볼트에 활동 노트(type: activity)를 남겨보세요.</p>{% endif %}
+</div>
+
 <div class="card"><h3>🩺 혈압 입력</h3>
 <form method="post" action="/bp">
   <input type="hidden" name="person" value="{{person}}">
