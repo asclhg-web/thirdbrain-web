@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card"><h3>👤 프로필 — 그래프의 소유와 전환</h3>
+<p class="muted">프로필 하나 = 완전히 격리된 그래프(별도 DB 파일) = 이동·상속 가능한 단위입니다.</p>
+<table>
+<tr><th>프로필</th><th>종류</th><th>상태</th><th></th></tr>
+{% for p in profiles %}
+<tr>
+  <td>{{ p.name }} <span class="muted">({{ p.id }})</span></td>
+  <td><span class="badge">{{ p.kind }}</span></td>
+  <td>{{ '🟢 사용 중' if p.active else '' }}</td>
+  <td>{% if not p.active %}
+    <form method="post" action="/profiles/{{ p.id }}/activate" style="display:inline">
+      <button>전환</button></form>{% endif %}</td>
+</tr>
+{% endfor %}
+</table>
+<p class="muted">⚠ 전환하면 대시보드 전체(오늘·신호·사이클·승인)가 해당 프로필의 그래프로 바뀝니다.</p>
+</div>
+
+<div class="card"><h3>➕ 새 프로필</h3>
+<form method="post" action="/profiles/create">
+  이름 <input name="name" required placeholder="예: 아내, 내 회사, 투자">
+  종류 <select name="kind">
+    <option value="personal">개인</option>
+    <option value="business">기업</option>
+    <option value="investment">투자</option>
+    <option value="family">가족(상속)</option>
+  </select>
+  <button>만들기</button>
+</form>
+<p class="muted">새 프로필은 빈 그래프로 시작합니다 — 전환 후 볼트 경로(.env VAULT_PATH)나 어댑터를 연결하세요.</p></div>
+{% endblock %}

@@ -15,6 +15,13 @@ from graph_core import registry
 _LOCK = threading.Lock()
 _CONN = None
 _EXTRA_DDL: list[str] = []
+_DB_OVERRIDE: str | None = None  # 프로필 전환(G06) — env보다 우선
+
+
+def set_db_path(path: str | None) -> None:
+    """프로필 활성화용 DB 경로 오버라이드. None이면 env/기본값으로 복귀."""
+    global _DB_OVERRIDE
+    _DB_OVERRIDE = path
 
 
 def register_ddl(sql: str) -> None:
@@ -24,6 +31,8 @@ def register_ddl(sql: str) -> None:
 
 
 def db_path() -> str:
+    if _DB_OVERRIDE:
+        return _DB_OVERRIDE
     return os.environ.get("PB_DB", os.path.join(os.path.dirname(__file__), "..", "data", "brain.db"))
 
 

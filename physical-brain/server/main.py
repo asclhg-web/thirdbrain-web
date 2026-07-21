@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from graph import store
 from graph_core import approvals as kgapprovals
 from graph_core import cycle as kgcycle
+from graph_core import profiles as kgprofiles
 from server import briefing, librarian, notify, orchestrator, safety
 from server.events import adherence
 from server.tasks_today import confirm, expand_today, today
@@ -111,6 +112,25 @@ def approvals_page(request: Request):
 def approvals_decide(approval_id: int, approve: int = Form(...)):
     kgapprovals.decide(approval_id, bool(approve))
     return RedirectResponse("/approvals", status_code=303)
+
+
+@app.get("/profiles", response_class=HTMLResponse)
+def profiles_page(request: Request):
+    """프로필 (G06) — 개인·기업·투자 그래프의 소유와 전환."""
+    return templates.TemplateResponse(request, "profiles.html",
+                                      {"profiles": kgprofiles.list_profiles()})
+
+
+@app.post("/profiles/create")
+def profiles_create(name: str = Form(...), kind: str = Form("personal")):
+    kgprofiles.create(name, kind)
+    return RedirectResponse("/profiles", status_code=303)
+
+
+@app.post("/profiles/{profile_id}/activate")
+def profiles_activate(profile_id: str):
+    kgprofiles.activate(profile_id)
+    return RedirectResponse("/profiles", status_code=303)
 
 
 @app.get("/api/briefing/today")

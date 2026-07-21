@@ -12,6 +12,8 @@ def fresh_db(tmp_path, monkeypatch):
     monkeypatch.setenv("PB_DB", str(tmp_path / "test.db"))
     monkeypatch.setenv("LLM_MODEL", "")  # 규칙 기반 폴백 강제 (오프라인)
     monkeypatch.setenv("PB_HEARTBEAT", "0")  # 테스트에서는 백그라운드 루프 금지
+    from graph_core import store as core_store
+    core_store.set_db_path(None)  # 프로필 오버라이드 격리 (G06)
     from graph import store
     store.reset_conn()
     from pipelines.vault_sync import sync_vault
