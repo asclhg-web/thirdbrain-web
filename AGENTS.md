@@ -104,3 +104,31 @@ After changes, always verify:
 1. `npm run build` succeeds
 2. `npm run check` passes (astro check + ESLint + Prettier)
 3. Visual check in browser: homepage, blog, dark mode, mobile menu
+
+---
+
+# 브레인그래프(BrainGraph) 프로젝트 메모리
+
+이 저장소의 진짜 프로젝트는 웹 템플릿이 아니라 **브레인그래프 — Physical AI 로봇의
+지능을 만드는 개인·기업 통합 온톨로지 지식그래프 플랫폼**이다 (`physical-brain/`,
+`book/draft-v2/`).
+
+## 최상위 문서 (이 순서로 우선한다)
+
+1. `book/draft-v2/브레인그래프_유산헌장.docx` — 프로젝트 헌법. 북극성: 주인이 평생
+   기른 그래프를 딸에게 유산으로 물려주는 것. 제1원칙 "언제 멈춰도 선물이 되도록".
+2. `book/draft-v2/브레인그래프_플랫폼_제안서_v2.docx` — 마스터 체계(몸·학습·일·마음),
+   G01~G20 WBS.
+3. `book/draft-v2/온톨로지지식그래프_방법론_KG-DMAIC_v2.docx` — 구축 방법론.
+
+## 개발 시 필수
+
+**브레인그래프·피지컬브레인 관련 개발/설계 전에 반드시 `braingraph-philosophy` 스킬을
+참조할 것.** 핵심만 요약하면: 진실의 원본은 볼트/Odoo(그래프는 거울), 미확인은
+미확인으로, Frame/Instance 분리, CQ 주도 설계, HITL 승인, 어댑터 패턴, 마크다운·
+SQLite 기본(데이터 주권), 매 턴 테스트+커밋+푸시. 기능과 상속 가능성이 충돌하면
+상속 가능성이 이긴다.
+
+사용자는 비개발자(경영컨설턴트·저자·Odoo 파트너)이며, 안내는 복사-붙여넣기 명령
+단위로 제공한다. 서버: DESKTOP-ACK17CB(Windows, RTX 5080, 포트 8810, 주식학습
+19:00~05:30과 GPU 동거).
