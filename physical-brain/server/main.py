@@ -161,6 +161,39 @@ def learning_quiz(person: str = Form(...), concept_id: str = Form(...), correct:
     return RedirectResponse(f"/learning?person={person}", status_code=303)
 
 
+@app.get("/work", response_class=HTMLResponse)
+def work_page(request: Request, person: str = ""):
+    """일 마스터 (G08-W) — 목표(OKR)·과업(칸반)·산출물(PARA)의 1인 밸류체인."""
+    from graph import work_master as wm
+    people = people_list()
+    person = person if person in people else people[0]
+    return templates.TemplateResponse(request, "work.html", {
+        "person": person, "people": people, "board": wm.board(person),
+        "weekly_done": wm.weekly_done(person)})
+
+
+@app.post("/work/objective")
+def work_objective(project: str = Form(...), title: str = Form(...),
+                   kr: str = Form(""), person: str = Form("나")):
+    from graph import work_master as wm
+    wm.add_objective(project, title, kr, person)
+    return RedirectResponse(f"/work?person={person}", status_code=303)
+
+
+@app.post("/work/task")
+def work_task(objective_id: str = Form(...), title: str = Form(...), person: str = Form("나")):
+    from graph import work_master as wm
+    wm.add_task(objective_id, title)
+    return RedirectResponse(f"/work?person={person}", status_code=303)
+
+
+@app.post("/work/task/move")
+def work_task_move(task_id: str = Form(...), status: str = Form(...), person: str = Form("나")):
+    from graph import work_master as wm
+    wm.move_task(task_id, status)
+    return RedirectResponse(f"/work?person={person}", status_code=303)
+
+
 @app.get("/api/briefing/today")
 def api_briefing(person: str = "나"):
     return {"person": person, "briefing": briefing.morning_briefing(person)}

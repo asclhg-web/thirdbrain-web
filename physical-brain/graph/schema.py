@@ -8,10 +8,12 @@ from dataclasses import dataclass, field
 
 NODE_TYPES = ["Person", "Medication", "Regimen", "Measurement", "Activity", "Event", "Place",
               "Skill", "Project", "MeasureType",
-              "Subject", "Topic", "Concept", "Source"]  # G08-L 학습 마스터 (+출처)
+              "Subject", "Topic", "Concept", "Source",   # G08-L 학습 마스터 (+출처)
+              "Objective", "Task", "Deliverable"]        # G08-W 일 마스터 (1인 밸류체인)
 REL_TYPES = ["TAKES", "HAS_RULE", "MEASURED", "PERFORMED", "OCCURRED", "RELATES_TO",
              "LEARNS", "WORKS_ON", "CONTRIBUTES_TO",
-             "PART_OF", "PREREQUISITE_OF", "MASTERS", "LEARNED_FROM"]
+             "PART_OF", "PREREQUISITE_OF", "MASTERS", "LEARNED_FROM",
+             "HAS_OBJECTIVE", "HAS_TASK", "PRODUCED_BY"]
 
 # 관계의 (시작노드, 끝노드) 규약 — RELATES_TO 는 자유. 값이 리스트면 복수 규약 허용
 REL_RULES = {
@@ -27,6 +29,9 @@ REL_RULES = {
     "PREREQUISITE_OF": ("Concept", "Concept"),
     "MASTERS": ("Person", "Concept"),
     "LEARNED_FROM": ("Concept", "Source"),  # 어디서 배웠는가 — 출처의 그래프화
+    "HAS_OBJECTIVE": ("Project", "Objective"),   # 왜(OKR)
+    "HAS_TASK": ("Objective", "Task"),           # 무엇을(칸반)
+    "PRODUCED_BY": ("Deliverable", "Task"),      # 무엇이 남았나(PARA)
 }
 
 
@@ -98,7 +103,7 @@ class Project:
 # ── G01: 개인 표준 온톨로지를 코어 레지스트리에 Frame으로 등록 ──
 from graph_core import registry as _registry
 
-_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES, version="2.3")
+_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES, version="2.4")
 
 
 def validate_edge(rel: str, src_type: str, dst_type: str) -> bool:

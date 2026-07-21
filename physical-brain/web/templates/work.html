@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="people muted">사용자:
+  {% for p in people %}<a href="/work?person={{p}}">{{ '👉' if p == person else '' }}{{p}}</a>{% endfor %}
+  <span class="badge">이번 주 완료 {{ weekly_done }}건</span>
+</p>
+
+{% for proj in board %}
+<div class="card"><h3>🗂 {{ proj.name }} <span class="badge">{{ proj.status }}</span></h3>
+{% for obj in proj.objectives %}
+  <p><b>🎯 {{ obj.name }}</b>{% if obj.kr %} <span class="muted">KR: {{ obj.kr }}</span>{% endif %}
+   <span class="badge">{{ obj.done }}/{{ obj.total }}</span>
+   <span style="display:inline-block;height:8px;background:var(--teal);width:{{ (obj.done / obj.total * 120) | int if obj.total else 0 }}px;border-radius:4px"></span></p>
+  <table>
+  {% for t in obj.tasks %}
+  <tr>
+    <td>{{ t.name }}</td>
+    <td class="status-{{ 'confirmed' if t.status == 'done' else ('announced' if t.status == 'doing' else 'pending') }}">{{ t.status }}</td>
+    <td style="white-space:nowrap">
+      {% if t.status == 'todo' %}
+      <form method="post" action="/work/task/move" style="display:inline"><input type="hidden" name="task_id" value="{{t.id}}"><input type="hidden" name="status" value="doing"><input type="hidden" name="person" value="{{person}}"><button>시작</button></form>
+      {% elif t.status == 'doing' %}
+      <form method="post" action="/work/task/move" style="display:inline"><input type="hidden" name="task_id" value="{{t.id}}"><input type="hidden" name="status" value="done"><input type="hidden" name="person" value="{{person}}"><button>완료</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </table>
+  <form method="post" action="/work/task">
+    <input type="hidden" name="objective_id" value="{{obj.id}}"><input type="hidden" name="person" value="{{person}}">
+    <input name="title" placeholder="새 과업" required style="width:60%"> <button>추가</button>
+  </form>
+  {% if obj.deliverables %}<p class="muted">📦 산출물: {% for d in obj.deliverables %}{{ d.name }} {% endfor %}</p>{% endif %}
+{% else %}<p class="muted">목표가 아직 없어요 — 아래에서 첫 목표를 세워보세요.</p>{% endfor %}
+</div>
+{% endfor %}
+
+<div class="card"><h3>➕ 새 목표 (OKR)</h3>
+<form method="post" action="/work/objective">
+  <input type="hidden" name="person" value="{{person}}">
+  <p>프로젝트 <input name="project" required placeholder="예: 라인댄스 발표회"></p>
+  <p>목표(O) <input name="title" required placeholder="예: 10월 발표회 무대에 서기" style="width:60%"></p>
+  <p>핵심결과(KR) <input name="kr" placeholder="예: 안무 3곡 완주, 주 2회 연습" style="width:60%"></p>
+  <button>목표 세우기</button>
+</form>
+<p class="muted">목표(왜) → 과업(무엇) → 완료(실행) → 산출물 — 1인 밸류체인. 활동 노트의 projects: 링크로 세션이 연결됩니다.</p></div>
+{% endblock %}
