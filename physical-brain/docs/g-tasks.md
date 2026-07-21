@@ -33,7 +33,9 @@
 
 | G12 에이전트 빌더 | ✅ 2026-07-20 | 몸 마스터의 임계값-규칙 갭 자동 발견 → YAML 규칙 초안 → 승인 큐 → 승인 시 rules/에 활성화 → 다음 틱 발화. 승인 전 파일 0개(HITL)·실발화까지 전 과정 테스트. 승인 화면에 초안 카드 통합 |
 
-미착수: G09~G10(Odoo — 인스턴스 정보 대기)·G13(투자 팩) — ⬜
+| G13 투자 팩 | ✅ 2026-07-20 | invest/ — investment-v1 Frame(Company·Sector·MarketEvent + BELONGS_TO·SUPPLIES·IMPACTS), 반도체 가치사슬 시드 6사, record_market_event(근거 source 필수), impact_query 충격전파(공급망 1홉 감쇠, 경로=근거), 사서 자유질문 통합. 투자 조언 없음(점수·경로만). 실전 연결점: OpenBrain 수집기→record_market_event |
+
+미착수: G09~G10(Odoo — 인스턴스 정보 대기) — Phase 2의 마지막 ⬜
 
 ## Phase 3 — 상용화
 

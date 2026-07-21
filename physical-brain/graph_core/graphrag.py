@@ -6,7 +6,8 @@
 from graph_core import store
 
 # 이름이 의미를 갖는 유형만 시드 후보 (측정·활동·이벤트는 시드가 아니라 근거)
-NAMED_TYPES = ("Person", "Medication", "Place", "Skill", "Project")
+NAMED_TYPES = ("Person", "Medication", "Place", "Skill", "Project",
+               "Company", "Sector", "MarketEvent", "Concept", "Objective")
 
 
 def find_nodes(question: str, limit: int = 5) -> list[dict]:
