@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="people muted">사용자:
+  {% for p in people %}<a href="/learning?person={{p}}">{{ '👉' if p == person else '' }}{{p}}</a>{% endfor %}
+</p>
+
+<div class="card"><h3>📚 학습 마스터 — 과목별 진행</h3>
+<table>
+<tr><th>과목</th><th>숙달</th><th>학습중</th><th>전체</th><th></th></tr>
+{% for s in progress %}
+<tr><td>{{ s.subject }}</td><td>{{ s.mastered }}</td><td class="muted">{{ s.learning }}</td><td class="muted">{{ s.total }}</td>
+  <td><span style="display:inline-block;height:10px;background:var(--teal);width:{{ (s.mastered / s.total * 140) | int }}px;border-radius:4px"></span></td></tr>
+{% endfor %}
+</table>
+<p class="muted">숙달 = 확인 3회 이상·정답률 70% 이상 (본 것과 아는 것을 구분합니다).</p></div>
+
+<div class="card"><h3>🧩 다음 걸음 — 확인 질문 ({{ quiz|length }}개)</h3>
+<p class="muted">선수 개념이 충족된 것만 나옵니다. 스스로 답해보고 정직하게 누르세요 — 미확인은 미확인으로.</p>
+<table>
+{% for q in quiz %}
+<tr>
+  <td>{{ q.name }}<br><span class="muted">{{ q.question }}</span></td>
+  <td class="muted" style="white-space:nowrap">{{ q.confirm }}/{{ q.total }}</td>
+  <td style="white-space:nowrap">
+    <form method="post" action="/learning/quiz" style="display:inline">
+      <input type="hidden" name="person" value="{{person}}"><input type="hidden" name="concept_id" value="{{q.id}}">
+      <input type="hidden" name="correct" value="1"><button>답할 수 있어요</button></form>
+    <form method="post" action="/learning/quiz" style="display:inline">
+      <input type="hidden" name="person" value="{{person}}"><input type="hidden" name="concept_id" value="{{q.id}}">
+      <input type="hidden" name="correct" value="0">
+      <button style="background:#3a4250;color:#e8e4dc">아직요</button></form>
+  </td>
+</tr>
+{% else %}<tr><td class="muted">지금 도전할 개념이 없어요 — 모두 숙달했거나 선수 개념부터!</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

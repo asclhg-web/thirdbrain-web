@@ -141,6 +141,26 @@ def profiles_activate(profile_id: str):
     return RedirectResponse("/profiles", status_code=303)
 
 
+@app.get("/learning", response_class=HTMLResponse)
+def learning_page(request: Request, person: str = ""):
+    """학습 마스터 (G08-L) — 커리큘럼 트리·숙달 현황·다음 걸음 퀴즈."""
+    from graph import learning_master as lm
+    people = people_list()
+    person = person if person in people else people[0]
+    if not store.nodes_by_type("Concept"):
+        lm.seed_curriculum()
+    return templates.TemplateResponse(request, "learning.html", {
+        "person": person, "people": people,
+        "progress": lm.progress(person), "quiz": lm.quiz_candidates(person, 20)})
+
+
+@app.post("/learning/quiz")
+def learning_quiz(person: str = Form(...), concept_id: str = Form(...), correct: int = Form(...)):
+    from graph import learning_master as lm
+    lm.record_quiz(person, concept_id, bool(correct))
+    return RedirectResponse(f"/learning?person={person}", status_code=303)
+
+
 @app.get("/api/briefing/today")
 def api_briefing(person: str = "나"):
     return {"person": person, "briefing": briefing.morning_briefing(person)}

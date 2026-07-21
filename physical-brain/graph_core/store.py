@@ -101,6 +101,13 @@ def upsert_edge(src: str, rel: str, dst: str, props: dict | None = None):
     conn.commit()
 
 
+def get_edge(src: str, rel: str, dst: str) -> dict | None:
+    """엣지 props 조회 (G08-L: MASTERS의 확신 누적 등 관계 속성용)."""
+    row = get_conn().execute("SELECT props FROM edges WHERE src=? AND rel=? AND dst=?",
+                             (src, rel, dst)).fetchone()
+    return json.loads(row["props"]) if row else None
+
+
 def get_node(node_id: str) -> dict | None:
     row = get_conn().execute("SELECT * FROM nodes WHERE id=?", (node_id,)).fetchone()
     return node_dict(row) if row else None

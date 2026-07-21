@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 from graph import schema  # Frame 등록(personal-v2)을 보장
 from graph_core.store import (  # noqa: F401 — 하위 호환 재수출
-    archive_node, counts, db_path, get_conn, get_node, init_tables,
+    archive_node, counts, db_path, get_conn, get_edge, get_node, init_tables,
     neighbors, nodes_by_type, register_ddl, reset_conn, upsert_edge, upsert_node,
 )
 

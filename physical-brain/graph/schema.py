@@ -7,9 +7,11 @@ LEARNS·WORKS_ON·CONTRIBUTES_TO 관계 — 한 Activity가 여러 영역(몸·�
 from dataclasses import dataclass, field
 
 NODE_TYPES = ["Person", "Medication", "Regimen", "Measurement", "Activity", "Event", "Place",
-              "Skill", "Project", "MeasureType"]
+              "Skill", "Project", "MeasureType",
+              "Subject", "Topic", "Concept"]  # G08-L 학습 마스터: 과목→영역→개념
 REL_TYPES = ["TAKES", "HAS_RULE", "MEASURED", "PERFORMED", "OCCURRED", "RELATES_TO",
-             "LEARNS", "WORKS_ON", "CONTRIBUTES_TO"]
+             "LEARNS", "WORKS_ON", "CONTRIBUTES_TO",
+             "PART_OF", "PREREQUISITE_OF", "MASTERS"]
 
 # 관계의 (시작노드, 끝노드) 규약 — RELATES_TO 는 자유. 값이 리스트면 복수 규약 허용
 REL_RULES = {
@@ -20,7 +22,10 @@ REL_RULES = {
     "OCCURRED": ("Person", "Event"),
     "LEARNS": ("Person", "Skill"),
     "WORKS_ON": ("Person", "Project"),
-    "CONTRIBUTES_TO": [("Activity", "Skill"), ("Activity", "Project")],
+    "CONTRIBUTES_TO": [("Activity", "Skill"), ("Activity", "Project"), ("Activity", "Concept")],
+    "PART_OF": [("Concept", "Topic"), ("Topic", "Subject")],
+    "PREREQUISITE_OF": ("Concept", "Concept"),
+    "MASTERS": ("Person", "Concept"),
 }
 
 
@@ -92,7 +97,7 @@ class Project:
 # ── G01: 개인 표준 온톨로지를 코어 레지스트리에 Frame으로 등록 ──
 from graph_core import registry as _registry
 
-_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES, version="2.1")
+_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES, version="2.2")
 
 
 def validate_edge(rel: str, src_type: str, dst_type: str) -> bool:
