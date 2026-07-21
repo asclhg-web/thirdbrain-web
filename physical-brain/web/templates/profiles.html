@@ -18,6 +18,16 @@
 <p class="muted">⚠ 전환하면 대시보드 전체(오늘·신호·사이클·승인)가 해당 프로필의 그래프로 바뀝니다.</p>
 </div>
 
+<div class="card"><h3>🎁 유산 패키지 (헌장 제1원칙: 언제 멈춰도 선물이 되도록)</h3>
+{% if legacy_latest %}
+<p>최근 패키지: <b>{{ legacy_latest }}</b>
+{% if legacy_check %} — 리허설 검증: {{ '✅ 건강함' if legacy_check.healthy else '⚠ ' + legacy_check.issues|join(', ') }}
+<span class="muted">(프로필 {{ legacy_check.profiles|length }}개 · 볼트 파일 {{ legacy_check.vault_files }}개)</span>{% endif %}</p>
+{% else %}<p class="muted">아직 패키지가 없어요 — 심장박동이 매주 자동 생성하며, 지금 바로 만들 수도 있습니다.</p>{% endif %}
+<form method="post" action="/legacy/build"><button>지금 패키지 만들기</button></form>
+<p class="muted">위치: data/legacy/ — 주기적으로 USB·금고 등 별도 장소에도 복사해 두세요. 열람 시점·열쇠 보관은 유산 헌장(D-09) 참조.</p>
+</div>
+
 <div class="card"><h3>➕ 새 프로필</h3>
 <form method="post" action="/profiles/create">
   이름 <input name="name" required placeholder="예: 아내, 내 회사, 투자">

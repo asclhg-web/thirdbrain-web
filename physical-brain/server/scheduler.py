@@ -37,6 +37,11 @@ def _loop():
                 rd = process_dropbox(inbox) if os.path.isdir(inbox) else {"ok": [], "failed": []}
                 if ri["ok"] or ri["failed"] or rd["ok"] or rd["failed"]:
                     print(f"[실데이터] inbox={ri} 볼트인박스={rd}", flush=True)
+                # G-Legacy: 주 1회 유산 패키지 자동 생성 — 언제 멈춰도 선물이 되도록
+                from graph_core import legacy
+                pkg = legacy.auto_build_if_due(7, vault_path())
+                if pkg:
+                    print(f"[유산패키지] 생성: {pkg}", flush=True)
             fired = run_tick(datetime.now())
             if fired:
                 print(f"[규칙실행] {fired}", flush=True)

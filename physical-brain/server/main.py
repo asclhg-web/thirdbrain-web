@@ -136,9 +136,22 @@ def approvals_decide(approval_id: int, approve: int = Form(...)):
 
 @app.get("/profiles", response_class=HTMLResponse)
 def profiles_page(request: Request):
-    """프로필 (G06) — 개인·기업·투자 그래프의 소유와 전환."""
-    return templates.TemplateResponse(request, "profiles.html",
-                                      {"profiles": kgprofiles.list_profiles()})
+    """프로필 (G06) — 그래프의 소유·전환 + 유산 패키지 (G-Legacy)."""
+    from graph_core import legacy
+    latest = legacy.latest_package()
+    return templates.TemplateResponse(request, "profiles.html", {
+        "profiles": kgprofiles.list_profiles(),
+        "legacy_latest": os.path.basename(latest) if latest else None,
+        "legacy_check": legacy.verify_package(latest) if latest else None})
+
+
+@app.post("/legacy/build")
+def legacy_build():
+    """유산 패키지 지금 만들기 + 즉시 리허설 검증."""
+    from graph_core import legacy
+    from server.scheduler import vault_path
+    legacy.build_package(vault_path())
+    return RedirectResponse("/profiles", status_code=303)
 
 
 @app.post("/profiles/create")
