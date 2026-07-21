@@ -29,6 +29,7 @@ button{cursor:pointer;background:var(--teal);color:#0f1319;font-weight:700;borde
 <body>
 <nav>
   <b>🧠 피지컬브레인</b>
+  {% if profile_name() %}<span class="badge">{{ profile_name() }}</span>{% endif %}
   <a href="/" class="{{ 'on' if request.url.path == '/' else '' }}">오늘</a>
   <a href="/signals" class="{{ 'on' if request.url.path == '/signals' else '' }}">신호</a>
   <a href="/graphview" class="{{ 'on' if request.url.path == '/graphview' else '' }}">지식그래프</a>

@@ -39,6 +39,19 @@
 </table>
 <p class="muted">❌ 갭의 개선은 볼트(지식)·어댑터(데이터)에서 — 진실의 원본은 볼트, 그래프는 거울.</p></div>
 
+{% if board.history and board.history|length > 0 %}
+<div class="card"><h3>📈 관리도 — CQ 응답률 추이</h3>
+<table>
+<tr><th>측정 시각</th><th>응답 가능</th><th>응답률</th><th></th></tr>
+{% for h in board.history %}
+<tr><td class="muted">{{ h.at[5:16] }}</td><td>{{ h.answerable }}/{{ h.total }}</td>
+  <td><b>{{ h.rate }}%</b></td>
+  <td><span style="display:inline-block;height:10px;background:var(--teal);width:{{ h.rate * 2 }}px;border-radius:4px"></span></td></tr>
+{% endfor %}
+</table>
+<p class="muted">개선(Improve) 후 재측정할 때마다 이 선이 올라가는 것 — 그것이 사이클이 돈다는 증거입니다.</p></div>
+{% endif %}
+
 <div class="card"><h3>🎯 CTQ 지표</h3>
 <table>
 <tr><th>지표</th><th>기준선</th><th>목표</th><th>현재</th></tr>

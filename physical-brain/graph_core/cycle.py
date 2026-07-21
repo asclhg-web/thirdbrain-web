@@ -24,6 +24,9 @@ store.register_ddl(
       id INTEGER PRIMARY KEY AUTOINCREMENT, cycle_id INTEGER, name TEXT,
       baseline TEXT DEFAULT '미측정', target TEXT, current TEXT DEFAULT '',
       measured_at TEXT);
+    CREATE TABLE IF NOT EXISTS cycle_measures(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, cycle_id INTEGER, at TEXT,
+      total INTEGER, answerable INTEGER, rate INTEGER);
     """
 )
 
@@ -79,9 +82,12 @@ def measure(cycle_id: int, ask_fn, now: datetime | None = None) -> dict:
             (int(answerable), len(evid), reason, now.isoformat(), r["id"]))
         ok += int(answerable)
     conn.execute("UPDATE cycles SET phase='measure' WHERE id=? AND phase='define'", (cycle_id,))
+    rate = round(ok / len(rows) * 100) if rows else None
+    # 관리도(G07): 측정 이력 축적 — 사이클이 도는 것을 숫자의 추이로 남긴다
+    conn.execute("INSERT INTO cycle_measures(cycle_id,at,total,answerable,rate) VALUES(?,?,?,?,?)",
+                 (cycle_id, now.isoformat(), len(rows), ok, rate))
     conn.commit()
-    return {"total": len(rows), "answerable": ok,
-            "rate": round(ok / len(rows) * 100) if rows else None}
+    return {"total": len(rows), "answerable": ok, "rate": rate}
 
 
 def board(cycle_id: int) -> dict:
@@ -96,9 +102,12 @@ def board(cycle_id: int) -> dict:
         "SELECT * FROM cycle_ctqs WHERE cycle_id=? ORDER BY id", (cycle_id,)).fetchall()]
     measured = [q for q in cqs if q["last_checked"]]
     ok = sum(1 for q in measured if q["answerable"])
+    hist = [dict(r) for r in conn.execute(
+        "SELECT * FROM cycle_measures WHERE cycle_id=? ORDER BY id DESC LIMIT 8", (cycle_id,)).fetchall()]
     return {"cycle": dict(c), "cqs": cqs, "ctqs": ctqs,
             "cq_rate": round(ok / len(measured) * 100) if measured else None,
-            "gaps": [q for q in measured if not q["answerable"]]}
+            "gaps": [q for q in measured if not q["answerable"]],
+            "history": list(reversed(hist))}
 
 
 def cycles() -> list[dict]:

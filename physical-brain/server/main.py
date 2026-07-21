@@ -19,12 +19,20 @@ from server.tasks_today import confirm, expand_today, today
 app = FastAPI(title="Physical Brain", version="0.1.0")
 
 
+def _active_profile_name() -> str:
+    try:
+        return kgprofiles.active()["name"]
+    except Exception:
+        return ""
+
+
 @app.on_event("startup")
 def _start_heartbeat():
     """실서비스 심장박동: 분당 규칙 틱 + 5분마다 볼트 동기화 (PB_HEARTBEAT=0으로 끔)."""
     from server import scheduler
     scheduler.start()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "web", "templates"))
+templates.env.globals["profile_name"] = _active_profile_name
 RULES_DIR = orchestrator.RULES_DIR
 SIGNALS = [("bp_sys", "수축기 혈압", "mmHg"), ("bp_dia", "이완기 혈압", "mmHg"),
            ("rhr", "안정 심박", "bpm"), ("hrv", "HRV", "ms"), ("glucose_spikes", "혈당 스파이크", "회")]

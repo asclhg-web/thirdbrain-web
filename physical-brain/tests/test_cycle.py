@@ -46,3 +46,16 @@ def test_cycle_page_renders(fresh_db):
                                       "cqs": "오늘 나의 약 뭐야?", "ctq1": "CQ 응답률",
                                       "ctq1_target": "80%"}, follow_redirects=True)
     assert "테스트" in r.text and "미측정" in r.text
+
+
+def test_control_chart_history_accumulates(fresh_db):
+    """G07 관리도: 측정할 때마다 이력이 쌓여 추이가 남는다."""
+    from datetime import datetime
+    from graph_core import cycle
+    from server.librarian import answer
+    now = datetime(2026, 7, 20, 10)
+    cid = cycle.create_cycle("c", "p", ["오늘 나의 약 뭐야?"], [], now)
+    cycle.measure(cid, lambda q: answer(q, now), now)
+    cycle.measure(cid, lambda q: answer(q, now), now)
+    b = cycle.board(cid)
+    assert len(b["history"]) == 2 and all(h["rate"] == 100 for h in b["history"])
