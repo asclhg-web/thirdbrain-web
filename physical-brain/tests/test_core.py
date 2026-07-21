@@ -43,4 +43,4 @@ def test_doctor_healthy_on_seeded_db(fresh_db):
     from graph_core import doctor
     r = doctor.check()
     assert r["healthy"], f"위반 발견: {r['unknown_type_nodes']} {r['invalid_edges']}"
-    assert any(f["name"] == "personal-v2" and f["version"] == "2.0" for f in r["frames"])
+    assert any(f["name"] == "personal-v2" and f["version"] == "2.1" for f in r["frames"])

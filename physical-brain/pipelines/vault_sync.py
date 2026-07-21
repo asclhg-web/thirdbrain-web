@@ -12,7 +12,8 @@ import re
 from graph import store
 
 TYPE_MAP = {"person": "Person", "medication": "Medication", "place": "Place",
-            "skill": "Skill", "project": "Project", "activity": "Activity"}
+            "skill": "Skill", "project": "Project", "activity": "Activity",
+            "measure": "MeasureType"}  # G08 몸 마스터: 측정 유형 사전도 볼트가 원본
 
 
 def _wiki_links(v: str) -> list[str]:

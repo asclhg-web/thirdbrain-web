@@ -43,6 +43,17 @@ rule_time: "21:00"
 rule_condition: 저녁 식후
 ---
 """,
+    "측정_예시_혈당.md": """---
+type: measure
+name: 혈당
+key: glucose
+unit: mg/dL
+warn: 180
+emergency: 300
+---
+몸 마스터 확장 예시 — 이 노트 하나로 새 측정 유형(그래프·안전망)이 생깁니다.
+key는 데이터의 type 값과 일치해야 합니다 (CSV·인박스의 type 컬럼).
+""",
     # ── v2 삼각(몸×학습×프로젝트) 예시 — 이름·내용을 본인 것으로 수정 ──
     "학습_AI활용.md": """---
 type: skill

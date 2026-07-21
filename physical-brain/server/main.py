@@ -34,8 +34,8 @@ def _start_heartbeat():
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "web", "templates"))
 templates.env.globals["profile_name"] = _active_profile_name
 RULES_DIR = orchestrator.RULES_DIR
-SIGNALS = [("bp_sys", "수축기 혈압", "mmHg"), ("bp_dia", "이완기 혈압", "mmHg"),
-           ("rhr", "안정 심박", "bpm"), ("hrv", "HRV", "ms"), ("glucose_spikes", "혈당 스파이크", "회")]
+from graph.body_master import chart_types  # G08 몸 마스터: 측정 유형 사전(볼트로 확장)
+
 ACTS = [("sleep", "수면", "h"), ("walk", "걷기", "steps")]
 
 
@@ -230,7 +230,7 @@ def signals(request: Request, person: str = ""):
     person = person if person in people else people[0]
     now = datetime.now()
     charts = []
-    for mtype, label, unit in SIGNALS:
+    for mtype, label, unit in chart_types():
         ms = store.measurements(person, mtype, 30, now)
         by_day: dict[str, list] = {}
         for m in ms:

@@ -5,30 +5,26 @@ from graph import store
 from server import llm
 from server.events import record_event
 
-# 1층 임계값 기본표 (성인 기준 — 개인 기준선은 주치의와 조정)
-THRESHOLDS = {
-    "bp_sys": {"emergency": 180, "warn": 135},
-    "bp_dia": {"emergency": 120, "warn": 85},
-    "glucose_spikes": {"warn": 3},
-}
+# 임계값의 원본은 몸 마스터(G08) — 기본표 + 볼트 노트(type: measure) 병합
+from graph.body_master import measure_types
+
 EMERGENCY_TEXT = "⚠️ 긴급: {person}의 {label}이(가) {value}로 긴급 기준을 넘었습니다. 지금 병원(또는 119)에 연락하세요."
 WARN_TEXT = "주의: {person}의 {label} {value} — 가정 기준({limit})을 넘었어요. 기록해 두었으니 진료 시 보여주세요."
-LABELS = {"bp_sys": "수축기 혈압", "bp_dia": "이완기 혈압", "glucose_spikes": "혈당 스파이크"}
 
 
 def check_measurement(person: str, mtype: str, value: float, now: datetime | None = None) -> dict | None:
     """새 측정값에 대한 1층 검사. 위반 시 이벤트 기록 + 알림 딕셔너리 반환."""
     now = now or datetime.now()
-    th = THRESHOLDS.get(mtype)
-    if not th:
+    mt = measure_types().get(mtype)
+    if not mt or ("warn" not in mt and "emergency" not in mt):
         return None
-    label = LABELS.get(mtype, mtype)
-    if "emergency" in th and value >= th["emergency"]:
+    label = mt.get("label", mtype)
+    if "emergency" in mt and value >= mt["emergency"]:
         text = EMERGENCY_TEXT.format(person=person, label=label, value=value)  # 고정 문구 — AI 금지
         record_event(person, "임계초과", f"{mtype}={value} 긴급", now)
         return {"level": "emergency", "text": text}
-    if value >= th["warn"]:
-        text = WARN_TEXT.format(person=person, label=label, value=value, limit=th["warn"])
+    if "warn" in mt and value >= mt["warn"]:
+        text = WARN_TEXT.format(person=person, label=label, value=value, limit=mt["warn"])
         record_event(person, "임계초과", f"{mtype}={value} 주의", now)
         return {"level": "warn", "text": text}
     return None

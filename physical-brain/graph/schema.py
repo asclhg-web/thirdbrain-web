@@ -7,7 +7,7 @@ LEARNS·WORKS_ON·CONTRIBUTES_TO 관계 — 한 Activity가 여러 영역(몸·�
 from dataclasses import dataclass, field
 
 NODE_TYPES = ["Person", "Medication", "Regimen", "Measurement", "Activity", "Event", "Place",
-              "Skill", "Project"]
+              "Skill", "Project", "MeasureType"]
 REL_TYPES = ["TAKES", "HAS_RULE", "MEASURED", "PERFORMED", "OCCURRED", "RELATES_TO",
              "LEARNS", "WORKS_ON", "CONTRIBUTES_TO"]
 
@@ -92,7 +92,7 @@ class Project:
 # ── G01: 개인 표준 온톨로지를 코어 레지스트리에 Frame으로 등록 ──
 from graph_core import registry as _registry
 
-_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES, version="2.0")
+_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES, version="2.1")
 
 
 def validate_edge(rel: str, src_type: str, dst_type: str) -> bool:
