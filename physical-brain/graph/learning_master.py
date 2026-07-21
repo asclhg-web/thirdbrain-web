@@ -52,13 +52,28 @@ def seed_curriculum() -> dict:
 
 
 def mastery_of(person: str, concept_id: str) -> dict:
-    """wave/particle 이중 표현: {confirm, total, rate, status}."""
+    """wave/particle 이중 표현: {confirm, total, seen, rate, status}.
+    시청·독서(seen)만으로는 '학습중'까지 — 숙달은 확인 누적으로만."""
     e = store.get_edge(store.person_id(person), "MASTERS", concept_id) or {}
     confirm, total = int(e.get("confirm", 0)), int(e.get("total", 0))
+    seen = int(e.get("seen", 0))
     rate = confirm / total if total else 0.0
     status = "mastered" if (total >= MASTER_MIN_CONFIRM and rate >= MASTER_MIN_RATE) \
-        else ("learning" if total else "unseen")
-    return {"confirm": confirm, "total": total, "rate": round(rate * 100), "status": status}
+        else ("learning" if (total or seen) else "unseen")
+    return {"confirm": confirm, "total": total, "seen": seen,
+            "rate": round(rate * 100), "status": status, "last_at": e.get("last_at", "")}
+
+
+def touch_seen(person: str, concept_id: str, now: datetime | None = None) -> None:
+    """책·유튜브 어댑터용: '접했다'의 기록 — 숙달 판정에는 쓰이지 않는다."""
+    now = now or datetime.now()
+    pid = store.person_id(person)
+    if not store.get_node(pid):
+        store.upsert_node(pid, "Person", {"name": person})
+    e = store.get_edge(pid, "MASTERS", concept_id) or {"confirm": 0, "total": 0}
+    e["seen"] = int(e.get("seen", 0)) + 1
+    e.setdefault("last_at", now.isoformat())
+    store.upsert_edge(pid, "MASTERS", concept_id, e)
 
 
 def record_quiz(person: str, concept_id: str, correct: bool,
@@ -99,6 +114,26 @@ def quiz_candidates(person: str, n: int = 20) -> list[dict]:
             out.append({"id": c["id"], "name": c["props"].get("name", ""),
                         "question": c["props"].get("question", ""), **m})
     return out[:n]
+
+
+REVIEW_INTERVAL_H = {"learning": 24, "mastered": 24 * 7}  # 간격 반복: 학습중 1일·숙달 7일
+
+
+def due_quiz(person: str, now: datetime | None = None) -> dict | None:
+    """간격 반복 확인 대상 1개 — 아침 브리핑의 '오늘의 확인' (테스팅 효과)."""
+    now = now or datetime.now()
+    due = []
+    for _r, c in store.neighbors(store.person_id(person), "MASTERS"):
+        m = mastery_of(person, c["id"])
+        if m["status"] == "unseen":
+            continue
+        interval = REVIEW_INTERVAL_H[m["status"]]
+        last = m["last_at"]
+        if not last or (now - datetime.fromisoformat(last)).total_seconds() >= interval * 3600:
+            due.append((last or "", {"id": c["id"], "name": c["props"].get("name", ""),
+                                     "question": c["props"].get("question", ""), **m}))
+    due.sort(key=lambda t: t[0])  # 가장 오래 방치된 것부터
+    return due[0][1] if due else None
 
 
 def progress(person: str) -> list[dict]:

@@ -35,6 +35,12 @@ def morning_briefing(person: str, now: datetime | None = None) -> str:
         parts.append("오늘의 약: " + " / ".join(med_lines))
     parts.append(safety.daily_observation(person, now))
 
+    # G08-L2: 간격 반복 확인 질문 — 어제 배운 것을 오늘 물어봐야 지식이 남는다
+    from graph.learning_master import due_quiz
+    dq = due_quiz(person, now)
+    if dq:
+        parts.append(f"🧩 오늘의 확인: {dq['question'] or dq['name']} (학습 페이지에서 답해보세요)")
+
     text = " ".join(parts)
     record_event(person, "브리핑", text[:120], now)
     return text

@@ -13,7 +13,8 @@ from graph import store
 
 TYPE_MAP = {"person": "Person", "medication": "Medication", "place": "Place",
             "skill": "Skill", "project": "Project", "activity": "Activity",
-            "measure": "MeasureType"}  # G08 몸 마스터: 측정 유형 사전도 볼트가 원본
+            "measure": "MeasureType",   # G08 몸 마스터: 측정 유형 사전도 볼트가 원본
+            "source": "Source"}         # G08-L2 학습 어댑터: 책·유튜브 출처 노트
 
 
 def _wiki_links(v: str) -> list[str]:
@@ -60,7 +61,7 @@ def sync_note(path: str) -> str | None:
     node_id = f"{meta['type']}:{slug(name)}"
 
     props = {k: _num(v) for k, v in meta.items()
-             if not k.startswith("rule_") and k not in ("type", "for", "skills", "projects")}
+             if not k.startswith("rule_") and k not in ("type", "for", "skills", "projects", "concepts")}
     props["name"] = name
     props["source"] = os.path.basename(path)
     if ntype == "Activity":  # 노트 기반 활동 로그: 조회 규약(at·kind) 보정
@@ -83,6 +84,14 @@ def sync_note(path: str) -> str | None:
         _link_person(meta, "LEARNS", node_id)
     elif ntype == "Project":     # v2 삼각: 프로젝트 꼭짓점
         _link_person(meta, "WORKS_ON", node_id)
+    elif ntype == "Source":      # G08-L2: 책·유튜브 노트 → 개념을 '학습중'으로
+        from graph.learning_master import touch_seen
+        for cname in _wiki_links(meta.get("concepts", "")):
+            cid = f"concept:{cname.replace(' ', '_')}"
+            if store.get_node(cid):
+                store.upsert_edge(cid, "LEARNED_FROM", node_id)
+                for person in _wiki_links(meta.get("for", "")):
+                    touch_seen(person, cid)
     elif ntype == "Activity":    # v2 삼각: 활동 로그 노트 (일석삼조의 심장)
         _link_person(meta, "PERFORMED", node_id)
         # skills/projects: "[[라인댄스 스텝]], [[발표회]]" → CONTRIBUTES_TO

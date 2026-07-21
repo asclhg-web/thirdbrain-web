@@ -53,3 +53,31 @@ def test_learning_page(fresh_db):
     c = TestClient(app)
     page = c.get("/learning").text
     assert "학습 마스터" in page and "AI 활용" in page and "다음 걸음" in page
+
+
+def test_source_note_marks_learning(fresh_db, tmp_path):
+    """G08-L2: 유튜브/책 노트 → LEARNED_FROM + '학습중' (숙달은 아님)."""
+    from pipelines.vault_sync import sync_note
+    lm.seed_curriculum()
+    p = tmp_path / "출처_유튜브_프롬프트강의.md"
+    p.write_text('---\ntype: source\nname: 유튜브 프롬프트 강의\nkind: youtube\n'
+                 'concepts: "[[생성형 AI란]], [[프롬프트 쓰기]]"\nfor: "[[아내]]"\n---\n',
+                 encoding="utf-8")
+    sync_note(str(p))
+    m = lm.mastery_of("아내", "concept:생성형_AI란")
+    assert m["status"] == "learning" and m["seen"] == 1 and m["total"] == 0, "본 것≠아는 것"
+    srcs = fresh_db.neighbors("concept:생성형_AI란", "LEARNED_FROM")
+    assert any(s["props"]["name"] == "유튜브 프롬프트 강의" for _r, s in srcs), "출처가 그래프에 남는다"
+
+
+def test_briefing_includes_spaced_repetition_quiz(fresh_db):
+    """G08-L2: 브리핑에 '오늘의 확인'(간격 반복) 포함 — 하루 지난 학습중 개념."""
+    from datetime import timedelta
+    from server.briefing import morning_briefing
+    lm.seed_curriculum()
+    day1 = datetime(2026, 7, 19, 9)
+    lm.record_quiz("나", "concept:생성형_AI란", True, day1)
+    text_same_day = morning_briefing("나", day1 + timedelta(hours=2))
+    assert "오늘의 확인" not in text_same_day, "간격이 안 됐으면 묻지 않는다"
+    text_next_day = morning_briefing("나", day1 + timedelta(days=1, hours=1))
+    assert "오늘의 확인" in text_next_day and "챗GPT" in text_next_day
