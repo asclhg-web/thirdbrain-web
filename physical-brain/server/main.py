@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from graph import store
+from graph_core import approvals as kgapprovals
 from graph_core import cycle as kgcycle
 from server import briefing, librarian, notify, orchestrator, safety
 from server.events import adherence
@@ -97,6 +98,19 @@ def cycle_measure(cycle_id: int):
     """CQ 전수 실측 — 근거 있는 답만 '응답 가능'으로 인정."""
     kgcycle.measure(cycle_id, librarian.answer)
     return RedirectResponse("/cycle", status_code=303)
+
+
+@app.get("/approvals", response_class=HTMLResponse)
+def approvals_page(request: Request):
+    """승인 큐 (G05) — 에이전트 제안의 검토·승인·이력."""
+    return templates.TemplateResponse(request, "approvals.html", {
+        "pending": kgapprovals.pending(), "history": kgapprovals.history()})
+
+
+@app.post("/approvals/{approval_id}/decide")
+def approvals_decide(approval_id: int, approve: int = Form(...)):
+    kgapprovals.decide(approval_id, bool(approve))
+    return RedirectResponse("/approvals", status_code=303)
 
 
 @app.get("/api/briefing/today")
