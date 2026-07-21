@@ -36,3 +36,11 @@ def test_facade_backcompat(fresh_db):
     assert fresh_db.get_node("person:코어")["props"]["name"] == "코어"
     assert fresh_db.neighbors("person:코어", "LEARNS")[0][1]["type"] == "Skill"
     assert "Person" in fresh_db.counts()["nodes"]
+
+
+def test_doctor_healthy_on_seeded_db(fresh_db):
+    """G02: 그래프 닥터 — 샘플 볼트 시드 상태는 스키마 위반 0이어야 한다."""
+    from graph_core import doctor
+    r = doctor.check()
+    assert r["healthy"], f"위반 발견: {r['unknown_type_nodes']} {r['invalid_edges']}"
+    assert any(f["name"] == "personal-v2" and f["version"] == "2.0" for f in r["frames"])

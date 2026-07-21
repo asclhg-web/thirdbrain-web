@@ -8,7 +8,7 @@
 | Task | 상태 | 비고 |
 |---|---|---|
 | G01 코어 분리 | ✅ 2026-07-20 | `graph_core/`(registry+store) 신설, `graph/`는 개인 팩 파사드로. 기존 임포트 경로·전 테스트(33개) 무중단 유지. tasks 테이블은 팩 DDL 주입(register_ddl)으로 이동 |
-| G02 스키마 레지스트리 | 🔶 씨앗 완료 | registry.register_frame/합집합 검증 구현됨(G01에 포함). 남은 것: 버전 관리·마이그레이션 도구 |
+| G02 스키마 레지스트리 | ✅ 2026-07-20 | Frame 버전 관리(frames_info) + 그래프 닥터(graph_core/doctor — 미등록 유형·규약 위반 엣지·고아율 점검, HITL 원칙: 발견만) |
 | G03 사서 2.0 (GraphRAG) | ⬜ | N-hop 서브그래프 + 근거 인용 |
 | G04 사이클 엔진 | ⬜ | Define 위저드·CQ/CTQ·갭 보드 |
 | G05 승인 큐(HITL) | ⬜ | |

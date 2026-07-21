@@ -92,7 +92,7 @@ class Project:
 # ── G01: 개인 표준 온톨로지를 코어 레지스트리에 Frame으로 등록 ──
 from graph_core import registry as _registry
 
-_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES)
+_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES, version="2.0")
 
 
 def validate_edge(rel: str, src_type: str, dst_type: str) -> bool:
