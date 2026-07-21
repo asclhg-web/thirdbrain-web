@@ -59,3 +59,15 @@ def test_control_chart_history_accumulates(fresh_db):
     cycle.measure(cid, lambda q: answer(q, now), now)
     b = cycle.board(cid)
     assert len(b["history"]) == 2 and all(h["rate"] == 100 for h in b["history"])
+
+
+def test_template_prefills_wizard(fresh_db):
+    """G15: 템플릿 선택 → Define 폼이 채워진다 → 그대로 사이클 개시 가능."""
+    from fastapi.testclient import TestClient
+    from server.main import app
+    c = TestClient(app)
+    page = c.get("/cycle?new=1&template=care").text
+    assert "부모님 돌봄 1차 사이클" in page and "복약 준수율" in page
+    assert "이번 주 아버지 혈압 추세는?" in page
+    page2 = c.get("/cycle?new=1").text
+    assert "라인댄스" in page2 and "소상공인" in page2, "템플릿 6종 선택지 노출"

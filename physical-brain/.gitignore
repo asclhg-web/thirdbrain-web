@@ -7,3 +7,6 @@ data/inbox/
 data/processed/
 data/failed/
 .pytest_cache/
+data/legacy/
+data/profiles.json
+data/brain-*.db

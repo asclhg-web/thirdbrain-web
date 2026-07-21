@@ -1,17 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 {% if not board %}
+<div class="card"><h3>🎁 템플릿으로 시작 (G15)</h3>
+<p class="muted">용도를 고르면 목적·CQ 10·CTQ 3이 채워집니다 — 자기 언어로 고쳐 쓰는 것이 정상입니다.</p>
+<p>{% for key, t in templates.items() %}
+  <a href="/cycle?new=1&template={{key}}"><span class="badge">{{ t.label }}</span></a>{% endfor %}</p>
+</div>
+
 <div class="card"><h3>🧭 새 사이클 시작 (KG-DMAIC · Define)</h3>
 <p class="muted">방법론의 첫 단계 — 목적 1문장, 그래프가 답해야 할 질문(CQ), 지표(CTQ)를 정합니다.</p>
 <form method="post" action="/cycle/create">
-  <p>사이클 이름<br><input name="name" required style="width:100%" placeholder="예: 건강 1차 사이클"></p>
-  <p>목적 선언문 (1문장)<br><input name="purpose" required style="width:100%" placeholder="나의 그래프는 ___를 위해 존재한다"></p>
+  <p>사이클 이름<br><input name="name" required style="width:100%" value="{{ preset.name if preset else '' }}" placeholder="예: 건강 1차 사이클"></p>
+  <p>목적 선언문 (1문장)<br><input name="purpose" required style="width:100%" value="{{ preset.purpose if preset else '' }}" placeholder="나의 그래프는 ___를 위해 존재한다"></p>
   <p>역량질문 CQ — 한 줄에 하나씩 (10개 권장)<br>
-  <textarea name="cqs" rows="10" required style="width:100%" placeholder="이번 주 아버지 혈압 추세는?&#10;오늘 무슨 약을 먹어야 하나?&#10;..."></textarea></p>
+  <textarea name="cqs" rows="10" required style="width:100%" placeholder="이번 주 아버지 혈압 추세는?&#10;...">{% if preset %}{{ preset.cqs | join('\n') }}{% endif %}</textarea></p>
   <p class="muted">CTQ 지표 (최대 3개): 이름 / 목표</p>
-  <p><input name="ctq1" placeholder="CQ 응답률" style="width:48%"> <input name="ctq1_target" placeholder="80%" style="width:20%"></p>
-  <p><input name="ctq2" placeholder="측정 결측률" style="width:48%"> <input name="ctq2_target" placeholder="30% 미만" style="width:20%"></p>
-  <p><input name="ctq3" placeholder="복약 준수율" style="width:48%"> <input name="ctq3_target" placeholder="80% 이상" style="width:20%"></p>
+  {% for i in [0, 1, 2] %}
+  <p><input name="ctq{{ i + 1 }}" value="{{ preset.ctqs[i][0] if preset and preset.ctqs|length > i else '' }}" placeholder="지표 이름" style="width:48%">
+     <input name="ctq{{ i + 1 }}_target" value="{{ preset.ctqs[i][1] if preset and preset.ctqs|length > i else '' }}" placeholder="목표" style="width:20%"></p>
+  {% endfor %}
   <button>사이클 시작 (Define 완료)</button>
 </form></div>
 {% else %}

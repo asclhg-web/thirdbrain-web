@@ -83,12 +83,16 @@ def bp_submit(person: str = Form(...), sys_v: int = Form(..., alias="sys"), dia_
 
 
 @app.get("/cycle", response_class=HTMLResponse)
-def cycle_page(request: Request, new: int = 0):
-    """KG-DMAIC 사이클 보드 (G04) — Define 위저드 + 갭 보드."""
+def cycle_page(request: Request, new: int = 0, template: str = ""):
+    """KG-DMAIC 사이클 보드 (G04) — Define 위저드(+G15 템플릿) + 갭 보드."""
+    from server.cycle_templates import TEMPLATES
     cs = kgcycle.cycles()
-    if new or not cs:
-        return templates.TemplateResponse(request, "cycle.html", {"board": None})
-    return templates.TemplateResponse(request, "cycle.html", {"board": kgcycle.board(cs[0]["id"])})
+    if new or template or not cs:
+        return templates.TemplateResponse(request, "cycle.html", {
+            "board": None, "templates": TEMPLATES,
+            "preset": TEMPLATES.get(template)})
+    return templates.TemplateResponse(request, "cycle.html", {
+        "board": kgcycle.board(cs[0]["id"]), "templates": TEMPLATES, "preset": None})
 
 
 @app.post("/cycle/create")
