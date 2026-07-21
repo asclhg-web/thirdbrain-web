@@ -89,11 +89,12 @@ class Project:
     due: str = ""
 
 
+# ── G01: 개인 표준 온톨로지를 코어 레지스트리에 Frame으로 등록 ──
+from graph_core import registry as _registry
+
+_registry.register_frame("personal-v2", NODE_TYPES, REL_RULES)
+
+
 def validate_edge(rel: str, src_type: str, dst_type: str) -> bool:
-    if rel == "RELATES_TO":
-        return True
-    rule = REL_RULES.get(rel)
-    if not rule:
-        return False
-    pairs = rule if isinstance(rule, list) else [rule]
-    return (src_type, dst_type) in pairs
+    """하위 호환 파사드 — 검증의 단일 출처는 graph_core.registry."""
+    return _registry.validate_edge(rel, src_type, dst_type)
