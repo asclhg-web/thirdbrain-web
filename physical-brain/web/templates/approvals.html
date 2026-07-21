@@ -1,5 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
+{% if drafts %}
+<div class="card"><h3>🤖 에이전트 빌더 — 규칙 초안 (G12)</h3>
+<p class="muted">임계값은 있는데 대응 규칙이 없는 측정을 발견했어요. 제안하면 승인 큐로 갑니다.</p>
+<table>
+{% for d in drafts %}
+<tr><td>{{ d.label }} <span class="muted">({{ d.key }} ≥ {{ d.warn }})</span> → 부드러운 알림 규칙</td>
+  <td><form method="post" action="/agents/propose" style="display:inline">
+    <input type="hidden" name="key" value="{{ d.key }}"><button>초안 제안</button></form></td></tr>
+{% endfor %}
+</table></div>
+{% endif %}
+
 <div class="card"><h3>🛡 승인 대기 (HITL)</h3>
 <p class="muted">에이전트는 제안만 할 수 있습니다 — 실행은 회원님의 승인 후에만 일어납니다.</p>
 {% if pending %}

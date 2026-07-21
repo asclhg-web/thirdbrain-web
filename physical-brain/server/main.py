@@ -111,9 +111,21 @@ def cycle_measure(cycle_id: int):
 
 @app.get("/approvals", response_class=HTMLResponse)
 def approvals_page(request: Request):
-    """승인 큐 (G05) — 에이전트 제안의 검토·승인·이력."""
+    """승인 큐 (G05) + 에이전트 빌더 초안 (G12)."""
+    from server import agent_builder
     return templates.TemplateResponse(request, "approvals.html", {
-        "pending": kgapprovals.pending(), "history": kgapprovals.history()})
+        "pending": kgapprovals.pending(), "history": kgapprovals.history(),
+        "drafts": agent_builder.suggest_rules()})
+
+
+@app.post("/agents/propose")
+def agents_propose(key: str = Form(...)):
+    """규칙 초안을 승인 큐로 — 활성화는 승인 후에만 (G12)."""
+    from server import agent_builder
+    d = next((d for d in agent_builder.suggest_rules() if d["key"] == key), None)
+    if d:
+        agent_builder.propose_rule(d)
+    return RedirectResponse("/approvals", status_code=303)
 
 
 @app.post("/approvals/{approval_id}/decide")
