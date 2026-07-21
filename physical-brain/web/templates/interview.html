@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card"><h3>🔍 암묵지 인터뷰</h3>
+<p class="muted">그래프의 끊긴 곳을 발견해 질문으로 바꿨어요. '예'가 2번 쌓이면 제안이 되어
+승인 큐로 갑니다 — 실행은 언제나 회원님의 승인 후입니다.</p>
+{% if due %}
+<table>
+{% for q in due %}
+<tr>
+  <td>{{ q.question }}<br><span class="muted">확인 {{ q.confirm }}/{{ q.total }} · {{ q.kind }}</span></td>
+  <td style="white-space:nowrap">
+    <form method="post" action="/interview/{{ q.id }}/answer" style="display:inline">
+      <input type="hidden" name="response" value="yes"><button>예</button></form>
+    <form method="post" action="/interview/{{ q.id }}/answer" style="display:inline">
+      <input type="hidden" name="response" value="no">
+      <button style="background:#3a4250;color:#e8e4dc">아니오</button></form>
+    <form method="post" action="/interview/{{ q.id }}/answer" style="display:inline">
+      <input type="hidden" name="response" value="skip">
+      <button style="background:#242b36;color:#9aa3b0">모름</button></form>
+  </td>
+</tr>
+{% endfor %}
+</table>
+{% else %}<p class="muted">지금은 물어볼 것이 없어요 — 그래프에 끊긴 곳이 없다는 좋은 신호입니다.</p>{% endif %}
+</div>
+{% endblock %}

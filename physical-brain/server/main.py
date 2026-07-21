@@ -202,6 +202,22 @@ def mind_submit(person: str = Form(...), mood: str = Form(...), memo: str = Form
     return RedirectResponse(f"/?person={person}", status_code=303)
 
 
+@app.get("/interview", response_class=HTMLResponse)
+def interview_page(request: Request):
+    """암묵지 인터뷰 (G11) — 그래프의 끊긴 곳이 질문이 된다."""
+    from graph import gap_finders  # noqa: F401 — 갭 발견자·실행기 등록
+    from graph_core import interview as itv
+    itv.scan()
+    return templates.TemplateResponse(request, "interview.html", {"due": itv.due(5)})
+
+
+@app.post("/interview/{seed_id:path}/answer")
+def interview_answer(seed_id: str, response: str = Form(...)):
+    from graph_core import interview as itv
+    itv.answer(seed_id, response)
+    return RedirectResponse("/interview", status_code=303)
+
+
 @app.get("/api/briefing/today")
 def api_briefing(person: str = "나"):
     return {"person": person, "briefing": briefing.morning_briefing(person)}
