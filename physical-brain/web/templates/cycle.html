@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not board %}
+<div class="card"><h3>🧭 새 사이클 시작 (KG-DMAIC · Define)</h3>
+<p class="muted">방법론의 첫 단계 — 목적 1문장, 그래프가 답해야 할 질문(CQ), 지표(CTQ)를 정합니다.</p>
+<form method="post" action="/cycle/create">
+  <p>사이클 이름<br><input name="name" required style="width:100%" placeholder="예: 건강 1차 사이클"></p>
+  <p>목적 선언문 (1문장)<br><input name="purpose" required style="width:100%" placeholder="나의 그래프는 ___를 위해 존재한다"></p>
+  <p>역량질문 CQ — 한 줄에 하나씩 (10개 권장)<br>
+  <textarea name="cqs" rows="10" required style="width:100%" placeholder="이번 주 아버지 혈압 추세는?&#10;오늘 무슨 약을 먹어야 하나?&#10;..."></textarea></p>
+  <p class="muted">CTQ 지표 (최대 3개): 이름 / 목표</p>
+  <p><input name="ctq1" placeholder="CQ 응답률" style="width:48%"> <input name="ctq1_target" placeholder="80%" style="width:20%"></p>
+  <p><input name="ctq2" placeholder="측정 결측률" style="width:48%"> <input name="ctq2_target" placeholder="30% 미만" style="width:20%"></p>
+  <p><input name="ctq3" placeholder="복약 준수율" style="width:48%"> <input name="ctq3_target" placeholder="80% 이상" style="width:20%"></p>
+  <button>사이클 시작 (Define 완료)</button>
+</form></div>
+{% else %}
+<div class="card"><h3>🧭 {{ board.cycle.name }} <span class="badge">{{ board.cycle.phase }}</span></h3>
+<p>{{ board.cycle.purpose }}</p>
+<p class="muted">단계: {% for p in ['define','measure','analyze','improve','control'] %}
+  <span class="badge" {% if p == board.cycle.phase %}style="background:#164237"{% endif %}>{{ p }}</span>{% endfor %}</p>
+<form method="post" action="/cycle/{{ board.cycle.id }}/measure" style="display:inline">
+  <button>CQ 기준선 측정{{ ' (재측정)' if board.cq_rate is not none else '' }}</button></form>
+  <a href="/cycle?new=1" class="muted" style="margin-left:10px">+ 새 사이클</a>
+</div>
+
+<div class="card"><h3>❓ 역량질문(CQ)
+  {% if board.cq_rate is not none %}<span class="badge">응답 가능 {{ board.cq_rate }}%</span>{% endif %}</h3>
+<table>
+<tr><th>질문</th><th>응답</th><th>근거</th><th>갭 원인</th></tr>
+{% for q in board.cqs %}
+<tr>
+  <td>{{ q.question }}</td>
+  <td>{% if q.last_checked %}{{ '✅' if q.answerable else '❌' }}{% else %}<span class="muted">미측정</span>{% endif %}</td>
+  <td class="muted">{{ q.evidence_n or '' }}</td>
+  <td class="muted">{{ q.gap_reason }}</td>
+</tr>
+{% endfor %}
+</table>
+<p class="muted">❌ 갭의 개선은 볼트(지식)·어댑터(데이터)에서 — 진실의 원본은 볼트, 그래프는 거울.</p></div>
+
+<div class="card"><h3>🎯 CTQ 지표</h3>
+<table>
+<tr><th>지표</th><th>기준선</th><th>목표</th><th>현재</th></tr>
+{% for c in board.ctqs %}
+<tr><td>{{ c.name }}</td><td>{{ c.baseline }}</td><td>{{ c.target }}</td><td>{{ c.current or '—' }}</td></tr>
+{% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

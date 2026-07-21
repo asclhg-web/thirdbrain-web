@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from graph import store
+from graph_core import cycle as kgcycle
 from server import briefing, librarian, notify, orchestrator, safety
 from server.events import adherence
 from server.tasks_today import confirm, expand_today, today
@@ -69,6 +70,33 @@ def bp_submit(person: str = Form(...), sys_v: int = Form(..., alias="sys"), dia_
         if alert:
             notify.send(person, alert["text"], "safety", now)
     return RedirectResponse(f"/?person={person}", status_code=303)
+
+
+@app.get("/cycle", response_class=HTMLResponse)
+def cycle_page(request: Request, new: int = 0):
+    """KG-DMAIC 사이클 보드 (G04) — Define 위저드 + 갭 보드."""
+    cs = kgcycle.cycles()
+    if new or not cs:
+        return templates.TemplateResponse(request, "cycle.html", {"board": None})
+    return templates.TemplateResponse(request, "cycle.html", {"board": kgcycle.board(cs[0]["id"])})
+
+
+@app.post("/cycle/create")
+def cycle_create(name: str = Form(...), purpose: str = Form(...), cqs: str = Form(...),
+                 ctq1: str = Form(""), ctq1_target: str = Form(""),
+                 ctq2: str = Form(""), ctq2_target: str = Form(""),
+                 ctq3: str = Form(""), ctq3_target: str = Form("")):
+    ctqs = [{"name": n, "target": t} for n, t in
+            ((ctq1, ctq1_target), (ctq2, ctq2_target), (ctq3, ctq3_target)) if n.strip()]
+    kgcycle.create_cycle(name, purpose, cqs.splitlines(), ctqs)
+    return RedirectResponse("/cycle", status_code=303)
+
+
+@app.post("/cycle/{cycle_id}/measure")
+def cycle_measure(cycle_id: int):
+    """CQ 전수 실측 — 근거 있는 답만 '응답 가능'으로 인정."""
+    kgcycle.measure(cycle_id, librarian.answer)
+    return RedirectResponse("/cycle", status_code=303)
 
 
 @app.get("/api/briefing/today")
