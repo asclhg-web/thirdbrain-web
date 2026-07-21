@@ -41,6 +41,11 @@ def morning_briefing(person: str, now: datetime | None = None) -> str:
     if dq:
         parts.append(f"🧩 오늘의 확인: {dq['question'] or dq['name']} (학습 페이지에서 답해보세요)")
 
+    # G08-M: 어제 마음 기록이 없으면 하루 한 번 다정하게 묻는다 (수집이 아니라 돌봄)
+    from graph.mind_master import recorded_recently
+    if not recorded_recently(person, now):
+        parts.append("💛 요즘 마음은 어떠세요? 홈 화면에서 한 번 눌러주시면 기록해 둘게요.")
+
     text = " ".join(parts)
     record_event(person, "브리핑", text[:120], now)
     return text

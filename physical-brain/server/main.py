@@ -194,6 +194,14 @@ def work_task_move(task_id: str = Form(...), status: str = Form(...), person: st
     return RedirectResponse(f"/work?person={person}", status_code=303)
 
 
+@app.post("/mind")
+def mind_submit(person: str = Form(...), mood: str = Form(...), memo: str = Form("")):
+    """마음 기록 (G08-M) — 하루 한 번의 감정 태그 + 한 줄. 해석하지 않고 보존한다."""
+    from graph.mind_master import record_mood
+    record_mood(person, mood, memo)
+    return RedirectResponse(f"/?person={person}", status_code=303)
+
+
 @app.get("/api/briefing/today")
 def api_briefing(person: str = "나"):
     return {"person": person, "briefing": briefing.morning_briefing(person)}
@@ -268,11 +276,13 @@ def home(request: Request, person: str = ""):
     person = person if person in people else people[0]
     expand_today(now)
     tasks = [t for t in today(now) if t["person"] == person]
+    from graph.mind_master import MOODS, week_moods
     return templates.TemplateResponse(request, "home.html", {
         "person": person, "people": people,
         "briefing": briefing.morning_briefing(person, now),
         "tasks": tasks, "adherence": adherence(person, 7, now),
         "triangle": store.triangle_week(person, now),
+        "moods": MOODS, "mind": week_moods(person, now),
         "events": list(reversed(store.events(person, 2, None, now)))[:8],
     })
 

@@ -30,6 +30,17 @@
 {% else %}<p class="muted">최근 7일 기록된 활동이 없어요. 볼트에 활동 노트(type: activity)를 남겨보세요.</p>{% endif %}
 </div>
 
+<div class="card"><h3>💛 오늘의 마음</h3>
+<form method="post" action="/mind">
+  <input type="hidden" name="person" value="{{person}}">
+  {% for m in moods %}<button name="mood" value="{{m}}" style="margin:2px">{{m}}</button>{% endfor %}
+  <br><input name="memo" placeholder="한 줄 메모 (선택)" style="width:70%;margin-top:6px">
+</form>
+{% if mind.n %}<p class="muted">최근 7일: {% for m, c in mind.counts.items() if c %}{{m}} {{c}}회 · {% endfor %}
+{% if mind.last %}마지막 기록 {{ mind.last.at[5:16] }} "{{ mind.last.payload }}"{% endif %}</p>
+{% else %}<p class="muted">아직 기록이 없어요 — 오늘의 마음을 한 번 눌러보세요. 해석하지 않고, 있는 그대로 보존합니다.</p>{% endif %}
+</div>
+
 <div class="card"><h3>🩺 혈압 입력</h3>
 <form method="post" action="/bp">
   <input type="hidden" name="person" value="{{person}}">
