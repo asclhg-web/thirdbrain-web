@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card"><h3>📊 월간 로봇 지능 리포트 (R10)</h3>
+<p class="muted">로봇의 성장 일지 — 매달 초 자동 생성되어 볼트 '로봇리포트' 폴더에도 남습니다(유산의 일부).
+<a href="/robot">← 로봇 화면으로</a></p>
+<p>
+{% for r in reports %}
+  <a href="/robot/report?month={{ r.month }}" class="badge">{{ r.month }}</a>
+{% else %}<span class="muted">아직 리포트가 없어요 — 매달 초 자동 생성됩니다.</span>{% endfor %}
+</p>
+<form method="post" action="/robot/report/build">
+  <button>이번 달 미리보기 생성</button>
+  <span class="muted">월말을 기다리지 않고 지금까지의 스냅샷을 봅니다.</span>
+</form></div>
+
+{% if body %}
+<div class="card"><h3>{{ month }}</h3>
+<pre style="white-space:pre-wrap;font-family:inherit;line-height:1.7;margin:0">{{ body }}</pre></div>
+{% endif %}
+{% endblock %}

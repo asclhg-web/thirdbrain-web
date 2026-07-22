@@ -252,6 +252,28 @@ def api_robot_chat(body: dict):
     return robot_gate.converse(body.get("question", ""))
 
 
+@app.get("/robot/report", response_class=HTMLResponse)
+def robot_report_page(request: Request, month: str = ""):
+    """월간 로봇 지능 리포트 (R10) — 성장 일지 열람 + 이번 달 미리보기 생성."""
+    from robot_lms import report as robot_report
+    rs = robot_report.reports()
+    if not month and rs:
+        month = rs[0]["month"]
+    body = (robot_report.get_report(month) or {}).get("body") if month else None
+    return templates.TemplateResponse(request, "robot_report.html", {
+        "reports": rs, "month": month, "body": body})
+
+
+@app.post("/robot/report/build")
+def robot_report_build():
+    """이번 달 리포트 즉시 생성(진행 중 스냅샷) — 월말을 기다리지 않고 미리 본다."""
+    from robot_lms import report as robot_report
+    from server.scheduler import vault_path
+    month = datetime.now().strftime("%Y-%m")
+    robot_report.build_report(month, vault_dir=vault_path())
+    return RedirectResponse(f"/robot/report?month={month}", status_code=303)
+
+
 @app.get("/robot/chat", response_class=HTMLResponse)
 def robot_chat(request: Request, q: str = ""):
     """로봇과 대화 (R05) — 인증된 분야만 열린다. 미인증은 정직하게 물러선다."""

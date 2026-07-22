@@ -47,6 +47,11 @@ def _loop():
                 rr = robot_recheck.auto_if_due(datetime.now())
                 if rr:
                     print(f"[로봇재검] {rr}", flush=True)
+                # R10: 매달 초, 지난달 로봇 지능 리포트 자동 생성 (볼트 = 유산)
+                from robot_lms import report as robot_report
+                rp = robot_report.auto_if_due(datetime.now(), vault_path())
+                if rp:
+                    print(f"[로봇리포트] {rp['month']} 생성: {rp['path']}", flush=True)
             fired = run_tick(datetime.now())
             if fired:
                 print(f"[규칙실행] {fired}", flush=True)
