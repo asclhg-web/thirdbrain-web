@@ -78,8 +78,10 @@ def stt(wav: bytes) -> str:
         return stt_local(wav)
 
 
-def ask(question: str) -> str:
-    r = requests.post(f"{APP_URL}/api/ask", json={"question": question}, timeout=120)
+def ask(question: str, robot: bool = False) -> str:
+    """robot=True(R08): 사서 대신 로봇 대화 게이트로 — 미인증 분야는 정직하게 물러선다."""
+    path = "/api/robot/chat" if robot else "/api/ask"
+    r = requests.post(f"{APP_URL}{path}", json={"question": question}, timeout=120)
     r.raise_for_status()
     return r.json().get("answer", "")
 
@@ -100,7 +102,7 @@ def tts(text: str) -> str:
     return "text-only"
 
 
-def one_turn(question: str | None = None) -> dict:
+def one_turn(question: str | None = None, robot: bool = False) -> dict:
     """한 번의 대화 왕복. question이 None이면 마이크 녹음→STT."""
     lat = {}
     if question is None:
@@ -112,7 +114,7 @@ def one_turn(question: str | None = None) -> dict:
         lat["stt_ms"] = int((time.time() - t0) * 1000)
         print(f"👂 인식: {question}")
     t0 = time.time()
-    answer = ask(question)
+    answer = ask(question, robot=robot)
     lat["ask_ms"] = int((time.time() - t0) * 1000)
     t0 = time.time()
     engine = tts(answer)
@@ -126,19 +128,22 @@ def one_turn(question: str | None = None) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--text", action="store_true", help="타자 모드(마이크/STT 생략)")
+    ap.add_argument("--robot", action="store_true",
+                    help="로봇 대화 게이트로 연결(R08) — 인증된 분야만 답한다")
     args = ap.parse_args()
-    mode = "타자" if args.text else "푸시투토크"
+    robot = args.robot or os.getenv("PB_VOICE_ROBOT", "") == "1"
+    mode = ("타자" if args.text else "푸시투토크") + (" · 로봇 게이트" if robot else " · 사서")
     print(f"피지컬브레인 음성 클라이언트 — {mode} 모드. 빈 입력이면 종료.")
     while True:
         if args.text:
             q = input("나> ").strip()
             if not q:
                 break
-            one_turn(q)
+            one_turn(q, robot=robot)
         else:
             if input("[Enter]=녹음 시작, q=종료 > ").strip() == "q":
                 break
-            one_turn(None)
+            one_turn(None, robot=robot)
 
 
 if __name__ == "__main__":
