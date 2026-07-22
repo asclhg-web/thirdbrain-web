@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from graph import store
+from robot_lms import exam as robot_exam  # R01 — DDL 등록을 위해 상단 임포트
 from graph_core import approvals as kgapprovals
 from graph_core import cycle as kgcycle
 from graph_core import profiles as kgprofiles
@@ -229,6 +230,24 @@ def mind_submit(person: str = Form(...), mood: str = Form(...), memo: str = Form
     from graph.mind_master import record_mood
     record_mood(person, mood, memo)
     return RedirectResponse(f"/?person={person}", status_code=303)
+
+
+@app.get("/robot", response_class=HTMLResponse)
+def robot_page(request: Request, err: str = ""):
+    """로봇 검정 (R01) — 기반지능(L1) 성적표: 수준별 통과율·환각·인증 상태."""
+    return templates.TemplateResponse(request, "robot.html", {
+        "card": robot_exam.report_card(), "err": err,
+        "llm_model": os.environ.get("LLM_MODEL", "")})
+
+
+@app.post("/robot/exam")
+def robot_exam_run():
+    """로봇 검정 응시 — 실서버의 LLM이 전 문항에 답한다 (수 분 소요 가능)."""
+    try:
+        robot_exam.run_exam(robot_exam.llm_ask, model=os.environ.get("LLM_MODEL", ""))
+    except Exception as e:  # LLM 부재 등 — 지어내지 않고 정직하게 알린다
+        return RedirectResponse(f"/robot?err={e}", status_code=303)
+    return RedirectResponse("/robot", status_code=303)
 
 
 @app.get("/interview", response_class=HTMLResponse)

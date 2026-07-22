@@ -25,9 +25,14 @@ def set_db_path(path: str | None) -> None:
 
 
 def register_ddl(sql: str) -> None:
-    """도메인 팩의 부속 테이블 DDL 등록 (연결 초기화 시 함께 생성)."""
+    """도메인 팩의 부속 테이블 DDL 등록 (연결 초기화 시 함께 생성).
+    연결이 이미 열려 있으면 즉시 적용한다 — 늦게 로드되는 팩도 안전하게."""
     if sql not in _EXTRA_DDL:
         _EXTRA_DDL.append(sql)
+        with _LOCK:
+            if _CONN is not None:
+                _CONN.executescript(sql)
+                _CONN.commit()
 
 
 def db_path() -> str:
