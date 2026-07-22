@@ -52,7 +52,8 @@ def test_auto_if_due_builds_prev_month_once(fresh_db, tmp_path):
                for e in store.events("나", 60, "알림발송", JUL)), "생성 시 요약 알림"
 
 
-def test_report_page_renders(fresh_db):
+def test_report_page_renders(fresh_db, tmp_path, monkeypatch):
+    monkeypatch.setenv("VAULT_PATH", str(tmp_path))  # 샘플 볼트(저장소 파일) 오염 방지
     from fastapi.testclient import TestClient
     from server.main import app
     c = TestClient(app)
