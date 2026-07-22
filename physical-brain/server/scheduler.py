@@ -42,6 +42,11 @@ def _loop():
                 pkg = legacy.auto_build_if_due(7, vault_path())
                 if pkg:
                     print(f"[유산패키지] 생성: {pkg}", flush=True)
+                # R09: 주 1회 로봇 재검 — 인증이 과거가 되지 않도록 (Drift Check)
+                from robot_lms import recheck as robot_recheck
+                rr = robot_recheck.auto_if_due(datetime.now())
+                if rr:
+                    print(f"[로봇재검] {rr}", flush=True)
             fired = run_tick(datetime.now())
             if fired:
                 print(f"[규칙실행] {fired}", flush=True)
