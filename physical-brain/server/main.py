@@ -234,9 +234,12 @@ def mind_submit(person: str = Form(...), mood: str = Form(...), memo: str = Form
 
 @app.get("/robot", response_class=HTMLResponse)
 def robot_page(request: Request, err: str = ""):
-    """로봇 검정 (R01) — 기반지능(L1) 성적표: 수준별 통과율·환각·인증 상태."""
+    """로봇 검정 (R01) + 분야팩 (R03·R04) — L1 성적표와 L2 분야 인증 보드."""
+    from robot_lms import domain as robot_domain
     return templates.TemplateResponse(request, "robot.html", {
         "card": robot_exam.report_card(), "err": err,
+        "packs": robot_domain.packs(), "pack_kinds": robot_domain.KINDS,
+        "pack_detail": robot_domain.latest_test_detail(),
         "llm_model": os.environ.get("LLM_MODEL", "")})
 
 
@@ -246,6 +249,25 @@ def robot_exam_run():
     try:
         robot_exam.run_exam(robot_exam.llm_ask, model=os.environ.get("LLM_MODEL", ""))
     except Exception as e:  # LLM 부재 등 — 지어내지 않고 정직하게 알린다
+        return RedirectResponse(f"/robot?err={e}", status_code=303)
+    return RedirectResponse("/robot", status_code=303)
+
+
+@app.post("/robot/pack/create")
+def robot_pack_create(name: str = Form(...), kind: str = Form("care")):
+    """분야팩 등록 (R03) — 그래프에서 문항이 자동 생성된다."""
+    from robot_lms import domain as robot_domain
+    robot_domain.create_pack(name, kind)
+    return RedirectResponse("/robot", status_code=303)
+
+
+@app.post("/robot/pack/{pack_id}/test")
+def robot_pack_test(pack_id: int):
+    """자기시험 (R04) — 사서 파이프라인(LLM+그래프)이 응시, 정답+근거 이중 채점."""
+    from robot_lms import domain as robot_domain
+    try:
+        robot_domain.self_test(pack_id, librarian.answer)
+    except Exception as e:
         return RedirectResponse(f"/robot?err={e}", status_code=303)
     return RedirectResponse("/robot", status_code=303)
 

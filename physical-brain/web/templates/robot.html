@@ -54,6 +54,51 @@
 <p class="muted">함정 문항은 '정직한 모름'이 정답입니다 — 지어내면 환각으로 기록되고 인증에서 탈락합니다.</p></div>
 {% endif %}
 
+<div class="card"><h3>📦 분야지능(L2) — 분야팩 인증 보드</h3>
+<p class="muted">고객이 고른 분야만 추가 학습합니다. 자기시험(정답률 90% 이상 + 근거 인용률 100%)을
+통과한 분야만 대화가 열립니다 — 근거 없는 정답은 인정하지 않습니다.</p>
+{% if packs %}
+<table>
+<tr><th>분야</th><th>종류</th><th>정답률</th><th>근거 인용률</th><th>상태</th><th></th></tr>
+{% for p in packs %}
+<tr>
+  <td>{{ p.name }}</td>
+  <td class="muted">{{ pack_kinds.get(p.kind, p.kind) }}</td>
+  <td>{{ p.last_rate if p.last_rate is not none else '—' }}{{ '%' if p.last_rate is not none else '' }}</td>
+  <td>{{ p.last_evidence_rate if p.last_evidence_rate is not none else '—' }}{{ '%' if p.last_evidence_rate is not none else '' }}</td>
+  <td>{% if p.certified %}<span class="badge">✅ 대화 개방</span>
+      {% else %}<span class="badge" style="background:#402a20;color:var(--amber)">📖 공부 중</span>{% endif %}</td>
+  <td><form method="post" action="/robot/pack/{{ p.id }}/test" style="display:inline"><button>자기시험</button></form></td>
+</tr>
+{% endfor %}
+</table>
+{% else %}<p class="muted">등록된 분야팩이 없어요 — 첫 분야를 등록해 보세요.</p>{% endif %}
+<form method="post" action="/robot/pack/create" style="margin-top:10px">
+  <input name="name" placeholder="분야 이름 (예: 건강 돌봄)" value="건강 돌봄" required>
+  <select name="kind">{% for k, label in pack_kinds.items() %}<option value="{{ k }}">{{ label }}</option>{% endfor %}</select>
+  <button>분야팩 등록</button>
+</form></div>
+
+{% if pack_detail %}
+<div class="card"><h3>🧪 최근 자기시험 상세 — {{ pack_detail.pack_name }} ({{ pack_detail.rate }}% · 근거 {{ pack_detail.evidence_rate }}%)</h3>
+<table>
+<tr><th>문항</th><th>기대</th><th>로봇의 답</th><th>근거</th><th>판정</th></tr>
+{% for i in pack_detail["items"] %}
+<tr>
+  <td>{{ i.question }}</td>
+  <td class="muted">{{ i.expect }}</td>
+  <td class="muted">{{ i.response[:60] }}{{ '…' if i.response|length > 60 else '' }}</td>
+  <td class="muted">{{ i.evidence_n }}건</td>
+  <td style="white-space:nowrap">
+    {% if i.status == 'pass' %}<span class="status-confirmed">통과</span>
+    {% elif i.status == 'no_evidence' %}<span class="status-announced">근거 없음</span>
+    {% else %}<span class="status-unconfirmed">탈락</span>{% endif %}
+  </td>
+</tr>
+{% endfor %}
+</table></div>
+{% endif %}
+
 {% if card.history|length > 1 %}
 <div class="card"><h3>📈 검정 이력 — 관리도</h3>
 <table>
