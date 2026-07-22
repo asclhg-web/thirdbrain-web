@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card"><h3>💬 로봇과 대화 — 대화 개방 게이트 (R05)</h3>
+<p class="muted">인증된 분야만 로봇이 대화합니다. 공부가 덜 된 분야는 정직하게 물러섭니다 —
+지어내지 않는 것이 이 로봇의 첫 번째 약속입니다.
+<a href="/robot">← 성적표·분야팩 보드로</a></p>
+<form method="get" action="/robot/chat">
+  <input name="q" value="{{ q }}" placeholder="예: 오늘 나의 약 일정 알려줘" style="width:70%" required>
+  <button>물어보기</button>
+</form></div>
+
+{% if chat %}
+<div class="card">
+<h3>
+  {% if chat.mode == 'domain' %}📗 분야 대화 — {{ chat.domain }} <span class="badge">✅ 인증 분야</span>
+  {% elif chat.mode == 'studying' %}📖 공부 중인 분야 — {{ chat.domain }}
+  {% elif chat.mode == 'l1_uncertified' %}🚧 기반 검정 전
+  {% else %}💬 일반 대화 (L1 인증)
+  {% endif %}
+</h3>
+<p><b>Q.</b> {{ q }}</p>
+<p><b>A.</b> {{ chat.answer }}</p>
+{% if chat.evidence %}
+<p class="muted">근거 {{ chat.evidence|length }}건:
+{% for e in chat.evidence %}<span class="badge">{{ e.label }}{% if e.source %} · {{ e.source }}{% endif %}</span>{% endfor %}
+</p>
+{% elif chat.mode == 'domain' %}
+<p class="muted">이 답변에는 인용할 근거 기록이 없었어요.</p>
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}

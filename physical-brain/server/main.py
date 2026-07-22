@@ -234,13 +234,21 @@ def mind_submit(person: str = Form(...), mood: str = Form(...), memo: str = Form
 
 @app.get("/robot", response_class=HTMLResponse)
 def robot_page(request: Request, err: str = ""):
-    """로봇 검정 (R01) + 분야팩 (R03·R04) — L1 성적표와 L2 분야 인증 보드."""
+    """로봇 검정 (R01) + 분야팩 (R03·R04) + 대화 게이트 (R05)."""
     from robot_lms import domain as robot_domain
     return templates.TemplateResponse(request, "robot.html", {
         "card": robot_exam.report_card(), "err": err,
         "packs": robot_domain.packs(), "pack_kinds": robot_domain.KINDS,
         "pack_detail": robot_domain.latest_test_detail(),
         "llm_model": os.environ.get("LLM_MODEL", "")})
+
+
+@app.get("/robot/chat", response_class=HTMLResponse)
+def robot_chat(request: Request, q: str = ""):
+    """로봇과 대화 (R05) — 인증된 분야만 열린다. 미인증은 정직하게 물러선다."""
+    from robot_lms import gate as robot_gate
+    chat = robot_gate.converse(q) if q.strip() else None
+    return templates.TemplateResponse(request, "robot_chat.html", {"q": q, "chat": chat})
 
 
 @app.post("/robot/exam")
