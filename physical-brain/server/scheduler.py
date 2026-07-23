@@ -52,6 +52,11 @@ def _loop():
                 rp = robot_report.auto_if_due(datetime.now(), vault_path())
                 if rp:
                     print(f"[로봇리포트] {rp['month']} 생성: {rp['path']}", flush=True)
+                # G09: 매일 저녁 일일결산 (Odoo 미설정이면 조용히 잠들어 있다)
+                from biz import closing as biz_closing
+                bc = biz_closing.auto_close_if_due(datetime.now())
+                if bc:
+                    print(f"[일일결산] {bc['date']} 손익 {bc['profit']:,.0f}", flush=True)
             fired = run_tick(datetime.now())
             if fired:
                 print(f"[규칙실행] {fired}", flush=True)

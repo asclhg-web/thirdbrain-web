@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if err %}<div class="card" style="border-color:#e2695f"><h3>⚠️ 동기화 실패</h3>
+<p class="muted">{{ err }}</p></div>{% endif %}
+
+<div class="card"><h3>🏢 에이에스씨 — 기업 그래프 (Odoo 거울)</h3>
+<p class="muted">진실의 원본은 Odoo, 그래프는 거울입니다. 읽기(매출 인식·결산)는 자동,
+쓰기(발주)는 반드시 승인을 거칩니다 — 돈이 나가는 길에 자동은 없습니다.</p>
+<p>
+  {% if configured %}<span class="badge">✅ Odoo 연결 설정됨</span>
+  <form method="post" action="/biz/sync" style="display:inline"><button>지금 동기화</button></form>
+  {% else %}<span class="badge" style="background:#402a20;color:var(--amber)">⏳ Odoo 미설정</span>
+  <span class="muted">.env에 ODOO_URL · ODOO_DB · ODOO_USER · ODOO_API_KEY 4줄을 넣고 앱을 재시작하면 켜집니다.
+  매일 21시 자동 결산도 그때부터 시작됩니다.</span>{% endif %}
+</p></div>
+
+<div class="card"><h3>📒 오늘 결산 — {{ today }}</h3>
+<table>
+<tr><th>매출</th><th>지출</th><th>손익</th></tr>
+<tr><td>{{ "{:,.0f}".format(day.sales) }}원</td><td>{{ "{:,.0f}".format(day.expense) }}원</td>
+  <td><b>{{ "{:,.0f}".format(day.profit) }}원</b></td></tr>
+</table>
+{% if day.docs %}
+<table style="margin-top:8px">
+<tr><th>문서</th><th>구분</th><th>금액</th><th>수금/지급</th></tr>
+{% for d in day.docs %}
+<tr><td>{{ d.name }}</td><td>{{ d.kind }}</td><td>{{ "{:,.0f}".format(d.amount) }}원</td>
+  <td class="muted">{{ d.paid }}</td></tr>
+{% endfor %}
+</table>
+{% else %}<p class="muted">오늘 전기된 매출·지출 문서가 없어요.</p>{% endif %}</div>
+
+<div class="card"><h3>📆 이번 달 결산 — {{ month_label }} (문서 {{ month.n_docs }}건)</h3>
+<table>
+<tr><th>매출</th><th>지출</th><th>손익</th></tr>
+<tr><td>{{ "{:,.0f}".format(month.sales) }}원</td><td>{{ "{:,.0f}".format(month.expense) }}원</td>
+  <td><b>{{ "{:,.0f}".format(month.profit) }}원</b></td></tr>
+</table>
+{% if month.by_partner %}
+<p class="muted" style="margin-top:8px">거래처별 기여:
+{% for name, v in month.by_partner.items() %}<span class="badge">{{ name }} {{ "{:,.0f}".format(v) }}원</span>{% endfor %}
+</p>{% endif %}
+<p class="muted">교보문고 판매대금은 월말 정산 — 월 결산이 기준 단위입니다.</p></div>
+
+<div class="card"><h3>🤖 로봇 발주 제안 — 자동이 아니라 '제안 + 승인'</h3>
+<p class="muted">제안하면 승인 큐로 갑니다. 승인해야만 Odoo에 발주서 '초안'이 생기고,
+최종 확정·발송도 Odoo에서 사람이 합니다 (이중 안전망).</p>
+<form method="post" action="/biz/purchase">
+  <input name="item" placeholder="품목 (예: LeKiwi 모터 세트)" required style="width:38%">
+  <input name="qty" type="number" value="1" min="1" style="width:9%">
+  <input name="est_price" type="number" value="0" min="0" step="1000" placeholder="예상금액(원)" style="width:16%">
+  <input name="vendor" placeholder="공급업체(Odoo 거래처명)" style="width:22%">
+  <input name="reason" placeholder="사유" style="width:50%;margin-top:6px">
+  <button>발주 제안 → 승인 큐</button>
+</form></div>
+{% endblock %}

@@ -35,7 +35,9 @@
 
 | G13 투자 팩 | ✅ 2026-07-20 | invest/ — investment-v1 Frame(Company·Sector·MarketEvent + BELONGS_TO·SUPPLIES·IMPACTS), 반도체 가치사슬 시드 6사, record_market_event(근거 source 필수), impact_query 충격전파(공급망 1홉 감쇠, 경로=근거), 사서 자유질문 통합. 투자 조언 없음(점수·경로만). 실전 연결점: OpenBrain 수집기→record_market_event |
 
-미착수: G09~G10(Odoo — 인스턴스 정보 대기) — Phase 2의 마지막 ⬜
+| G09 Odoo 커넥터·일일결산 | ✅ 2026-07-22 (코드 완성, 실연결은 .env 대기) | biz/ — Odoo 어댑터(내장 XML-RPC, .env 4줄: URL·DB·USER·API_KEY), enterprise-v1 Frame(Partner·BizDoc·WITH), account.move 동기화(그래프=거울, 멱등), 일일·월 결산(매출/지출/손익 + 거래처별 기여 — 교보문고 월말 정산 단위), 심장박동 매일 21시 자동 결산+텔레그램, /biz 화면. 로봇 발주 = 제안→승인 큐→승인 시에만 Odoo 발주서 '초안'(이중 안전망, 승인 전 쓰기 0건 테스트 고정). 1차 범위: 에이에스씨(개인사업자) — 교보 매출·서버 유지보수·로봇 부품 |
+
+미착수: G10(채터 암묵지 회수 — 실연결 후) ⬜
 
 ## Phase 3 — 상용화
 

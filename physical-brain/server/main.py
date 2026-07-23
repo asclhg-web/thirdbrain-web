@@ -311,6 +311,39 @@ def robot_pack_test(pack_id: int):
     return RedirectResponse("/robot", status_code=303)
 
 
+@app.get("/biz", response_class=HTMLResponse)
+def biz_page(request: Request, err: str = ""):
+    """기업 그래프 (G09) — 에이에스씨 일일결산 보드 + 로봇 발주 제안(HITL)."""
+    from biz import closing, odoo_client
+    now = datetime.now()
+    today, month = now.date().isoformat(), now.strftime("%Y-%m")
+    return templates.TemplateResponse(request, "biz.html", {
+        "configured": odoo_client.configured(), "err": err,
+        "today": today, "day": closing.close_day(today),
+        "month_label": month, "month": closing.close_month(month)})
+
+
+@app.post("/biz/sync")
+def biz_sync():
+    """Odoo → 그래프 수동 동기화 (심장박동 외 즉시 반영용)."""
+    from biz import closing
+    try:
+        closing.sync_from_odoo()
+    except Exception as e:
+        return RedirectResponse(f"/biz?err={e}", status_code=303)
+    return RedirectResponse("/biz", status_code=303)
+
+
+@app.post("/biz/purchase")
+def biz_purchase(item: str = Form(...), qty: int = Form(1),
+                 est_price: float = Form(0), vendor: str = Form(""),
+                 reason: str = Form("")):
+    """발주 제안 → 승인 큐. 승인해야만 Odoo에 초안이 생긴다."""
+    from biz.purchase import propose_purchase
+    propose_purchase(item, qty, est_price, reason, vendor, proposed_by="사람(화면)")
+    return RedirectResponse("/approvals", status_code=303)
+
+
 @app.get("/interview", response_class=HTMLResponse)
 def interview_page(request: Request):
     """암묵지 인터뷰 (G11) — 그래프의 끊긴 곳이 질문이 된다."""
