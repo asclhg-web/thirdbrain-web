@@ -46,6 +46,21 @@ def morning_briefing(person: str, now: datetime | None = None) -> str:
     if not recorded_recently(person, now):
         parts.append("💛 요즘 마음은 어떠세요? 홈 화면에서 한 번 눌러주시면 기록해 둘게요.")
 
+    # H04: 습관 한 줄 — 잘한 것만 짚는다 (격려가 기본 어조, 불안 조장 금지)
+    from server.wellbeing import week_card
+    h = week_card(person, now)["habits"]
+    done = []
+    if h["adherence"] is not None and h["adherence"] >= 80:
+        done.append(f"복약 {h['adherence']}%")
+    if h["learn_checks"]:
+        done.append(f"학습 확인 {h['learn_checks']}회")
+    if h["tasks_done"]:
+        done.append(f"과업 완료 {h['tasks_done']}건")
+    if h["mind_days"] >= 3:
+        done.append(f"마음 기록 {h['mind_days']}일")
+    if done:
+        parts.append("🌿 이번 주 습관: " + " · ".join(done) + " — 좋은 리듬이에요.")
+
     text = " ".join(parts)
     record_event(person, "브리핑", text[:120], now)
     return text

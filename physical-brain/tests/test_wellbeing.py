@@ -48,6 +48,18 @@ def test_week_card_combines_body_and_habits(fresh_db):
     assert set(w["habits"]) == {"adherence", "learn_checks", "tasks_done", "mind_days"}
 
 
+def test_briefing_praises_habits_only(fresh_db):
+    """H04: 브리핑은 잘한 습관만 짚는다 — 못한 것은 꾸짖지 않는다(격려 기조)."""
+    from server.briefing import morning_briefing
+    text0 = morning_briefing("나", NOW)
+    assert "이번 주 습관" not in text0, "습관 기록이 없으면 조용히"
+    from graph import learning_master as lm
+    lm.seed_curriculum()
+    lm.record_quiz("나", "concept:자연수의_사칙연산", True, NOW)
+    text = morning_briefing("나", NOW)
+    assert "학습 확인 1회" in text and "좋은 리듬" in text
+
+
 def test_home_shows_wellbeing_card(fresh_db):
     from fastapi.testclient import TestClient
     from server.main import app
