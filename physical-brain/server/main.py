@@ -83,6 +83,28 @@ def bp_submit(person: str = Form(...), sys_v: int = Form(..., alias="sys"), dia_
     return RedirectResponse(f"/?person={person}", status_code=303)
 
 
+@app.post("/measure")
+def measure_submit(person: str = Form(...), mtype: str = Form(...), value: float = Form(...)):
+    """일반 측정 입력 (H02) — 측정 유형 사전의 어떤 유형이든 (체중 등)."""
+    from graph.body_master import measure_types
+    mt = measure_types().get(mtype)
+    if not mt:
+        return RedirectResponse(f"/?person={person}", status_code=303)
+    now = datetime.now()
+    pid = store.person_id(person)
+    if not store.get_node(pid):
+        store.upsert_node(pid, "Person", {"name": person})
+    mid = f"measurement:{person}:{mtype}:{now.isoformat()}"
+    store.upsert_node(mid, "Measurement", {"type": mtype, "value": float(value),
+                                           "unit": mt.get("unit", ""),
+                                           "measured_at": now.isoformat(), "src": "manual"})
+    store.upsert_edge(pid, "MEASURED", mid)
+    alert = safety.check_measurement(person, mtype, float(value), now)
+    if alert:
+        notify.send(person, alert["text"], "safety", now)
+    return RedirectResponse(f"/?person={person}", status_code=303)
+
+
 @app.get("/cycle", response_class=HTMLResponse)
 def cycle_page(request: Request, new: int = 0, template: str = ""):
     """KG-DMAIC 사이클 보드 (G04) — Define 위저드(+G15 템플릿) + 갭 보드."""
@@ -434,13 +456,18 @@ def home(request: Request, person: str = ""):
     person = person if person in people else people[0]
     expand_today(now)
     tasks = [t for t in today(now) if t["person"] == person]
+    from graph.body_master import measure_types
     from graph.mind_master import MOODS, week_moods
+    from server.wellbeing import week_card
     return templates.TemplateResponse(request, "home.html", {
         "person": person, "people": people,
         "briefing": briefing.morning_briefing(person, now),
         "tasks": tasks, "adherence": adherence(person, 7, now),
         "triangle": store.triangle_week(person, now),
         "moods": MOODS, "mind": week_moods(person, now),
+        "wellbeing": week_card(person, now),
+        "input_types": [m for k, m in measure_types().items()
+                        if k not in ("bp_sys", "bp_dia")],
         "events": list(reversed(store.events(person, 2, None, now)))[:8],
     })
 

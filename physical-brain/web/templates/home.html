@@ -22,6 +22,33 @@
 {% else %}<tr><td colspan="5" class="muted">오늘 등록된 복약 규칙이 없어요.</td></tr>{% endfor %}
 </table></div>
 
+<div class="card"><h3>🌿 웰빙 주간 카드 <span class="muted">(최근 7일 — 결과와 습관을 한 장에)</span></h3>
+<table>
+<tr><th colspan="2">몸 (결과)</th><th colspan="2">습관 (선행)</th></tr>
+<tr>
+  <td class="muted">혈압 평균</td>
+  <td>{% if wellbeing.body.bp[0] %}{{ wellbeing.body.bp[0] }}/{{ wellbeing.body.bp[1] }} mmHg{% else %}—{% endif %}</td>
+  <td class="muted">복약 준수율</td>
+  <td>{{ wellbeing.habits.adherence ~ '%' if wellbeing.habits.adherence is not none else '—' }}</td>
+</tr>
+<tr>
+  <td class="muted">수면 평균</td>
+  <td>{{ wellbeing.body.sleep_avg ~ 'h' if wellbeing.body.sleep_avg else '—' }}</td>
+  <td class="muted">학습 확인</td><td>{{ wellbeing.habits.learn_checks }}회</td>
+</tr>
+<tr>
+  <td class="muted">걸음 평균</td>
+  <td>{{ "{:,.0f}".format(wellbeing.body.walk_avg) ~ '보' if wellbeing.body.walk_avg else '—' }}</td>
+  <td class="muted">과업 완료</td><td>{{ wellbeing.habits.tasks_done }}건</td>
+</tr>
+<tr>
+  <td class="muted">체중 · 스트레스</td>
+  <td>{{ wellbeing.body.weight ~ 'kg' if wellbeing.body.weight else '—' }} · {{ wellbeing.body.stress ~ '점' if wellbeing.body.stress else '—' }}</td>
+  <td class="muted">마음 기록</td><td>{{ wellbeing.habits.mind_days }}일</td>
+</tr>
+</table>
+<p class="muted">건강은 질병의 반대말이 아닙니다 — 습관이 선행지표, 몸은 결과지표. 상관은 참고만, 인과 판단은 사람과 의사가 합니다.</p></div>
+
 <div class="card"><h3>🔺 삼각 밸런스 <span class="muted">(최근 7일 활동의 영역 기여)</span></h3>
 {% if triangle.total %}
 <p>활동 {{ triangle.total }}건 — 몸 <b>{{ triangle['몸'] }}</b> · 학습 <b>{{ triangle['학습'] }}</b> · 프로젝트 <b>{{ triangle['프로젝트'] }}</b>
@@ -48,7 +75,14 @@
   이완기 <input name="dia" type="number" min="30" max="200" required style="width:75px">
   <button>기록</button>
 </form>
-<p class="muted">측정 직후 입력하세요 — 기준 초과 시 즉시 알림이 갑니다 (135/85 주의, 180/120 긴급).</p></div>
+<p class="muted">측정 직후 입력하세요 — 기준 초과 시 즉시 알림이 갑니다 (135/85 주의, 180/120 긴급).</p>
+<form method="post" action="/measure" style="margin-top:8px">
+  <input type="hidden" name="person" value="{{person}}">
+  <select name="mtype">{% for m in input_types %}<option value="{{ m.key }}">{{ m.label }} ({{ m.unit }})</option>{% endfor %}</select>
+  <input name="value" type="number" step="0.1" required style="width:100px" placeholder="값">
+  <button>기록</button>
+  <span class="muted">체중 등 다른 측정도 여기로 (H02)</span>
+</form></div>
 
 <div class="card"><h3>🗒 최근 이벤트</h3>
 <table>{% for e in events %}

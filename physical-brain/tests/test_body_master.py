@@ -7,27 +7,28 @@ from server.safety import check_measurement
 
 
 def _measure_note(tmp_path):
-    p = tmp_path / "측정_몸무게.md"
-    p.write_text("---\ntype: measure\nname: 몸무게\nkey: weight\nunit: kg\nwarn: 90\n---\n",
+    p = tmp_path / "측정_허리둘레.md"
+    p.write_text("---\ntype: measure\nname: 허리둘레\nkey: waist\nunit: cm\nwarn: 90\n---\n",
                  encoding="utf-8")
     return str(p)
 
 
 def test_vault_note_adds_measure_type(fresh_db, tmp_path):
-    assert "weight" not in measure_types()
+    assert "waist" not in measure_types()
+    assert measure_types()["weight"]["unit"] == "kg", "체중은 이제 기본 사전(H02)"
     sync_note(_measure_note(tmp_path))
-    mt = measure_types()["weight"]
-    assert mt["label"] == "몸무게" and mt["unit"] == "kg" and mt["warn"] == 90.0
-    assert ("weight", "몸무게", "kg") in chart_types(), "신호 페이지 차트에 자동 등장"
+    mt = measure_types()["waist"]
+    assert mt["label"] == "허리둘레" and mt["unit"] == "cm" and mt["warn"] == 90.0
+    assert ("waist", "허리둘레", "cm") in chart_types(), "신호 페이지 차트에 자동 등장"
 
 
 def test_vault_threshold_drives_safety_net(fresh_db, tmp_path):
     """노트의 warn 값이 1층 안전망을 작동시킨다 — 코드 수정 없이."""
     sync_note(_measure_note(tmp_path))
     now = datetime(2026, 7, 20, 9)
-    alert = check_measurement("나", "weight", 95, now)
-    assert alert and alert["level"] == "warn" and "몸무게" in alert["text"]
-    assert check_measurement("나", "weight", 80, now) is None
+    alert = check_measurement("나", "waist", 95, now)
+    assert alert and alert["level"] == "warn" and "허리둘레" in alert["text"]
+    assert check_measurement("나", "waist", 80, now) is None
 
 
 def test_vault_can_override_default_threshold(fresh_db, tmp_path):

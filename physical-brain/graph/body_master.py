@@ -23,6 +23,7 @@ DEFAULTS = [
     {"key": "glucose_spikes", "label": "혈당 스파이크", "unit": "회", "warn": 3, "chart": True},
     {"key": "spo2", "label": "산소포화도", "unit": "%", "chart": True},   # H01 — 낮을수록 나쁨: 임계는 추이 확인 후 볼트로
     {"key": "stress", "label": "스트레스", "unit": "점", "chart": True},  # H01 — 해석 금지, 추이만
+    {"key": "weight", "label": "체중", "unit": "kg", "chart": True},      # H02 — 임계 없음(추이가 전부)
 ]
 
 
