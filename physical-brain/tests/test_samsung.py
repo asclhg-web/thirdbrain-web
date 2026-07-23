@@ -24,6 +24,27 @@ STEPS = (
     "9500,1784217600000,5\n"
     "6001,1784304000000,-2\n"
 )
+BP = (
+    "com.samsung.health.blood_pressure,4,meta\n"
+    "com.samsung.health.blood_pressure.start_time,com.samsung.health.blood_pressure.systolic,"
+    "com.samsung.health.blood_pressure.diastolic\n"
+    "2026-07-16 08:05:00.000,128,82\n"
+    "2026-07-17 08:10:00.000,999,82\n"          # 이상치 → 무시
+    "2026-07-17 08:12:00.000,133,86\n"
+)
+SPO2 = (
+    "com.samsung.shealth.tracker.oxygen_saturation,2,meta\n"
+    "com.samsung.health.oxygen_saturation.start_time,com.samsung.health.oxygen_saturation.spo2\n"
+    "2026-07-16 03:00:00.000,97\n"
+    "2026-07-16 04:00:00.000,94\n"
+    "2026-07-16 05:00:00.000,55\n"              # 이상치 → 무시
+)
+STRESS = (
+    "com.samsung.shealth.stress,3,meta\n"
+    "com.samsung.shealth.stress.start_time,com.samsung.shealth.stress.score\n"
+    "2026-07-16 10:00:00.000,40\n"
+    "2026-07-16 15:00:00.000,60\n"
+)
 
 
 def make_zip(tmp_path):
@@ -32,6 +53,9 @@ def make_zip(tmp_path):
         z.writestr("export/com.samsung.shealth.tracker.heart_rate.20260718.csv", HR)
         z.writestr("export/com.samsung.shealth.sleep.20260718.csv", SLEEP)
         z.writestr("export/com.samsung.shealth.step_daily_trend.20260718.csv", STEPS)
+        z.writestr("export/com.samsung.health.blood_pressure.20260718.csv", BP)
+        z.writestr("export/com.samsung.shealth.tracker.oxygen_saturation.20260718.csv", SPO2)
+        z.writestr("export/com.samsung.shealth.stress.20260718.csv", STRESS)
     return zp
 
 
@@ -47,6 +71,14 @@ def test_parse_export(fresh_db, tmp_path):
     assert any(abs(a["value"] - 7.5) < 0.01 for a in sleeps), "수면 시간 계산(23:10~06:40=7.5h)"
     walks = fresh_db.activities("나", "walk", 5, now)
     assert {a["value"] for a in walks} == {8123.0, 6001.0}, "source_type=-2만 채택해야"
+    # H01 확장: 혈압(이상치 제외 2건) · 산소포화도(일 최저) · 스트레스(일 평균)
+    assert r["bp_readings"] == 2 and r["spo2_days"] == 1 and r["stress_days"] == 1
+    bps = fresh_db.measurements("나", "bp_sys", 5, now)
+    assert {m["value"] for m in bps} == {128.0, 133.0}, "999는 이상치로 무시"
+    spo2 = fresh_db.measurements("나", "spo2", 5, now)
+    assert [m["value"] for m in spo2] == [94.0], "일 최저(97,94) 채택·55는 무시"
+    stress = fresh_db.measurements("나", "stress", 5, now)
+    assert [m["value"] for m in stress] == [50.0], "일 평균 (40+60)/2"
 
 
 def test_dropbox_zip_moved(fresh_db, tmp_path):

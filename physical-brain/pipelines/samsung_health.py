@@ -1,6 +1,7 @@
 """T29 — 삼성헬스 '개인 데이터 다운로드' zip → 그래프 (갤럭시 워치8 실데이터).
 
-가져오는 것: 맥박(일별 안정 심박 근사=일 최저), 수면(밤별 시간), 걸음(일별).
+가져오는 것: 맥박(일별 안정 심박 근사=일 최저), 수면(밤별 시간), 걸음(일별),
+혈압(측정 시각 그대로), 산소포화도(일 최저), 스트레스(일 평균) — H01 확장.
 사용:  python -m pipelines.samsung_health --zip 다운로드.zip [--person 나]
 자동:  볼트의 `인박스/` 폴더에 zip을 넣으면 심장박동이 5분 내 처리
        (처리 후 `인박스/처리됨/`으로 이동 — 옵시디언/OneDrive에서 확인 가능)
@@ -138,14 +139,80 @@ def _parse_steps(header, rows, person) -> int:
     return len(day_steps)
 
 
+def _parse_bp(header, rows, person) -> int:
+    """혈압계 연동 기록 — 측정 시각 그대로 보존 (H01)."""
+    t_col = _col(header, "start_time")
+    s_col, d_col = _col(header, "systolic"), _col(header, "diastolic")
+    if not (t_col and s_col and d_col):
+        return 0
+    n = 0
+    for r in rows:
+        t = _dt(r.get(t_col, ""))
+        try:
+            s, d = float(r.get(s_col, "")), float(r.get(d_col, ""))
+        except (TypeError, ValueError):
+            continue
+        if not t or not (50 < s < 260 and 30 < d < 200):
+            continue
+        at = t.isoformat()
+        _put_measurement(person, "bp_sys", s, "mmHg", at)
+        _put_measurement(person, "bp_dia", d, "mmHg", at)
+        n += 1
+    return n
+
+
+def _parse_spo2(header, rows, person) -> int:
+    """산소포화도 — 하루 최저값(가장 나쁜 순간)을 보존 (H01)."""
+    t_col, v_col = _col(header, "start_time"), _col(header, "spo2")
+    if not (t_col and v_col):
+        return 0
+    day_min: dict[str, float] = {}
+    for r in rows:
+        t = _dt(r.get(t_col, ""))
+        try:
+            v = float(r.get(v_col, ""))
+        except (TypeError, ValueError):
+            continue
+        if not t or not (70 <= v <= 100):
+            continue
+        d = t.date().isoformat()
+        day_min[d] = min(day_min.get(d, 101), v)
+    for d, v in day_min.items():
+        _put_measurement(person, "spo2", v, "%", f"{d}T06:00:00")
+    return len(day_min)
+
+
+def _parse_stress(header, rows, person) -> int:
+    """스트레스 점수 — 하루 평균 (해석하지 않고 추이만) (H01)."""
+    t_col, v_col = _col(header, "start_time"), _col(header, "score")
+    if not (t_col and v_col):
+        return 0
+    day_vals: dict[str, list[float]] = defaultdict(list)
+    for r in rows:
+        t = _dt(r.get(t_col, ""))
+        try:
+            v = float(r.get(v_col, ""))
+        except (TypeError, ValueError):
+            continue
+        if t and 0 < v <= 100:
+            day_vals[t.date().isoformat()].append(v)
+    for d, vs in day_vals.items():
+        _put_measurement(person, "stress", sum(vs) / len(vs), "점", f"{d}T12:00:00")
+    return len(day_vals)
+
+
 KIND_PARSERS = [("heart_rate", _parse_heart_rate), ("sleep", _parse_sleep),
-                ("step_daily_trend", _parse_steps)]
+                ("step_daily_trend", _parse_steps), ("blood_pressure", _parse_bp),
+                ("oxygen_saturation", _parse_spo2), ("stress", _parse_stress)]
 
 
 def parse_export(path: str, person: str = "나") -> dict:
     """zip(또는 풀린 폴더)에서 심박·수면·걸음을 그래프로. 반환: 종류별 일수."""
-    result = {"rhr_days": 0, "sleep_nights": 0, "walk_days": 0, "skipped": []}
-    keymap = {"heart_rate": "rhr_days", "sleep": "sleep_nights", "step_daily_trend": "walk_days"}
+    result = {"rhr_days": 0, "sleep_nights": 0, "walk_days": 0,
+              "bp_readings": 0, "spo2_days": 0, "stress_days": 0, "skipped": []}
+    keymap = {"heart_rate": "rhr_days", "sleep": "sleep_nights", "step_daily_trend": "walk_days",
+              "blood_pressure": "bp_readings", "oxygen_saturation": "spo2_days",
+              "stress": "stress_days"}
 
     def each_csv():
         if zipfile.is_zipfile(path):
