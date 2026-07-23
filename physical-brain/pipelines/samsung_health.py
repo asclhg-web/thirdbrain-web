@@ -253,7 +253,13 @@ def process_dropbox(dirpath: str, person: str = "나") -> dict:
                 r = parse_export(src, person)
                 ok.append((fn, r))
             elif fn.lower().endswith(".csv"):
-                r = ingest_file(src)
+                with open(src, "r", encoding="utf-8-sig", errors="replace") as f:
+                    first = f.readline()
+                from pipelines import openscale
+                if openscale.looks_like(first):  # H05: 체중계 CSV도 같은 인박스로
+                    r = openscale.parse_csv(open(src, "rb").read(), person)
+                else:
+                    r = ingest_file(src)
                 ok.append((fn, r))
             else:
                 continue

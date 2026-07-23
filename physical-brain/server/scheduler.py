@@ -57,6 +57,11 @@ def _loop():
                 bc = biz_closing.auto_close_if_due(datetime.now())
                 if bc:
                     print(f"[일일결산] {bc['date']} 손익 {bc['profit']:,.0f}", flush=True)
+                # H06: Wger 운동 서버 하루 1회 동기화 (미설정이면 조용히)
+                from pipelines import wger
+                wg = wger.auto_sync_if_due(datetime.now())
+                if wg:
+                    print(f"[운동동기화] {wg}", flush=True)
             fired = run_tick(datetime.now())
             if fired:
                 print(f"[규칙실행] {fired}", flush=True)
