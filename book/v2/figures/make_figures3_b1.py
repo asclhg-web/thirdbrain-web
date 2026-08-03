@@ -398,12 +398,12 @@ def fig_123():
             path = (f'M{sx+10},{sy-16} L{px+244},{sy-16} L{px+244},{rack_y[2]+22} '
                     f'L{px+44},{rack_y[2]+22} L{px+44},{rack_y[1]+22} L{px+244},{rack_y[1]+22} '
                     f'L{px+244},{rack_y[0]+22} L{px+44},{rack_y[0]+22} '
-                    f'L{px+30},{rack_y[0]+22} L{px+30},{sy-16} L{sx-40},{sy-16}')
+                    f'L{px+30},{rack_y[0]+22} L{px+30},{sy-16} L{sx-46},{sy-16}')
             b.append(f'<path d="{path}" fill="none" stroke="{TEAL}" stroke-width="2.6" marker-end="url(#ahT)"/>')
-            midy = (rack_y[1]+rack_y[2])/2 + 22
-            b.append(rrect(px+222, midy-10, 44, 20, TEAL, TEAL, 1, 4))
-            b.append(text(px+244, midy+4, "카트", 10.8, WHITE, "bold"))
-            b.append(text(px+58, py+254, "왕복 1회", 11.5, TEAL, "bold", anchor="start"))
+            midy = (rack_y[0]+rack_y[1])/2 + 22
+            b.append(rrect(px+241, midy-10, 42, 20, TEAL, TEAL, 1, 4))
+            b.append(text(px+262, midy+4, "카트", 10.8, WHITE, "bold"))
+            b.append(text(px+36, py+276, "왕복 1회", 11.5, TEAL, "bold", anchor="start"))
         else:  # 웨이브: 구역 분할 2인
             b.append(line(px+pw/2, py+74, px+pw/2, py+238, GRAY, 1.2, "6,5"))
             b.append(text(px+pw/2-46, py+68, "1구역", 11, GRAY))
