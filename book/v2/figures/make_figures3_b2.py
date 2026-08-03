@@ -383,6 +383,12 @@ def fig_172():
             b.append(text(X(m), 108, str(m), 11, GRAY))
     b.append(line(x0, 120, x1, 120, GRAY, 1.4))
     b.append(text(x1+22, 108, "개월", 11, GRAY))
+    gates = [(3.5, "관문① 시스템 월 마감 · 이중 입력 제거", 512),
+             (6, "관문② 재고 정확도 95% · 실적 24시간 이내", 534),
+             (10.5, "관문③ 질문 커버리지 70% · 루프 1회전 완주", 512)]
+    for m, lab, ly in gates:
+        b.append(line(X(m), 124, X(m), 490, ACC, 1.4, "6,4"))
+        b.append(f'<path d="M{X(m)-6},490 l6,9 l6,-9 z" fill="{ACC}"/>')
     rows = [
         ("1 진단", "2~4주", 0, 1, TEAL, "매트릭스 채점 · KGI-질문-KPI 트리 · 현장 5S 진단", "right"),
         ("2 기반", "2~3개월", 1, 3.5, TEAL, "판매·매입·재고 + 회계 기초 · 코드체계 정의", "right"),
@@ -407,12 +413,7 @@ def fig_172():
             b.append(text(bx+bw2+12, Y+39, lab, 11.5, GRAY, anchor="start"))
         if mode == "below":
             b.append(arrow(X(12)+2, Y+34, X(12)+26, Y+34, ACC, 2.5, "ahA", "5,4"))
-    gates = [(3.5, "관문① 시스템 월 마감 · 이중 입력 제거", 505),
-             (6, "관문② 재고 정확도 95% · 실적 24시간 이내", 527),
-             (10.5, "관문③ 질문 커버리지 70% · 루프 1회전 완주", 505)]
     for m, lab, ly in gates:
-        b.append(line(X(m), 124, X(m), 490, ACC, 1.4, "6,4"))
-        b.append(f'<path d="M{X(m)-6},490 l6,9 l6,-9 z" fill="{ACC}"/>')
         b.append(text(X(m), ly, lab, 11.5, ACC, "bold"))
     b.append(text(W/2, 560, "관문 미달 시의 표준 대응은 일정 연기가 아니라 범위 축소 — 모듈 수를 줄여서라도 관문을 먼저 통과한다", 12, GRAY))
     b.append(text(W/2, H-14, "2부 17장 — 관문은 일정의 장식이 아니라 다음 투자의 조건이다 (17.5절)", 11.5, GRAY))

@@ -326,7 +326,7 @@ def fig_122():
             else:
                 b.append(rrect(x, ry, 128, 76, ICE, NAVY, 1.2, 4))
                 b.append(text(x+64, ry+44, code, 12.5, NAVY, "bold"))
-    b.append(text(lx+150+2*136+64, ly+426, "선반마다 번지 라벨(바코드) 부착", 11.5, GRAY))
+    b.append(text(lx+lw/2, ly+426, "선반마다 번지 라벨(바코드) 부착", 11.5, GRAY))
     # 우: 위치 마스터 트리
     rx0, ry0, rw, rh = 630, 92, 290, 440
     b.append(rrect(rx0, ry0, rw, rh, LGRAY, GRAY, 1.4, 8))
@@ -395,22 +395,23 @@ def fig_123():
                          f'fill="none" stroke="#8A93A0" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#ahG)"/>')
             b.append(text(px+pw-30, py+250, "왕복 3회", 11.5, ACC, "bold", anchor="end"))
         elif p == 1:  # 클러스터: 한 번의 S자 순회
-            path = (f'M{sx},{sy-16} L{px+246},{rack_y[2]+22} L{px+70},{rack_y[2]+22} '
-                    f'L{px+70},{rack_y[1]+22} L{px+246},{rack_y[1]+22} '
-                    f'L{px+246},{rack_y[0]+22} L{px+70},{rack_y[0]+22} '
-                    f'L{px+52},{rack_y[0]-10} L{px+52},{sy-4} L{sx-38},{sy-4}')
+            path = (f'M{sx+10},{sy-16} L{px+244},{sy-16} L{px+244},{rack_y[2]+22} '
+                    f'L{px+44},{rack_y[2]+22} L{px+44},{rack_y[1]+22} L{px+244},{rack_y[1]+22} '
+                    f'L{px+244},{rack_y[0]+22} L{px+44},{rack_y[0]+22} '
+                    f'L{px+30},{rack_y[0]+22} L{px+30},{sy-16} L{sx-40},{sy-16}')
             b.append(f'<path d="{path}" fill="none" stroke="{TEAL}" stroke-width="2.6" marker-end="url(#ahT)"/>')
-            b.append(rrect(px+222, sy-40, 48, 20, TEAL, TEAL, 1, 4))
-            b.append(text(px+246, sy-26, "카트", 10.8, WHITE, "bold"))
-            b.append(text(px+pw-30, py+250, "왕복 1회", 11.5, TEAL, "bold", anchor="end"))
+            midy = (rack_y[1]+rack_y[2])/2 + 22
+            b.append(rrect(px+222, midy-10, 44, 20, TEAL, TEAL, 1, 4))
+            b.append(text(px+244, midy+4, "카트", 10.8, WHITE, "bold"))
+            b.append(text(px+58, py+254, "왕복 1회", 11.5, TEAL, "bold", anchor="start"))
         else:  # 웨이브: 구역 분할 2인
-            b.append(line(px+pw/2, py+62, px+pw/2, py+232, GRAY, 1.2, "6,5"))
-            b.append(text(px+pw/2-8, py+240, "1구역", 10.8, GRAY, anchor="end"))
-            b.append(text(px+pw/2+8, py+240, "2구역", 10.8, GRAY, anchor="start"))
+            b.append(line(px+pw/2, py+74, px+pw/2, py+238, GRAY, 1.2, "6,5"))
+            b.append(text(px+pw/2-46, py+68, "1구역", 11, GRAY))
+            b.append(text(px+pw/2+46, py+68, "2구역", 11, GRAY))
             p1 = (f'M{sx-20},{sy-16} L{px+80},{rack_y[2]+22} L{px+80},{rack_y[0]+22} '
-                  f'L{px+134},{rack_y[0]+22} L{px+134},{sy-18}')
+                  f'L{px+128},{rack_y[0]+22} L{px+128},{sy-24}')
             p2 = (f'M{sx+20},{sy-16} L{px+216},{rack_y[2]+22} L{px+216},{rack_y[0]+22} '
-                  f'L{px+162},{rack_y[0]+22} L{px+162},{sy-18}')
+                  f'L{px+168},{rack_y[0]+22} L{px+168},{sy-24}')
             b.append(f'<path d="{p1}" fill="none" stroke="{TEAL}" stroke-width="2.4" marker-end="url(#ahT)"/>')
             b.append(f'<path d="{p2}" fill="none" stroke="{TEAL}" stroke-width="2.4" marker-end="url(#ahT)"/>')
             b.append(circle(px+80, rack_y[2]+22, 6, NAVY))
