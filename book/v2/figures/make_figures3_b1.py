@@ -263,10 +263,10 @@ def fig_112():
         b.append(rrect(sx, y-sh/2, sw, sh, ICE2 if not warn else WHITE, NAVY if not warn else ACC, 1.5, 8))
         b.append(text(sx+sw/2, y-4, name, 13, NAVY, "bold"))
         b.append(text(sx+sw/2, y+16, kpi, 10.8, GRAY if not warn else ACC))
-    items = [("P-101", 140, True, 0), ("P-102", 208, False, None), ("P-103", 276, False, None),
-             ("P-104", 344, False, None), ("P-105", 412, True, 2), ("P-106", 480, True, 2)]
-    ix, ir = 596, 32
-    b.append(text(ix, 96, "품목", 13, GRAY, "bold"))
+    items = [("P-101", 132, True, 0), ("P-102", 204, False, None), ("P-103", 276, False, None),
+             ("P-104", 348, False, None), ("P-105", 420, True, 2), ("P-106", 492, True, 2)]
+    ix, ir = 596, 30
+    b.append(text(ix, 92, "품목", 13, GRAY, "bold"))
     edges = [(0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (1, 3), (2, 3), (2, 4), (2, 5)]
     single = {(0, 0), (2, 4), (2, 5)}
     for s, t in edges:
@@ -279,9 +279,9 @@ def fig_112():
         b.append(circle(ix, y, ir, ACC if risk else ICE, ACC if risk else NAVY, 1.6))
         b.append(text(ix, y+4.5, name, 11.5, WHITE if risk else NAVY, "bold"))
     # 콜아웃
-    b.append(rrect(688, 372, 208, 118, WHITE, ACC, 1.5, 9, dash="6,5"))
-    b.append(multi(792, 402, ["P-105 · P-106은", "업체 C가 멈추면", "함께 멈춘다", "— 결품 직결"], 12, ACC, 20, w="bold"))
-    b.append(curve(684, 412, 660, 430, 632, 446, ACC, 1.8, "ahA", "4,3"))
+    b.append(rrect(700, 384, 200, 118, WHITE, ACC, 1.5, 9, dash="6,5"))
+    b.append(multi(800, 414, ["P-105 · P-106은", "업체 C가 멈추면", "함께 멈춘다", "— 결품 직결"], 12, ACC, 20, w="bold"))
+    b.append(curve(696, 430, 668, 440, 634, 454, ACC, 1.8, "ahA", "4,3"))
     # 범례
     ly = 560
     b.append(circle(300, ly-4, 9, ACC))

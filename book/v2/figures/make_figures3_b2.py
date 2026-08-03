@@ -142,7 +142,7 @@ def fig_141():
 def fig_142():
     W, H = 920, 480
     b = [text(W/2, 40, "현금전환주기(CCC) — 현금은 며칠 잠겨 있는가", 22, NAVY, "bold"),
-         text(W/2, 66, "CCC = 재고일수(DIO) + 채권일수(DSO) − 채무일수(DPO)", 14, TEAL, "bold")]
+         text(W/2, 66, "CCC = 재고일수(DIO) + 채권일수(DSO) - 채무일수(DPO)", 14, TEAL, "bold")]
     def X(d): return 80 + d*7.0
     events = [(0, "원자재 매입·입고"), (23, "매입 대금 지급"), (52, "제품 판매(출하)"), (110, "판매 대금 회수")]
     b.append(line(X(0), 140, X(110)+18, 140, GRAY, 1.4))
@@ -162,7 +162,7 @@ def fig_142():
     b.append(line(X(23), yb, X(110), yb, ACC, 2.5))
     b.append(line(X(23), yb-9, X(23), yb+9, ACC, 2.5))
     b.append(line(X(110), yb-9, X(110), yb+9, ACC, 2.5))
-    b.append(text((X(23)+X(110))/2, 352, "현금전환주기 CCC = 52 + 58 − 23 = 87일", 14, ACC, "bold"))
+    b.append(text((X(23)+X(110))/2, 352, "현금전환주기 CCC = 52 + 58 - 23 = 87일", 14, ACC, "bold"))
     b.append(text((X(23)+X(110))/2, 374, "Day 23(현금 지출)부터 Day 110(현금 회수)까지 — 현금이 잠겨 있는 기간", 11.5, GRAY))
     b.append(text(W/2, 412, "루프의 목표: 87일 → 70일 — 채권 회수 강화(DSO)와 안전재고 하향(DIO)으로 단축한다", 12, GRAY))
     b.append(text(W/2, H-14, "2부 14장 — 수치는 14.5절 DMAIC 시나리오 예시", 11.5, GRAY))
