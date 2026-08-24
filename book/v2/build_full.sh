@@ -8,7 +8,8 @@ OUT="AI_ERP_혁명_Odoo와_지능형ERP_합본완전판.docx"
 
 # 합본 파일 순서: 통합 표지 → 프롤로그 → 1부 → 2부 → 3부 → 에필로그
 # (각 권의 개별 표지 00_cover*.md 는 제외)
-FILES="full/00_cover_full.md \
+FILES="full/000_frontcover.md \
+full/00_cover_full.md \
 manuscript/00a_prologue.md \
 manuscript/00z_part1.md \
 manuscript/01_ch1.md manuscript/02_ch2.md manuscript/03_ch3.md manuscript/04_ch4.md \
@@ -76,6 +77,18 @@ for item in names:
         data = xml.encode("utf-8")
     elif item == "word/document.xml":
         xml = data.decode("utf-8")
+        # 표지 이미지(문서 첫 drawing)와 뒤따르는 페이지 나눔 문단을 본문 맨 앞으로 이동
+        # (pandoc 메타데이터 표제 블록·목차보다 앞 = 책의 1페이지)
+        di = xml.find("<w:drawing")
+        if di > 0:
+            ps = xml.rfind("<w:p>", 0, di)
+            bj = xml.find('<w:br w:type="page"/>', di)
+            pe = xml.find("</w:p>", bj) + len("</w:p>")
+            if 0 < ps < pe:
+                seg = xml[ps:pe]
+                xml = xml[:ps] + xml[pe:]
+                bi = xml.find("<w:body>") + len("<w:body>")
+                xml = xml[:bi] + seg + xml[bi:]
         # pandoc은 빈 <w:sectPr />를 출력 — 신국판 152×225mm(8618×12756 twips),
         # 여백 상하 20mm(1134)·좌우 18mm(1020), 쪽번호 푸터를 담은 sectPr로 통째로 교체
         SECT = ('<w:sectPr>'
