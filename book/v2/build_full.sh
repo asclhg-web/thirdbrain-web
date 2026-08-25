@@ -20,7 +20,6 @@ manuscript2/12_ch12.md manuscript2/13_ch13.md manuscript2/14_ch14.md manuscript2
 manuscript2/16_ch16.md manuscript2/17_ch17.md \
 manuscript3/00z_part3.md \
 manuscript3/18_ch18.md manuscript3/19_ch19.md manuscript3/20_ch20.md manuscript3/21_ch21.md \
-manuscript3/22_ch22.md manuscript3/23_ch23.md \
 manuscript3/24_epilogue.md"
 
 pandoc $FILES \
