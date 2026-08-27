@@ -43,7 +43,7 @@ def spinetext(y, s, size, fill, weight="bold", anchor="start"):
                 extra=f'transform="rotate(90 {x} {y})"')
 b.append(spinetext(18, "AI ERP 혁명", 5.6, WHITE))
 b.append(spinetext(58, "Odoo와 지능형 ERP", 4.2, YELLOW))
-b.append(spinetext(H-18, "이형근 · 정인호", 3.8, WHITE, "normal", "end"))
+b.append(spinetext(H-18, "이형근 · 정인호 · 송무준", 3.5, WHITE, "normal", "end"))
 
 # ── 뒤표지 ──
 bx = BLEED + PW/2   # 뒤표지 중심 79
@@ -78,10 +78,12 @@ for i, k in enumerate(kws):
     b.append(text(34, yy, k, 4.1, INK, "bold", "start"))
 
 # 저자
-b.append(text(20, 180, "이형근", 4.6, INK, "bold", "start"))
-b.append(text(20, 186, "ERP·MES·SCM 30년, 제조 현장의 데이터 컨설턴트 (에이에스씨)", 3.4, INK, "normal", "start", FM))
-b.append(text(20, 194, "정인호", 4.6, INK, "bold", "start"))
-b.append(text(20, 200, "JEDAIX 온톨로지 AX 방법론 설계자 (i7)", 3.4, INK, "normal", "start", FM))
+b.append(text(20, 176, "이형근", 4.4, INK, "bold", "start"))
+b.append(text(20, 181.5, "ERP·MES·SCM 30년, 제조 현장의 데이터 컨설턴트 (에이에스씨)", 3.3, INK, "normal", "start", FM))
+b.append(text(20, 188.5, "정인호", 4.4, INK, "bold", "start"))
+b.append(text(20, 194, "JEDAIX 온톨로지 AX 방법론 설계자 (i7)", 3.3, INK, "normal", "start", FM))
+b.append(text(20, 201, "송무준", 4.4, INK, "bold", "start"))
+b.append(text(20, 206.5, "공저자", 3.3, INK, "normal", "start", FM))
 
 # ISBN·바코드 자리 (입고 시 발급 바코드로 교체)
 b.append(f'<rect x="20" y="{H-26}" width="42" height="17" rx="1.5" fill="{WHITE}"/>')

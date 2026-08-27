@@ -28,7 +28,7 @@ const P = (t, opts = {}) => new Paragraph({
 });
 const META = () => [
   P("도서명: AI ERP 혁명 — Odoo와 지능형 ERP", { bold: true }),
-  P("지은이: 이형근 · 정인호  |  발행처: 에이에스씨  |  판형: 신국판(152×225mm), 210쪽"),
+  P("지은이: 이형근 · 정인호 · 송무준  |  발행처: 에이에스씨  |  판형: 신국판(152×225mm), 214쪽"),
   new Paragraph({ spacing: { after: 200 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "1CA5E5" } }, children: [] }),
 ];
 
@@ -112,6 +112,8 @@ const toc = [
     P("i7/JEDAIX 대표 컨설턴트. 경영 사각지대의 암묵지를 발굴해 업무에 쓸 수 있는 지식으로 키우는 온톨로지 기반 " +
       "AX 방법론 JEDAIX — 5 Space × 6 Station 워크벤치와 PTGDA 알고리즘, Ontology 기반 AI-Agent Workflow — 를 " +
       "설계·구축했다. 기계가 발굴하고 사람이 통치하는(Govern) 인간 중심의 AI 전환을 컨설팅하고 있다."),
+    H2("송무준"),
+    P("공저자. (약력은 확인 후 기입 예정)"),
   ]);
 
   await make("4_요약.docx", [H1("요약 (200자 이내)"), ...META(), P(요약), P(`(공백 포함 ${요약.length}자)`, { size: 18, color: "888888" })]);
@@ -125,16 +127,16 @@ const toc = [
     P("", { spacing: { after: 1200 } }),
     P("초판 1쇄 발행  2026년 ○○월 ○○일", { center: true }),
     P("", { spacing: { after: 400 } }),
-    P("지은이  이형근 · 정인호", { center: true }),
+    P("지은이  이형근 · 정인호 · 송무준", { center: true }),
     P("펴낸곳  에이에스씨", { center: true }),
     P("전자우편  asclhg@gmail.com", { center: true }),
     P("출판등록  제 ○○○-○○-○○○○○호 (등록 후 기입)", { center: true }),
     P("", { spacing: { after: 400 } }),
-    P("판형  신국판(152×225mm)  |  쪽수  210쪽", { center: true }),
+    P("판형  신국판(152×225mm)  |  쪽수  214쪽", { center: true }),
     P("ISBN  ○○○-○○-○○○○○-○○-○ (발급 후 기입)", { center: true }),
     P("정가  ○○,○○○원", { center: true }),
     P("", { spacing: { after: 800 } }),
-    P("ⓒ 이형근 · 정인호, 2026", { center: true }),
+    P("ⓒ 이형근 · 정인호 · 송무준, 2026", { center: true }),
     P("이 책은 저작권법에 따라 보호받는 저작물이므로 무단 전재와 복제를 금합니다.", { center: true, size: 18 }),
     P("이 책 내용의 전부 또는 일부를 이용하려면 반드시 저작권자와 에이에스씨의 서면 동의를 받아야 합니다.", { center: true, size: 18 }),
     P("잘못 만들어진 책은 구입하신 곳에서 바꾸어 드립니다.", { center: true, size: 18 }),

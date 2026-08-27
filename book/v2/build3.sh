@@ -12,7 +12,7 @@ pandoc $FILES \
   --toc --toc-depth=2 \
   --metadata toc-title="목차" \
   --metadata title="AI ERP 혁명 — Odoo와 지능형 ERP" \
-  --metadata author="이형근 · 정인호" \
+  --metadata author="이형근 · 정인호 · 송무준" \
   --metadata lang=ko-KR \
   -o "$OUT"
 
