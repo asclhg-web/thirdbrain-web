@@ -60,7 +60,7 @@ blurb = [
     "중소기업 지능형 ERP 실행서. 3정5S와 눈으로 보는 관리라는",
     "현장의 오래된 원칙을 데이터의 세계로 옮기고, 6시그마 DMAIC를",
     "LLM이 상시로 돌리는 무한 루프로 재설계한다. 오픈소스 Odoo를",
-    "몸체로, JEDAIX 온톨로지를 판단의 층위로 — 기업의 사각지대가",
+    "몸체로, 온톨로지-지식그래프를 판단의 층위로 — 기업의 사각지대가",
     "성과로 바뀌는 길을 그림과 사례로 안내한다.",
 ]
 for i, ln in enumerate(blurb):
@@ -81,7 +81,7 @@ for i, k in enumerate(kws):
 b.append(text(20, 176, "이형근", 4.4, INK, "bold", "start"))
 b.append(text(20, 181.5, "ERP·MES·SCM 30년, 제조 현장의 데이터 컨설턴트 (에이에스씨)", 3.3, INK, "normal", "start", FM))
 b.append(text(20, 188.5, "정인호", 4.4, INK, "bold", "start"))
-b.append(text(20, 194, "JEDAIX 온톨로지 AX 방법론 설계자 (i7)", 3.3, INK, "normal", "start", FM))
+b.append(text(20, 194, "온톨로지-지식그래프 AX 방법론 설계자 (i7)", 3.3, INK, "normal", "start", FM))
 b.append(text(20, 201, "송무준", 4.4, INK, "bold", "start"))
 b.append(text(20, 206.5, "공저자", 3.3, INK, "normal", "start", FM))
 
