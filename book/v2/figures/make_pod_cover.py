@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """교보 POD 표지 스프레드: 뒤표지 + 책등 + 앞표지 (재단 여분 3mm 포함).
-본문 210쪽·백색모조 100g 기준 책등 12mm. 단위: mm (SVG viewBox=mm)."""
+본문 194쪽·백색모조 100g 기준 책등 11mm. 단위: mm (SVG viewBox=mm)."""
 import os, base64, cairosvg
 
 OUT = os.path.dirname(os.path.abspath(__file__))
 POD = os.path.join(OUT, "..", "pod")
 os.makedirs(POD, exist_ok=True)
 
-BLEED, PW, PH, SPINE = 3, 152, 225, 12
+BLEED, PW, PH, SPINE = 3, 152, 225, 11
 W = BLEED + PW + SPINE + PW + BLEED   # 322
 H = BLEED + PH + BLEED                # 231
 BX0 = 0.0                 # 뒤표지 시작(블리드 포함)

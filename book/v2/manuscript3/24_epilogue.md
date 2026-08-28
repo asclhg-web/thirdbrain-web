@@ -49,3 +49,9 @@ AI가 기업을 대체하지 않는다. **서드브레인을 가진 기업이, �
 ```
 
 &nbsp;
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+&nbsp;
