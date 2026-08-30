@@ -78,18 +78,22 @@ for i, k in enumerate(kws):
     b.append(text(34, yy, k, 4.1, INK, "bold", "start"))
 
 # 저자
-b.append(text(20, 176, "이형근", 4.4, INK, "bold", "start"))
-b.append(text(20, 181.5, "ERP·MES·SCM 30년, 제조 현장의 데이터 컨설턴트 (에이에스씨)", 3.3, INK, "normal", "start", FM))
-b.append(text(20, 188.5, "정인호", 4.4, INK, "bold", "start"))
-b.append(text(20, 194, "온톨로지-지식그래프 AX 방법론 설계자 (i7)", 3.3, INK, "normal", "start", FM))
-b.append(text(20, 201, "송무준", 4.4, INK, "bold", "start"))
-b.append(text(20, 206.5, "공저자", 3.3, INK, "normal", "start", FM))
+b.append(text(20, 167, "이형근", 4.4, INK, "bold", "start"))
+b.append(text(20, 172.5, "ERP·MES·SCM 30년, 제조 현장의 데이터 컨설턴트 (에이에스씨)", 3.3, INK, "normal", "start", FM))
+b.append(text(20, 179.5, "정인호", 4.4, INK, "bold", "start"))
+b.append(text(20, 185, "온톨로지-지식그래프 AX 방법론 설계자 (i7)", 3.3, INK, "normal", "start", FM))
+b.append(text(20, 192, "송무준", 4.4, INK, "bold", "start"))
+b.append(text(20, 197.5, "공저자", 3.3, INK, "normal", "start", FM))
 
-# ISBN·바코드 자리 (입고 시 발급 바코드로 교체)
-b.append(f'<rect x="20" y="{H-26}" width="42" height="17" rx="1.5" fill="{WHITE}"/>')
-b.append(text(41, H-17.5, "ISBN", 3.6, "#888888", "bold"))
-b.append(text(41, H-12.5, "(바코드 자리)", 2.8, "#888888", "normal"))
-b.append(text(SX-20, H-13, "값 00,000원", 3.8, WHITE, "bold", "end"))
+# ISBN 바코드 (발급본 EPS→PNG, 흰 박스 위 배치)
+bar64 = base64.b64encode(open(os.path.join(OUT, "barcode_white.png"), "rb").read()).decode()
+BBW, BBH = 34, 24                       # 흰 박스
+BIW = 30; BIH = BIW * 103.761 / 155.925  # 바코드 (EPS 종횡비 유지)
+bx0, by0 = 20, H - 6 - BBH
+b.append(f'<rect x="{bx0}" y="{by0}" width="{BBW}" height="{BBH}" rx="1.5" fill="{WHITE}"/>')
+b.append(f'<image x="{bx0 + (BBW-BIW)/2}" y="{by0 + (BBH-BIH)/2}" width="{BIW}" height="{BIH:.2f}" '
+         f'xlink:href="data:image/png;base64,{bar64}"/>')
+b.append(text(SX-20, H-13, "값 25,000원", 3.8, WHITE, "bold", "end"))
 b.append(text(SX-20, H-20, "에이에스씨", 3.8, WHITE, "bold", "end"))
 
 doc = (f'<svg xmlns="http://www.w3.org/2000/svg" '
