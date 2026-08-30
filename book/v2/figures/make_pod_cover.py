@@ -66,24 +66,26 @@ blurb = [
 for i, ln in enumerate(blurb):
     b.append(text(bx, 66 + i*7.2, ln, 3.9, INK, "normal", "middle", FM))
 
-# 4대 키워드 박스
-ky = 118
-b.append(f'<rect x="20" y="{ky}" width="{SX-40}" height="46" rx="3" fill="{WHITE}" fill-opacity="0.92"/>')
-b.append(text(bx, ky+9.5, "이 책이 안내하는 네 가지 지능화", 4.4, DBLUE, "bold"))
-kws = ["수요예측을 통한 영업 지능화", "재고 최적화 및 생산계획 자동화",
-       "IoT를 이용한 설비예지 지능화", "기업의 노하우를 지식센터 지능화"]
-for i, k in enumerate(kws):
-    yy = ky + 18 + i*8
-    b.append(f'<circle cx="30" cy="{yy-1.4}" r="1.1" fill="{BLUE}"/>')
-    b.append(text(34, yy, k, 4.1, INK, "bold", "start"))
-
-# 저자
-b.append(text(20, 167, "이형근", 4.4, INK, "bold", "start"))
-b.append(text(20, 172.5, "ERP·MES·SCM 30년, 제조 현장의 데이터 컨설턴트 (에이에스씨)", 3.3, INK, "normal", "start", FM))
-b.append(text(20, 179.5, "정인호", 4.4, INK, "bold", "start"))
-b.append(text(20, 185, "온톨로지-지식그래프 AX 방법론 설계자 (i7)", 3.3, INK, "normal", "start", FM))
-b.append(text(20, 192, "송무준", 4.4, INK, "bold", "start"))
-b.append(text(20, 197.5, "공저자", 3.3, INK, "normal", "start", FM))
+# 저자 소개
+authors = [
+    ("이형근", ["ERP·MES·SCM 컨설턴트로 제조 현장의 데이터(DX)와 AX 경영을",
+                "하고 있다. LGCNS, 스마트 추진단을 거쳐 현재 에이에스씨에서",
+                "전라권 Odoo 기반 중소기업 지능형 ERP를 컨설팅하고 있다."]),
+    ("정인호", ["ERP·MES·SCM 컨설턴트로 업무에 쓸 수 있는 지식으로 키우는",
+                "온톨로지 기반 AX 방법론을 설계·구축했다. 한국IBM, 영림원을",
+                "거쳐 현재 에이에스씨에서 서울·경기·충남권 Odoo 기반",
+                "중소기업 지능형 ERP를 컨설팅하고 있다."]),
+    ("송무준", ["ERP·MES·SCM 컨설턴트로 제조 현장의 전산화와 데이터(DX)",
+                "경영을 해왔다. LGCNS, 산업현장교수, 스마트공장 평가위원,",
+                "AI코칭 위원을 거쳐 현재 에이에스씨에서 부산 및 영남권",
+                "Odoo 기반 중소기업 지능형 ERP를 컨설팅하고 있다."]),
+]
+ay = 114
+for name, bio in authors:
+    b.append(text(20, ay, name, 4.4, INK, "bold", "start"))
+    for i, ln in enumerate(bio):
+        b.append(text(20, ay + 6 + i*4.9, ln, 3.25, INK, "normal", "start", FM))
+    ay += 6 + len(bio)*4.9 + 4.2
 
 # ISBN 바코드 (발급본 EPS→PNG, 흰 박스 위 배치)
 bar64 = base64.b64encode(open(os.path.join(OUT, "barcode_white.png"), "rb").read()).decode()
