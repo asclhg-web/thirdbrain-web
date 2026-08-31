@@ -1,0 +1,234 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.dtb{padding:10px 8px;border-radius:var(--border-radius-lg);border:.5px solid;cursor:pointer;text-align:left;transition:all .15s;width:100%;box-sizing:border-box}.dtb:hover{opacity:.87}.dtb.act{color:#fff!important}
+.sc{border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);overflow:hidden}
+.sh{padding:9px 12px;font-size:12px;font-weight:500;color:#fff;display:flex;align-items:center;gap:6px}
+.sb{padding:10px 12px;background:var(--color-background-primary)}
+.si{font-size:12px;color:var(--color-text-primary);line-height:1.6;padding:2px 0;display:flex;align-items:flex-start;gap:7px}
+.sd{width:5px;height:5px;border-radius:50%;margin-top:7px;flex-shrink:0}
+.hd{background:var(--color-background-secondary);padding:10px 0 4px}
+</style>
+<h2 class="sr-only">뇌경영 30일 통합 성찰 모델 — 7일·14일·21일·30일차 상세 가이드</h2>
+
+<svg viewBox="0 0 680 68" width="100%" role="img">
+<title>30일 뇌경영 통합 성찰 타임라인</title>
+<desc>7일·14일·21일·30일차에 통합 성찰일이 배치된 30일 C.O.R.E. 루프 타임라인</desc>
+<defs>
+  <clipPath id="tc2"><rect x="30" y="27" width="620" height="12" rx="6"/></clipPath>
+</defs>
+<g clip-path="url(#tc2)">
+  <rect x="30" y="27" width="620" height="12" fill="var(--color-border-tertiary)"/>
+  <rect x="30" y="27" width="144" height="12" fill="#534AB7"/>
+  <rect x="174" y="27" width="145" height="12" fill="#0F6E56"/>
+  <rect x="319" y="27" width="144" height="12" fill="#993C1D"/>
+  <rect x="463" y="27" width="187" height="12" fill="#854F0B"/>
+</g>
+<circle id="r0" cx="174" cy="33" r="15" fill="none" stroke="#534AB7" stroke-width="1.5" opacity=".45"/>
+<circle cx="174" cy="33" r="12" fill="#534AB7" id="m0"/>
+<text x="174" y="33" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" fill="white">7</text>
+<circle id="r1" cx="319" cy="33" r="15" fill="none" stroke="#0F6E56" stroke-width="1.5" opacity="0"/>
+<circle cx="319" cy="33" r="12" fill="#0F6E56" id="m1"/>
+<text x="319" y="33" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" fill="white">14</text>
+<circle id="r2" cx="463" cy="33" r="15" fill="none" stroke="#993C1D" stroke-width="1.5" opacity="0"/>
+<circle cx="463" cy="33" r="12" fill="#993C1D" id="m2"/>
+<text x="463" y="33" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" fill="white">21</text>
+<circle id="r3" cx="650" cy="33" r="15" fill="none" stroke="#854F0B" stroke-width="1.5" opacity="0"/>
+<circle cx="650" cy="33" r="12" fill="#854F0B" id="m3"/>
+<text x="650" y="33" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" fill="white">30</text>
+<text x="30" y="56" text-anchor="middle" font-size="11" fill="var(--color-text-tertiary)">1일</text>
+<text x="174" y="56" text-anchor="middle" font-size="11" fill="var(--color-text-tertiary)">7일차</text>
+<text x="319" y="56" text-anchor="middle" font-size="11" fill="var(--color-text-tertiary)">14일차</text>
+<text x="463" y="56" text-anchor="middle" font-size="11" fill="var(--color-text-tertiary)">21일차</text>
+<text x="650" y="56" text-anchor="middle" font-size="11" fill="var(--color-text-tertiary)">30일차</text>
+</svg>
+
+<div id="tabs" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0"></div>
+<div id="cnt" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:9px"></div>
+
+<script>
+const CX=[174,319,463,650];
+const DAYS=[
+  {n:7,title:'CATCH 마스터리 완성',sub:'주의 포착 패턴 확정일',c:'#534AB7',l:'#EEEDFE',d:'#3C3489',
+   secs:[
+    {t:'성찰 의식 (30분 확보)',ico:'◎',items:[
+      '뇌경영 일지 7일치 책상 위에 모두 펼쳐 놓기',
+      '핸드폰 비행기 모드 + 조용한 공간 30분 전용 확보',
+      '"나는 주의를 다스리는 법을 배웠다" 3회 소리 내어 선언',
+      '7일 중 가장 집중이 빛났던 순간 1개 눈 감고 생생히 회상'
+    ]},
+    {t:'데이터 분석',ico:'◈',items:[
+      '주의 밀도 지수 평균 계산: 7일 합산 점수 ÷ 7 = 나의 현재 주의 수준',
+      '포모도로 블록 완성률: 완성 블록 수 ÷ 목표 블록 × 100%',
+      '방해 요인 제거 성공률: 시도 횟수 대비 성공 횟수 비율',
+      '최고 집중 시간대 패턴: 오전/오후/저녁 중 어느 시간대가 압도적인가?',
+      '팀원에게 제공한 완전한 주의(1:1) 횟수 집계'
+    ]},
+    {t:'패턴 발견 (핵심 질문)',ico:'◐',items:[
+      '나의 주의 최대 도둑 1순위는 무엇인가? → 이름을 붙이고 기록',
+      '집중이 가장 잘 되는 3가지 조건: 시간대, 장소, 신체 상태',
+      '리더로서 팀에 준 주의의 질이 어떻게 변화했는가?',
+      '주의 포착이 가장 힘들었던 상황들의 공통 패턴은?'
+    ]},
+    {t:'루틴 확정 (나만의 CATCH 의식)',ico:'◑',items:[
+      '아침 3단계 (5분): ① ONE Thing 설정 → ② 환경 정비·알림 차단 → ③ 3분 호흡',
+      '업무 블록: 25분 집중 + 5분 회복 사이클 × 하루 최소 [  ]블록 확정',
+      '저녁 2분 일지: 주의 품질 1-10 기록 → 내일 개선점 1가지',
+      '팀 CATCH 의식: 회의 시작 전 1분 목적 명확화 질문 도입'
+    ]},
+    {t:'2주차 준비 — OSCILLATE 진입',ico:'▷',items:[
+      '목표 선언: "나는 뇌파 상태를 인식하고 자유롭게 전환할 수 있다"',
+      '자기 점검: 지금 이 순간 나의 뇌파 상태는 무엇인가? (감마/베타/알파/세타)',
+      '준비물: 마음챙김 앱 또는 5분 타이머 + 뇌파 상태 일기장',
+      'CATCH가 무너질 때 즉시 돌아올 앵커 행동 1가지 확정'
+    ]}
+  ]},
+  {n:14,title:'OSCILLATE 마스터리 완성',sub:'인지 진동 패턴 확정일',c:'#0F6E56',l:'#E1F5EE',d:'#085041',
+   secs:[
+    {t:'성찰 의식 (30분 확보)',ico:'◎',items:[
+      '14일 뇌파 일기 전체 통독 (10분) — 변화의 흐름을 느끼며 읽기',
+      '핸드폰 비행기 모드 + 조용한 공간 30분 전용 확보',
+      '가장 강렬한 통찰(아하! 순간) 1개를 신체로 재경험',
+      '"나는 직관과 분석을 자유롭게 오간다" 3회 선언'
+    ]},
+    {t:'데이터 분석',ico:'◈',items:[
+      '통찰 발생 총 횟수 / 14일 → 조건·장소·신체 상태별 분류',
+      '직관 결정 품질 vs 분석 결정 품질 비교 (각각 평균 점수 1-10)',
+      '마음챙김 실천 일수 / 14일 → 유지율 % 계산',
+      '알파파 유도 후 문제 해결 전환 성공 횟수',
+      '코칭 대화 전후 팀원 반응·에너지 변화 3가지 사례'
+    ]},
+    {t:'패턴 발견 (핵심 질문)',ico:'◐',items:[
+      '감마파(통찰)는 언제·어디서·어떤 상태일 때 가장 잘 일어나는가?',
+      '직관이 옳았던 경우 vs 틀렸던 경우의 공통점은 무엇인가?',
+      '알파파 유도에 나에게 가장 효과적인 방법 TOP 3',
+      '최적 의사결정은 하루 중 언제, 어떤 뇌파 상태일 때인가?'
+    ]},
+    {t:'루틴 확정 (하루 뇌파 스케줄)',ico:'◑',items:[
+      '오전 블록: 베타파(집중·분석) 과제 집중 → 깊은 분석 작업',
+      '점심 후 블록: 알파파(이완·창의) → 전략적 사고·코칭·아이디어',
+      '중요 결정 타이밍: 뇌파 최적 상태 시간대에 일정 블로킹',
+      'CATCH + OSCILLATE 연속 아침 의식 완성 (총 10-15분)'
+    ]},
+    {t:'3주차 준비 — ENCODE+FLOW 진입',ico:'▷',items:[
+      '목표 선언: "나는 감정을 기억으로, 집중을 몰입으로 전환한다"',
+      '1-2주 루틴 통합 점검: 두 루틴이 서로를 강화하고 있는가?',
+      '준비물: 소마틱 마커 관찰 일지 + Flow 경험 기록지',
+      '14일 전 자신에게 감사 편지 1단락 → 성장 증거를 명시적으로 기록'
+    ]}
+  ]},
+  {n:21,title:'ENCODE+FLOW 완성',sub:'감정 인코딩 + 몰입 확정일',c:'#993C1D',l:'#FAECE7',d:'#712B13',
+   secs:[
+    {t:'성찰 의식 (30분 확보)',ico:'◎',items:[
+      '21일 감정-몰입 일지 전체 통독 (15분) — 감정의 흐름을 따라가며',
+      '가장 강렬한 Flow 순간을 신체로 재경험 (눈 감고 3분)',
+      '"나는 감정을 기억으로, 집중을 몰입으로 전환한다" 3회 선언',
+      '21일 동안 성장한 나에게 소리 내어 축하 인사 건네기'
+    ]},
+    {t:'데이터 분석',ico:'◈',items:[
+      'Flow 발생 총 횟수 / 21일 → 주차별 변화 곡선 그리기',
+      'Flow 평균 지속 시간(분) + 21일 중 최장 Flow 기록',
+      '감정 인코딩 성공 사례 수: 지금도 생생히 기억나는 경험들',
+      '팀 몰입 환경 개선 전후 성과 지표 비교',
+      '소마틱 마커 예측 정확도: 신체 신호 → 실제 결과 일치율 %'
+    ]},
+    {t:'패턴 발견 (핵심 질문)',ico:'◐',items:[
+      '나의 Flow 공식 최종 확정: [조건] + [트리거] + [유지법]',
+      '팀을 움직이는 가장 강력한 감정 앵커 3가지는 무엇인가?',
+      '팀 집단 Flow가 일어났던 3가지 공통 조건',
+      '감정 인코딩이 실패한 상황들의 공통 패턴은?'
+    ]},
+    {t:'루틴 확정 (ENCODE+FLOW 통합)',ico:'◑',items:[
+      'ENCODE 기준 확정: 어떤 경험을 세리모니화할 것인가? (기준·방식·빈도)',
+      'FLOW 구조 고정: 개인 딥워크 주 [  ]회 · [  ]시간 · [  ] 장소',
+      '팀 성공 의식 표준화: 무엇을, 어떻게, 언제 함께 기억할 것인가',
+      '피드백 → 성장 흥분 전환 프로토콜: 위협 언어 → 기회 언어 전환표 완성'
+    ]},
+    {t:'4주차 준비 — ENHANCE 진입',ico:'▷',items:[
+      '목표 선언: "BDNF를 극대화하고 뇌 기준선을 영구적으로 상승시킨다"',
+      '4단계 흐름 평가: 가장 강한 단계 / 가장 약한 단계 파악',
+      '4주차 집중 보강 단계 1가지 선정 + 보강 전략 수립',
+      'BDNF 극대화 계획: 운동 종류·시간·빈도·학습 연결 방식 확정'
+    ]}
+  ]},
+  {n:30,title:'루프 완성 + 기준선 선언',sub:'Spiral Up 확인 + 영구 루틴 확정',c:'#854F0B',l:'#FAEEDA',d:'#633806',
+   secs:[
+    {t:'성찰 의식 (1시간 전용)',ico:'◎',items:[
+      '30일 전체 뇌경영 여정 리뷰: 1시간을 오직 이것을 위해 확보',
+      '30일 전의 나에게 편지 쓰기: A4 1장 — 변화·감사·깨달음·조언',
+      '가장 크게 변화한 것 1가지를 신체로 느끼기 (눈 감고 5분)',
+      '이 30일을 함께한 팀원·파트너에게 감사를 직접 전달'
+    ]},
+    {t:'데이터 분석',ico:'◈',items:[
+      'C.O.R.E. 5단계 성장 지수: Day 1 대비 Day 30 각 단계 1-10 비교',
+      'Before / After 10가지 구체적 비교 작성 (행동·판단·감정·관계·성과)',
+      '루프 품질 향상 곡선: 7일 → 14일 → 21일 → 30일 점수 변화',
+      '팀·조직에 미친 긍정적 변화 3가지 (팀원 피드백 반드시 포함)',
+      '30일 BDNF 지수 종합: 운동 + 학습 + 수면 품질 평균'
+    ]},
+    {t:'패턴 발견 (핵심 질문)',ico:'◐',items:[
+      '나만의 고유한 C.O.R.E. 뇌경영 패턴 이름 붙이기 → 책에 기록',
+      '가장 강력한 뇌증강 트리거 3가지: 나에게만 통하는 것',
+      '루프가 가장 빠르고 선명하게 돌아가는 최적 조건 세트',
+      '처음 예상과 가장 달랐던 놀라운 발견: 뇌가 나에게 가르쳐 준 것'
+    ]},
+    {t:'새 기준선 선언 — Spiral Up 확인',ico:'◑',items:[
+      '5가지 영역 점수화: 주의력 / 인지유연성 / 감정지능 / 몰입능력 / 회복력',
+      'Spiral Up 측정: 1루프 시작(Day 1) vs 1루프 완성(Day 30) 상승 폭',
+      '다음 30일 루프 더 높은 목표 3가지 선언 (이번보다 구체적으로)',
+      '뇌경영 선언문 5개 항목 완성: "나는 뇌를 어떻게 경영할 것인가"'
+    ]},
+    {t:'영구 루틴 + 조직 확산',ico:'▷',items:[
+      '평생 C.O.R.E. 루틴 최종 설계: 1페이지로 시각화하여 눈에 보이는 곳에 부착',
+      '조직 확산 로드맵: 팀(1개월) → 부서(3개월) → 조직 전체(6개월)',
+      '뇌경영 멘토링 파트너 1인 지정 + 첫 대화 일정 즉시 확정',
+      '다음 루프 시작일 선언 (D+31) + 새 루프 시작 축하 의식 기획'
+    ]}
+  ]}
+];
+
+let cur=0;
+const RC=[174,319,463,650];
+const RI=['r0','r1','r2','r3'];
+
+function rTabs(){
+  document.getElementById('tabs').innerHTML=DAYS.map((d,i)=>{
+    const a=cur===i;
+    return `<button class="dtb${a?' act':''}" onclick="pick(${i})"
+      style="background:${a?d.c:d.l};border-color:${d.c};color:${a?'#fff':d.d}">
+      <div style="font-size:22px;font-weight:500;line-height:1.1">${d.n}일차</div>
+      <div style="font-size:11px;margin-top:4px;font-weight:500">${d.title}</div>
+      <div style="font-size:10px;opacity:.8;margin-top:2px">${d.sub}</div>
+    </button>`;
+  }).join('');
+}
+
+function rContent(){
+  const d=DAYS[cur];
+  document.getElementById('cnt').innerHTML=d.secs.map((s,i)=>`
+    <div class="sc"${i===4?' style="grid-column:1/-1"':''}>
+      <div class="sh" style="background:${d.c}">
+        <span style="font-size:14px">${s.ico}</span>${s.t}
+      </div>
+      <div class="sb">
+        ${s.items.map(item=>`
+          <div class="si">
+            <div class="sd" style="background:${d.c}"></div>
+            <span>${item}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function pick(i){
+  cur=i;
+  rTabs();
+  rContent();
+  RI.forEach((id,j)=>{
+    const el=document.getElementById(id);
+    if(el) el.setAttribute('opacity', j===i?'0.5':'0');
+  });
+}
+
+pick(0);
+</script>

@@ -1,0 +1,112 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.sn{cursor:pointer}.sn circle{transition:opacity .15s}.sn:hover circle{opacity:.78}.sn.sel circle{stroke-width:2.5!important}
+:root{--f0:#EEEDFE;--s0:#534AB7;--t0:#3C3489;--f1:#E1F5EE;--s1:#0F6E56;--t1:#085041;--f2:#FAECE7;--s2:#993C1D;--t2:#712B13;--f3:#E6F1FB;--s3:#185FA5;--t3:#0C447C;--f4:#FAEEDA;--s4:#854F0B;--t4:#633806}
+@media(prefers-color-scheme:dark){:root{--f0:#26215C;--s0:#AFA9EC;--t0:#CECBF6;--f1:#04342C;--s1:#5DCAA5;--t1:#9FE1CB;--f2:#4A1B0C;--s2:#F0997B;--t2:#F5C4B3;--f3:#042C53;--s3:#85B7EB;--t3:#B5D4F4;--f4:#412402;--s4:#EF9F27;--t4:#FAC775}}
+@media(prefers-reduced-motion:no-preference){@keyframes fa{to{stroke-dashoffset:-40}}.fa{stroke-dasharray:8 5;animation:fa 2.5s linear infinite}}
+#det{margin-top:14px;padding:14px;border-radius:var(--border-radius-lg);border:.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);min-height:130px}
+</style>
+<h2 class="sr-only">C.O.R.E. 나선 증강 루프 — 5단계 무한 순환 인지 모델</h2>
+<svg viewBox="0 0 680 482" width="100%" role="img">
+<title>C.O.R.E. 나선 증강 루프</title>
+<desc>CATCH, OSCILLATE, ENCODE, FLOW, ENHANCE의 5단계 무한 순환 루프. 매 루프마다 뇌 기능 수준이 나선형으로 상승한다.</desc>
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+<polygon points="310,120 448,220 395,382 225,382 172,220" fill="none" stroke="var(--color-border-tertiary)" stroke-width="0.5" stroke-dasharray="4 4"/>
+<path class="fa" d="M346,146 Q403,138 412,194" fill="none" stroke="var(--s0)" stroke-width="2" marker-end="url(#ar)"/>
+<path class="fa" d="M434,262 Q459,314 409,340" fill="none" stroke="var(--s1)" stroke-width="2" marker-end="url(#ar)"/>
+<path class="fa" d="M351,382 Q310,422 269,382" fill="none" stroke="var(--s2)" stroke-width="2" marker-end="url(#ar)"/>
+<path class="fa" d="M211,340 Q161,314 186,262" fill="none" stroke="var(--s3)" stroke-width="2" marker-end="url(#ar)"/>
+<path class="fa" d="M208,194 Q217,138 274,146" fill="none" stroke="var(--s4)" stroke-width="2" marker-end="url(#ar)"/>
+<text x="386" y="127" text-anchor="middle" font-size="12" fill="var(--color-text-tertiary)">①</text>
+<text x="471" y="291" text-anchor="middle" font-size="12" fill="var(--color-text-tertiary)">②</text>
+<text x="330" y="436" text-anchor="middle" font-size="12" fill="var(--color-text-tertiary)">③</text>
+<text x="148" y="294" text-anchor="middle" font-size="12" fill="var(--color-text-tertiary)">④</text>
+<text x="225" y="127" text-anchor="middle" font-size="12" fill="var(--color-text-tertiary)">⑤</text>
+<circle cx="310" cy="262" r="58" fill="var(--color-background-secondary)" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+<text x="310" y="247" text-anchor="middle" font-size="17" font-weight="500" fill="var(--color-text-primary)">C.O.R.E.</text>
+<text x="310" y="267" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)">나선 증강 루프</text>
+<text x="310" y="283" text-anchor="middle" font-size="12" fill="var(--color-text-tertiary)">∞ 무한 순환</text>
+<g class="sn sel" id="n0" onclick="sel(0)">
+  <circle cx="310" cy="120" r="44" fill="var(--f0)" stroke="var(--s0)" stroke-width="0.5"/>
+  <text x="310" y="113" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--t0)">CATCH</text>
+  <text x="310" y="132" text-anchor="middle" font-size="12" fill="var(--s0)">주의 포착</text>
+</g>
+<g class="sn" id="n1" onclick="sel(1)">
+  <circle cx="448" cy="220" r="44" fill="var(--f1)" stroke="var(--s1)" stroke-width="0.5"/>
+  <text x="448" y="213" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" fill="var(--t1)">OSCILLATE</text>
+  <text x="448" y="231" text-anchor="middle" font-size="12" fill="var(--s1)">인지 진동화</text>
+</g>
+<g class="sn" id="n2" onclick="sel(2)">
+  <circle cx="395" cy="382" r="44" fill="var(--f2)" stroke="var(--s2)" stroke-width="0.5"/>
+  <text x="395" y="375" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="var(--t2)">ENCODE</text>
+  <text x="395" y="394" text-anchor="middle" font-size="12" fill="var(--s2)">감정 인코딩</text>
+</g>
+<g class="sn" id="n3" onclick="sel(3)">
+  <circle cx="225" cy="382" r="44" fill="var(--f3)" stroke="var(--s3)" stroke-width="0.5"/>
+  <text x="225" y="375" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--t3)">FLOW</text>
+  <text x="225" y="394" text-anchor="middle" font-size="12" fill="var(--s3)">몰입 점화</text>
+</g>
+<g class="sn" id="n4" onclick="sel(4)">
+  <circle cx="172" cy="220" r="44" fill="var(--f4)" stroke="var(--s4)" stroke-width="0.5"/>
+  <text x="172" y="213" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" fill="var(--t4)">ENHANCE</text>
+  <text x="172" y="231" text-anchor="middle" font-size="12" fill="var(--s4)">신경 증강</text>
+</g>
+<line x1="600" y1="442" x2="600" y2="88" stroke="var(--color-border-secondary)" stroke-width="1" marker-end="url(#ar)"/>
+<line x1="593" y1="402" x2="607" y2="402" stroke="var(--color-border-secondary)" stroke-width="1"/>
+<line x1="593" y1="296" x2="607" y2="296" stroke="var(--color-border-secondary)" stroke-width="1"/>
+<line x1="593" y1="190" x2="607" y2="190" stroke="var(--color-border-secondary)" stroke-width="1"/>
+<text x="614" y="406" font-size="11" fill="var(--color-text-tertiary)">루프 1회</text>
+<text x="614" y="299" font-size="11" fill="var(--color-text-tertiary)">루프 2회</text>
+<text x="614" y="193" font-size="11" fill="var(--color-text-tertiary)">루프 3회</text>
+<text x="600" y="76" text-anchor="middle" font-size="12" font-weight="500" fill="var(--color-text-secondary)">뇌증강 수준</text>
+</svg>
+<div id="det">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div id="dd" style="width:10px;height:10px;border-radius:50%;background:var(--s0);flex-shrink:0"></div>
+    <span id="dt" style="font-size:15px;font-weight:500;color:var(--color-text-primary)">CATCH — 주의 포착</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+    <div style="background:var(--color-background-primary);border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);padding:10px">
+      <div id="lb0" style="font-size:11px;font-weight:500;margin-bottom:5px;color:var(--s0)">뇌과학 기반</div>
+      <div id="db0" style="font-size:12px;color:var(--color-text-primary);line-height:1.5">전전두피질(PFC), 도파민 D1 수용체</div>
+    </div>
+    <div style="background:var(--color-background-primary);border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);padding:10px">
+      <div id="lb1" style="font-size:11px;font-weight:500;margin-bottom:5px;color:var(--s0)">핵심 원리</div>
+      <div id="db1" style="font-size:12px;color:var(--color-text-primary);line-height:1.5">주의 밀도가 뇌 회로를 물리적으로 변형시킨다</div>
+    </div>
+    <div style="background:var(--color-background-primary);border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);padding:10px">
+      <div id="lb2" style="font-size:11px;font-weight:500;margin-bottom:5px;color:var(--s0)">실천 전략</div>
+      <div id="db2" style="font-size:12px;color:var(--color-text-primary);line-height:1.5">단일 과제 집중, 멀티태스킹 금지</div>
+    </div>
+    <div style="background:var(--color-background-primary);border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);padding:10px">
+      <div id="lb3" style="font-size:11px;font-weight:500;margin-bottom:5px;color:var(--s0)">핵심 공식</div>
+      <div id="db3" style="font-size:12px;color:var(--color-text-primary);line-height:1.5">주의 강도 × 지속시간 = 회로 변형 속도</div>
+    </div>
+  </div>
+</div>
+<script>
+const SC=['var(--s0)','var(--s1)','var(--s2)','var(--s3)','var(--s4)'];
+const SD=[
+  {title:'CATCH — 주의 포착',brain:'전전두피질(PFC), 도파민 D1 수용체',principle:'주의 밀도가 뇌 회로를 물리적으로 변형시킨다',practice:'단일 과제 집중, 멀티태스킹 금지',formula:'주의 강도 × 지속시간 = 회로 변형 속도'},
+  {title:'OSCILLATE — 인지 진동화',brain:'감마·베타·알파·세타파 뇌파 전환 시스템',principle:'직관↔분석의 빠른 진동이 최적 판단을 만든다',practice:'마음챙김 후 즉각 문제 해결 전환 훈련',formula:'진동 속도 × 유연성 = 인지 최적화'},
+  {title:'ENCODE — 감정 인코딩',brain:'편도체, 노르에피네프린, 해마 기억 회로',principle:'감정 태그 없는 정보는 장기기억으로 전환 불가',practice:'성공 경험 세리모니화, 감정 스토리 선행',formula:'감정 강도 × 반복 = 기억 공고화 속도'},
+  {title:'FLOW — 몰입 점화',brain:'DMN 억제, 도파민+노르에피네프린 동시 분비',principle:'자아 소멸감이 완전 집중과 창의적 도약을 가능하게 한다',practice:'도전↔역량 최적 매칭, 방해 요소 완전 제거',formula:'(도전-기술) 균형 × 심리적 안전 = Flow State'},
+  {title:'ENHANCE — 신경 증강',brain:'BDNF, 신경가소성, 장기 강화(LTP)',principle:'매 루프 완료 시 뇌 기준선이 상승 — Spiral Up',practice:'유산소 운동, 의도적 새 학습, 질 좋은 수면',formula:'반복 루프 × BDNF = 뇌 기능 나선 증강'}
+];
+function sel(i){
+  document.querySelectorAll('.sn').forEach((n,j)=>n.classList.toggle('sel',j===i));
+  const s=SD[i],c=SC[i];
+  document.getElementById('dd').style.background=c;
+  document.getElementById('dt').textContent=s.title;
+  ['brain','principle','practice','formula'].forEach((k,j)=>{
+    document.getElementById('db'+j).textContent=s[k];
+    document.getElementById('lb'+j).style.color=c;
+  });
+}
+sel(0);
+</script>

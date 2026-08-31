@@ -1,0 +1,110 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.wtab{padding:7px 12px;border-radius:var(--border-radius-md);border:.5px solid;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap}
+.wtab:hover{opacity:.85}
+.dbtn{flex:0 0 calc(14.28% - 7px);padding:8px 4px 7px;border-radius:var(--border-radius-md);border:.5px solid;cursor:pointer;text-align:center;transition:all .15s;box-sizing:border-box}
+.dbtn:hover{opacity:.82}
+.dbtn.sel{color:#fff!important;border-width:1.5px!important}
+.rcard{background:var(--color-background-primary);border-radius:var(--border-radius-md);border:.5px solid var(--color-border-tertiary);padding:11px}
+</style>
+<h2 class="sr-only">뇌경영 C.O.R.E. 30일 실천 프로그램</h2>
+<div style="padding:4px 0 1rem">
+  <div id="wtabs" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div id="pbar" style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:11px"></div>
+  <div id="dgrid" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px"></div>
+  <div id="ddet" style="padding:14px;border-radius:var(--border-radius-lg);border:.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);min-height:120px">
+    <p style="font-size:13px;color:var(--color-text-secondary);text-align:center;margin:0">날짜를 클릭하면 일별 실천 내용이 표시됩니다</p>
+  </div>
+</div>
+<script>
+const WC=[
+  {c:'#534AB7',l:'#EEEDFE',d:'#3C3489',n:'W1 · CATCH',desc:'주의 포착 마스터리'},
+  {c:'#0F6E56',l:'#E1F5EE',d:'#085041',n:'W2 · OSCILLATE',desc:'인지 진동화 마스터리'},
+  {c:'#993C1D',l:'#FAECE7',d:'#712B13',n:'W3 · ENCODE+FLOW',desc:'감정 인코딩 + 몰입 점화'},
+  {c:'#854F0B',l:'#FAEEDA',d:'#633806',n:'W4 · ENHANCE',desc:'신경 증강 + 루프 통합'}
+];
+const DD=[
+  {n:1,w:1,title:'뇌 상태 베이스라인',morning:'에너지 1-10 자가 평가 + 오늘의 ONE Thing 1개 설정',work:'가장 중요한 1시간 블록 지정, 모든 알림 완전 차단',evening:'집중된 순간 3가지 + 흐트러진 순간 3가지 기록'},
+  {n:2,w:1,title:'단일 과제 집중 훈련',morning:'포모도로 타이머 준비, 오늘 집중 목표 1문장 작성',work:'25분 집중 × 4블록 실행, 전환 횟수 카운트',evening:'집중 품질 1-10 자가 평가, 내일 개선점 1가지'},
+  {n:3,w:1,title:'방해 요인 제거',morning:'주의 도둑 목록 5가지 작성 (핸드폰·알림·소음 등)',work:'핵심 방해 요인 1개 완전 제거 후 집중력 변화 관찰',evening:'제거 전후 집중력 변화 구체적으로 기록'},
+  {n:4,w:1,title:'주의 밀도 측정',morning:'어제 집중 패턴 3분 리뷰, 개선 포인트 설정',work:'작업 전환 횟수 실시간 카운트, 주의 밀도 지수 계산',evening:'나만의 주의 밀도 공식 초안 작성'},
+  {n:5,w:1,title:'리더 주의 연습',morning:'오늘 팀원과 나눌 완전한 주의 1회 목표 설정',work:'1:1 대화 중 핸드폰 완전 차단, 100% 경청 실험',evening:'상대방 반응 변화와 관계 품질 변화 기록'},
+  {n:6,w:1,title:'팀 회의 집중 실험',morning:'오늘 회의 목적 1문장 명확화, 핵심 결정 3가지 사전 설정',work:'회의 중 핵심 결정만 추적, 불필요 논의 정중히 차단',evening:'회의 참가자 주의 수준 관찰 결과 기록'},
+  {n:7,w:1,title:'1주차 통합 성찰',morning:'7일 주의 패턴 15분 리뷰, 가장 큰 발견 3가지',work:'나만의 주의 포착 의식(Ritual) 설계 및 문서화',evening:'CATCH 핵심 루틴 확정 + 2주차 목표 선언'},
+  {n:8,w:2,title:'뇌파 상태 인식',morning:'아침 에너지와 뇌파 상태(집중/이완/졸림) 자기 체크',work:'과제 종류별 최적 뇌파 상태 매칭 실험 시작',evening:'뇌파 일기 1일차: 오늘의 최적 상태 시간대 기록'},
+  {n:9,w:2,title:'통찰 트리거 실험',morning:'미해결 문제 하나를 의식 위에 올려놓기',work:'5분 걷기 후 문제 재접근, 통찰 유발 조건 관찰',evening:'통찰이 일어난 상황·장소·뇌 상태 정밀 기록'},
+  {n:10,w:2,title:'알파파 유도 실험',morning:'10분 마음챙김 명상 (호흡 집중)',work:'명상 직후 5분 내 핵심 과제 접근, 전환 품질 체크',evening:'명상→과제 전환 품질 1-10 평가 + 패턴 분석'},
+  {n:11,w:2,title:'직관↔분석 전환',morning:'오늘의 중요 결정 목록 작성',work:'직관 먼저(30초) → 분석 검증 순서로 결정 실험',evening:'직관 vs 순수 분석 결정 품질 비교 기록'},
+  {n:12,w:2,title:'의사결정 최적화',morning:'오늘의 중요 결정 타이밍 미리 계획',work:'뇌파 상태별(집중/이완/피로) 결정 타이밍 실험',evening:'최적 의사결정 뇌파 상태와 조건 기록'},
+  {n:13,w:2,title:'팀 코칭 진동 활용',morning:'코칭 대화 전 2분 마음챙김으로 알파파 준비',work:'질문↔경청 리듬 의식적 조율, 반응 변화 관찰',evening:'코칭 효과 변화와 팀원 표정·반응 기록'},
+  {n:14,w:2,title:'2주차 통합 성찰',morning:'14일 뇌파 패턴 20분 리뷰',work:'개인 인지 진동 최적 스케줄 설계 및 문서화',evening:'OSCILLATE 핵심 루틴 확정 + 3주차 목표 선언'},
+  {n:15,w:3,title:'소마틱 마커 발견',morning:'5분 몸 신호 스캔 (어깨·가슴·배 긴장 확인)',work:'결정 전 신체 반응(긴장/이완/두근거림) 체크 실험',evening:'소마틱 마커 목록 작성: 몸이 아는 신호들'},
+  {n:16,w:3,title:'성공 세리모니 설계',morning:'최근 팀 성공 경험 3가지 목록 작성',work:'팀 성공 인정 의식 1회 실행 (작은 것도 OK)',evening:'감정 기억화 효과 관찰: 팀원 에너지 변화'},
+  {n:17,w:3,title:'피드백 재프레이밍',morning:'두려운 피드백 상황 1개 직면 다짐',work:'위협 반응→성장 흥분으로 전환 실험 (뇌 언어 바꾸기)',evening:'편도체 반응 변화 기록: 위협→기회 전환 성공률'},
+  {n:18,w:3,title:'개인 Flow 조건 발견',morning:'과거 최고 몰입 경험 3가지 회상 (언제·어디서·무엇)',work:'도전-기술 균형 매트릭스 작성, 자신의 Flow 공식 도출',evening:'개인 Flow 발동 조건 5가지 확정'},
+  {n:19,w:3,title:'팀 Flow 환경 설계',morning:'팀의 Flow 최대 장애물 3가지 파악',work:'가장 큰 장애물 1가지 즉시 제거 실행',evening:'팀 몰입 수준 변화 체크 + 다음 제거 대상 선정'},
+  {n:20,w:3,title:'딥워크 경험',morning:'2시간 방해 없는 딥워크 블록 사전 확보',work:'DMN 억제 상태 의식적 경험 (자아 소멸감 포착)',evening:'몰입 후 뇌·신체 상태 기록 + 창의 아이디어 포착'},
+  {n:21,w:3,title:'3주차 통합 성찰',morning:'감정-몰입 연결 패턴 20분 리뷰',work:'ENCODE+FLOW 루틴 통합 설계 및 문서화',evening:'3주 성장 곡선 그리기 + 4주차 목표 선언'},
+  {n:22,w:4,title:'BDNF 루틴 설계',morning:'30분 유산소 운동 (걷기·달리기·자전거)',work:'운동 직후 뇌가 가장 활성화된 상태에서 핵심 학습',evening:'BDNF 효과 체감 기록: 운동 전후 집중력 비교'},
+  {n:23,w:4,title:'신경가소성 일지',morning:'30일 전의 나와 지금의 나 5가지 비교 작성',work:'새로운 사고 패턴과 자동화된 습관 확인',evening:'뇌 변화의 구체적 증거 수집 (행동·판단·감정)'},
+  {n:24,w:4,title:'내부 환경 경영',morning:'신경화학 날씨 예보 작성 (도파민·코르티솔 수준)',work:'도파민 설계(작은 보상)·코르티솔 조절(마음챙김) 실행',evening:'뇌 내부 환경 관리 루틴의 효과 점검'},
+  {n:25,w:4,title:'C.O.R.E. 루프 실행',morning:'5단계 전체 의식적 실행 계획 수립 (30분 배정)',work:'CATCH→OSCILLATE→ENCODE→FLOW→ENHANCE 1회 완주',evening:'루프 품질 1-10 평가 + 가장 약한 단계 파악'},
+  {n:26,w:4,title:'팀에 루프 소개',morning:'C.O.R.E. 개념 1페이지 핵심 요약 작성',work:'팀 회의에서 CATCH 단계 1개 적용 제안',evening:'팀 반응·저항·호기심 기록 + 확산 전략 수립'},
+  {n:27,w:4,title:'루프 가속 실험',morning:'5단계 30분 완주 목표 설정 + 압축 버전 설계',work:'압축 C.O.R.E. 루프 × 3회 연속 실험',evening:'속도별 루프 품질 비교 + 최적 주기 발견'},
+  {n:28,w:4,title:'조직 뇌경영 진단',morning:'5단계 조직 적용 수준 1-10 자가 평가',work:'가장 취약한 단계 집중 개선 실행 (작은 것 1가지)',evening:'조직 뇌경영 점수 산출 + 개선 로드맵 초안'},
+  {n:29,w:4,title:'30일 성과 리뷰',morning:'Before/After 비교 5가지 구체적으로 작성',work:'뇌경영 실천 ROI 계산 + 동료에게 변화 피드백 요청',evening:'가장 큰 인사이트 3가지 + 감사 기록'},
+  {n:30,w:4,title:'새 루프 기준선 선언',morning:'다음 30일 C.O.R.E. 루프 목표 설정',work:'뇌경영 선언문 작성 + 핵심 파트너 1인과 공유',evening:'영구적 뇌경영 루틴 확정 + 새로운 루프 시작 축하'}
+];
+
+let cw=1, cd=1;
+
+function renderTabs(){
+  document.getElementById('wtabs').innerHTML=WC.map((w,i)=>{
+    const active=cw===i+1;
+    return `<button class="wtab" onclick="setW(${i+1})" style="background:${active?w.c:w.l};border-color:${w.c};color:${active?'#fff':w.d}">${w.n}<span style="font-size:10px;opacity:.75;margin-left:5px">${w.desc}</span></button>`;
+  }).join('');
+}
+
+function renderGrid(){
+  const wd=DD.filter(d=>d.w===cw);
+  const wc=WC[cw-1];
+  const first=wd[0].n, last=wd[wd.length-1].n;
+  document.getElementById('pbar').textContent=`${first}일차 ~ ${last}일차 · ${wd.length}일간 · ${wc.desc}`;
+  document.getElementById('dgrid').innerHTML=wd.map(d=>{
+    const sel=d.n===cd;
+    return `<button class="dbtn${sel?' sel':''}" onclick="selD(${d.n})" style="background:${sel?wc.c:wc.l};border-color:${wc.c};color:${sel?'#fff':wc.d}">
+      <div style="font-size:14px;font-weight:500">${d.n}일</div>
+      <div style="font-size:10px;line-height:1.3;margin-top:2px">${d.title}</div>
+    </button>`;
+  }).join('');
+}
+
+function renderDetail(n){
+  const d=DD[n-1], wc=WC[d.w-1];
+  const rows=[
+    {label:'아침 루틴 (10-15분)',key:'morning'},
+    {label:'업무 실천',key:'work'},
+    {label:'저녁 성찰 (5분)',key:'evening'}
+  ];
+  document.getElementById('ddet').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="width:10px;height:10px;border-radius:50%;background:${wc.c};flex-shrink:0"></div>
+      <span style="font-size:15px;font-weight:500;color:var(--color-text-primary)">${n}일차 — ${d.title}</span>
+      <span style="margin-left:auto;font-size:11px;padding:3px 9px;border-radius:99px;background:${wc.l};color:${wc.d};border:.5px solid ${wc.c}">${wc.n}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px">
+      ${rows.map(r=>`<div class="rcard">
+        <div style="font-size:11px;font-weight:500;color:${wc.c};margin-bottom:6px;display:flex;align-items:center;gap:5px">
+          <div style="width:5px;height:5px;border-radius:50%;background:${wc.c}"></div>${r.label}
+        </div>
+        <div style="font-size:12px;color:var(--color-text-primary);line-height:1.6">${d[r.key]}</div>
+      </div>`).join('')}
+    </div>`;
+}
+
+function setW(w){cw=w;cd=DD.find(d=>d.w===w).n;renderTabs();renderGrid();renderDetail(cd);}
+function selD(n){const d=DD[n-1];if(d.w!==cw){cw=d.w;}cd=n;renderTabs();renderGrid();renderDetail(n);}
+
+renderTabs();renderGrid();renderDetail(1);
+</script>

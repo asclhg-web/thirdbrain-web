@@ -1,0 +1,72 @@
+site:
+  name: 에이에스씨
+  site: 'https://asc.kr'
+  base: '/'
+  trailingSlash: false
+
+  googleSiteVerificationId: ''
+
+# Default SEO metadata
+metadata:
+  title:
+    default: 에이에스씨(ASC) — AI System Creator
+    template: '%s — 에이에스씨'
+  description: "에이에스씨(ASC, AI System Creator) — Odoo 기반 중소기업 지능형 ERP 구축과 온톨로지-지식그래프 AX 컨설팅. 30년 ERP·MES·SCM 현장 경험으로 기록하는 ERP에서 판단하는 ERP로. 저서 『AI ERP 혁명 — Odoo와 지능형 ERP』."
+  robots:
+    index: true
+    follow: true
+  openGraph:
+    site_name: 에이에스씨
+    images:
+      - url: '~/assets/images/og-poster.png'
+        width: 1024
+        height: 764
+    type: website
+  twitter:
+    handle: ''
+    site: ''
+    cardType: summary_large_image
+
+i18n:
+  language: ko
+  textDirection: ltr
+
+apps:
+  blog:
+    isEnabled: true
+    postsPerPage: 6
+
+    post:
+      isEnabled: true
+      permalink: '/%slug%' # Variables: %slug%, %year%, %month%, %day%, %hour%, %minute%, %second%, %category%
+      robots:
+        index: true
+
+    list:
+      isEnabled: true
+      pathname: 'blog' # Blog main path, you can change this to "articles" (/articles)
+      robots:
+        index: true
+
+    category:
+      isEnabled: false # 한글 카테고리는 별도 페이지 비활성화(슬러그 이슈). 목록·글은 정상.
+      pathname: 'category' # Category main path /category/some-category, you can change this to "group" (/group/some-category)
+      robots:
+        index: true
+
+    tag:
+      isEnabled: false # 한글 태그는 별도 페이지 비활성화(슬러그 이슈). 목록·글은 정상.
+      pathname: 'tag' # Tag main path /tag/some-tag, you can change this to "topics" (/topics/some-category)
+      robots:
+        index: false
+
+    isRelatedPostsEnabled: true
+    relatedPostsCount: 4
+
+analytics:
+  vendors:
+    googleAnalytics:
+      id: null # or "G-XXXXXXXXXX"
+
+ui:
+  theme: 'light' # 크림 배경의 따뜻한 톤을 기본으로 (다크 토글 유지). Values: "system" | "light" | "dark" | "light:only" | "dark:only"
