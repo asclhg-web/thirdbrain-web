@@ -1,0 +1,8 @@
+{
+  // 에이에스씨(asc.kr) 정적 사이트 — Cloudflare Workers Static Assets로 dist 배포
+  "name": "asc-web",
+  "compatibility_date": "2026-06-04",
+  "assets": {
+    "directory": "./dist"
+  }
+}
