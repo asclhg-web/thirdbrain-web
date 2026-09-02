@@ -7,7 +7,7 @@ OUT = os.path.dirname(os.path.abspath(__file__))
 POD = os.path.join(OUT, "..", "pod")
 os.makedirs(POD, exist_ok=True)
 
-BLEED, PW, PH, SPINE = 3, 152, 225, 12
+BLEED, PW, PH, SPINE = 3, 152, 225, 12.8
 W = BLEED + PW + SPINE + PW + BLEED   # 322
 H = BLEED + PH + BLEED                # 231
 BX0 = 0.0                 # 뒤표지 시작(블리드 포함)
@@ -41,8 +41,8 @@ def spinetext(y, s, size, fill, weight="bold", anchor="start"):
     x = scx + size*0.36   # 회전 후 책등 폭 중앙에 오도록 베이스라인 보정
     return text(x, y, s, size, fill, weight, anchor,
                 extra=f'transform="rotate(90 {x} {y})"')
-b.append(spinetext(18, "AI ERP 혁명", 5.6, WHITE))
-b.append(spinetext(58, "Odoo와 지능형 ERP", 4.2, YELLOW))
+b.append(spinetext(16, "Odoo를 중심으로 AI ERP 혁명", 5.0, WHITE))
+b.append(spinetext(112, "Odoo와 지능형 ERP", 3.6, YELLOW))
 b.append(spinetext(H-18, "이형근 · 정인호 · 송무준", 3.5, WHITE, "normal", "end"))
 
 # ── 뒤표지 ──
