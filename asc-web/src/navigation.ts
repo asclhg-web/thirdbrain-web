@@ -1,43 +1,49 @@
 import { getPermalink, getBlogPermalink } from './utils/permalinks';
 import { LINKS } from './data/links';
 
-const KYOBO_URL = LINKS.kyobo; // 교보문고 구매 링크 (1순위 행동)
-
 export const headerData = {
-  // 구성: 홈 · 회사 소개 · Odoo AI ERP · 책 소개 · 블로그 · 게시판 · [책 구매]
+  // 구성: 홈 · Odoo 컨설팅 · AI 지능화 기술 · 구축 서비스 · 책(▾) · 회사 소개 · 블로그 · 게시판 · [상담 신청]
   links: [
     { text: '홈', href: getPermalink('/') },
+    { text: 'Odoo 컨설팅', href: getPermalink('/odoo') },
+    { text: 'AI 지능화 기술', href: getPermalink('/ai') },
+    { text: '구축 서비스', href: getPermalink('/services') },
+    {
+      text: '책',
+      links: [
+        { text: 'AI ERP 혁명 (신간)', href: getPermalink('/book') },
+        { text: '서드브레인', href: getPermalink('/thirdbrain') },
+      ],
+    },
     { text: '회사 소개', href: getPermalink('/about') },
-    { text: 'Odoo AI ERP', href: getPermalink('/odoo') },
-    { text: '책 소개', href: getPermalink('/book') },
     { text: '블로그', href: getBlogPermalink() },
     { text: '게시판', href: getPermalink('/board') },
   ],
-  actions: [{ text: '책 구매', href: KYOBO_URL, target: '_blank', variant: 'primary' }],
+  actions: [{ text: '상담 신청', href: getPermalink('/about') + '#contact', variant: 'primary' }],
 };
 
 export const footerData = {
   links: [
     {
-      title: '사업',
+      title: '역량',
       links: [
-        { text: 'Odoo 기반 지능형 ERP', href: getPermalink('/odoo') },
-        { text: '온톨로지-지식그래프 AX', href: getPermalink('/odoo') + '#intelligence' },
-        { text: '스마트공장·MES·IoT', href: getPermalink('/odoo') + '#ot' },
-        { text: '컨설팅 문의', href: getPermalink('/about') + '#contact' },
+        { text: 'Odoo 컨설팅 (모듈별)', href: getPermalink('/odoo') },
+        { text: 'AI 지능화 기술 (온톨로지-지식그래프)', href: getPermalink('/ai') },
+        { text: '구축 서비스·진행 절차', href: getPermalink('/services') },
+        { text: '상담 신청', href: getPermalink('/about') + '#contact' },
       ],
     },
     {
       title: '책',
       links: [
-        { text: '『AI ERP 혁명』 소개', href: getPermalink('/book') },
-        { text: '목차 미리보기', href: getPermalink('/book') + '#toc' },
-        { text: '저자 소개', href: getPermalink('/book') + '#authors' },
-        { text: '책 구매 (교보문고)', href: KYOBO_URL },
+        { text: '『Odoo를 중심으로 AI ERP 혁명』', href: getPermalink('/book') },
+        { text: '『서드브레인』', href: getPermalink('/thirdbrain') },
+        { text: 'AI ERP 혁명 구매 (교보)', href: LINKS.kyobo },
+        { text: '서드브레인 구매 (교보)', href: LINKS.kyoboThirdbrain },
       ],
     },
     {
-      title: '소식',
+      title: '소식·회사',
       links: [
         { text: '블로그', href: getBlogPermalink() },
         { text: '게시판(공지)', href: getPermalink('/board') },
@@ -50,5 +56,5 @@ export const footerData = {
     { text: '개인정보처리방침', href: getPermalink('/privacy') },
   ],
   socialLinks: [{ ariaLabel: 'RSS', icon: 'tabler:rss', href: getPermalink('/rss.xml') }],
-  footNote: `(주)에이에스씨 · ASC, AI System Creator · 전남 나주 — Odoo 기반 중소기업 지능형 ERP · 문의 ${'asclhg@gmail.com'}`,
+  footNote: `(주)에이에스씨 · 대표 이형근 · Odoo Partner · 지사: 서울·경기 / 부산(영남) / 전라(나주) · 문의 asclhg@gmail.com`,
 };

@@ -1,0 +1,107 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import Hero from '~/components/widgets/Hero.astro';
+import Features from '~/components/widgets/Features.astro';
+import Steps from '~/components/widgets/Steps.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+
+const metadata = { title: '구축 서비스 — 진단에서 환류까지' };
+---
+
+<Layout metadata={metadata}>
+  <Hero
+    actions={[
+      { variant: 'primary', text: '상담 신청', href: '/about#contact', icon: 'tabler:mail' },
+      { text: '회사 소개', href: '/about', icon: 'tabler:building' },
+    ]}
+    image={{ src: '~/assets/images/aierp-cover.jpg', alt: '구축 서비스' }}
+  >
+    <Fragment slot="title">
+      구축 서비스 <br />
+      <span class="text-accent dark:text-white">진단에서 환류까지</span>
+    </Fragment>
+    <Fragment slot="subtitle">
+      에이에스씨의 프로젝트는 <span class="font-semibold">창고에서 시작해 환류로 완성</span>됩니다. 관문을
+      통과해야 다음 투자로 넘어가는 정직한 순서 — 관문 미달의 대응은 일정 연기가 아니라 범위 축소입니다.
+    </Fragment>
+  </Hero>
+
+  <Steps
+    id="process"
+    title="프로젝트 진행 절차"
+    tagline="AX 5단계"
+    items={[
+      {
+        title: '1. 진단 — <span class="font-medium">경영 질문·데이터 성숙도·현장 5S</span>',
+        description: '방문 상담과 인터뷰, Logic Tree로 Pain Point(결품·과잉재고·계획변경·다품종소량)를 구조화한 진단 보고서.',
+        icon: 'tabler:search',
+      },
+      {
+        title: '2. 기반 — <span class="font-medium">데이터 3정5S와 단일 원장</span>',
+        description: '품목·거래처·BOM 기준정보 정비, 재고 실사 — 장부의 숫자를 진실로 만든 뒤 Odoo 모듈을 순서대로.',
+        icon: 'tabler:database',
+      },
+      {
+        title: '3. 적재 — <span class="font-medium">현장 실적의 실시간화</span>',
+        description: 'POP·IoT·OCR로 현장 데이터가 24시간 이내 정확히 잡히는 상태.',
+        icon: 'tabler:clock-check',
+      },
+      {
+        title: '4. 지능화 — <span class="font-medium">예측·온톨로지·에이전트</span>',
+        description: '수요예측, 재고 최적화, 설비예지, 그리고 지식그래프 위의 판단과 승인 기반 실행.',
+        icon: 'tabler:sparkles',
+      },
+      {
+        title: '5. 환류·이양 — 자율 운영으로',
+        icon: 'tabler:refresh',
+      },
+    ]}
+    image={{ src: '~/assets/images/odoo-architecture.jpg', alt: 'AX 5단계' }}
+  />
+
+  <Features
+    id="how"
+    tagline="서비스 형태"
+    title="현장에 맞는 세 가지 방식"
+    columns={3}
+    items={[
+      { title: '상주형', description: '고객사에 당사 요원이 상주 — 밀착 변화관리가 필요한 구축기에 적합합니다.', icon: 'tabler:building' },
+      { title: '센터형', description: '당사 센터에서 원격 제공 — 운영기의 유지보수·개선에 경제적입니다.', icon: 'tabler:server-2' },
+      { title: '복합형', description: '업무 내용에 따라 상주와 센터를 조합 — 대부분의 프로젝트 형태입니다.', icon: 'tabler:arrows-shuffle' },
+    ]}
+  />
+
+  <Features
+    id="team"
+    tagline="전국 3거점"
+    title="세 명의 30년 컨설턴트가 직접 갑니다"
+    columns={3}
+    items={[
+      {
+        title: '이형근 — 전라권',
+        description: '대표 컨설턴트. 제조 현장의 데이터(DX)와 AX 경영. LGCNS·스마트 추진단 출신.',
+        icon: 'tabler:user',
+      },
+      {
+        title: '정인호 — 서울·경기·충남권',
+        description: '온톨로지 기반 AX 방법론 설계·구축. 한국IBM·영림원 출신.',
+        icon: 'tabler:user',
+      },
+      {
+        title: '송무준 — 부산·영남권',
+        description: '현장 전산화와 DX 경영. LGCNS·산업현장교수·스마트공장 평가위원·AI코칭 위원.',
+        icon: 'tabler:user',
+      },
+    ]}
+  />
+
+  <CallToAction
+    actions={[
+      { variant: 'primary', text: '상담 신청', href: '/about#contact', icon: 'tabler:mail' },
+      { text: 'Odoo 컨설팅 보기', href: '/odoo', icon: 'tabler:stack-2' },
+    ]}
+  >
+    <Fragment slot="title">가까운 거점의 컨설턴트가 찾아갑니다</Fragment>
+    <Fragment slot="subtitle">서울·경기 / 충남 / 전라 / 부산·영남 — 현장의 이야기를 들려주세요.</Fragment>
+  </CallToAction>
+</Layout>

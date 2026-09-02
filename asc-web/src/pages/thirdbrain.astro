@@ -1,0 +1,62 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+import Hero from '~/components/widgets/Hero.astro';
+import Features from '~/components/widgets/Features.astro';
+import Testimonials from '~/components/widgets/Testimonials.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+import { LINKS } from '~/data/links';
+
+const metadata = { title: '『서드브레인』 — 세 번째 뇌를 깨워라' };
+---
+
+<Layout metadata={metadata}>
+  <Hero
+    actions={[
+      { variant: 'primary', text: '책 구매 (교보문고)', href: LINKS.kyoboThirdbrain, target: '_blank', icon: 'tabler:book' },
+      { text: 'AI ERP 혁명 보기', href: '/book', icon: 'tabler:arrow-right' },
+    ]}
+    content={`<div class="mt-5 text-base font-semibold text-secondary dark:text-amber-300">2026년 7월 4일 교보문고 출간 · 뇌과학자 서유헌 교수 추천</div>`}
+    image={{ src: '~/assets/images/cover.jpg', alt: '서드브레인 책 표지' }}
+  >
+    <Fragment slot="title">
+      세 번째 뇌를 <br />
+      <span class="text-accent dark:text-white">깨워라</span>
+    </Fragment>
+    <Fragment slot="subtitle">
+      AI가 인간을 대체하는 것이 아니라, <span class="font-semibold">서드브레인을 가진 인간</span>이 그렇지 않은
+      인간을 대체합니다. 몸·지식·AI를 하나로 잇는 새로운 뇌경영 — 어렵게 느껴지던 뇌과학을 재미있고 쉽게
+      풀어낸 책. 『AI ERP 혁명』이 기업의 지능화라면, 『서드브레인』은 사람의 지능화입니다.
+    </Fragment>
+  </Hero>
+
+  <Features
+    id="features"
+    tagline="이 책이 다루는 것"
+    title="세 개의 뇌 이야기"
+    columns={3}
+    items={[
+      { title: '1st Brain · 몸 (1부)', description: '신경가소성·창의성·의식 — 평생 변하는 내 뇌를 최적 상태로 단련하는 법.', icon: 'tabler:brain' },
+      { title: '2nd Brain · 지식 (2부)', description: '세컨드브레인으로 기억을 외부에 — 옵시디언·노션으로 흩어진 지식을 자산으로.', icon: 'tabler:database' },
+      { title: '3rd Brain · AI (3부)', description: '몸과 지식 위에 AI를 얹어 사고를 곱셈으로 확장 — 세 번째 뇌가 작동하기 시작합니다.', icon: 'tabler:cpu' },
+    ]}
+  />
+
+  <Testimonials
+    title="먼저 읽은 분들의 이야기"
+    testimonials={[
+      { testimonial: '뇌과학의 최신 통찰을 일과 삶에 연결한 보기 드문 책이다. 몸·지식·AI를 하나로 잇는 관점이 신선하다.', name: '서유헌 교수', job: '뇌과학자 · 추천사' },
+      { testimonial: '세컨드브레인까지는 들어봤지만, 거기에 AI를 얹는 "세 번째 뇌"라는 틀이 머릿속을 정리해 주었다.', name: '독자 A', job: '지식노동자' },
+      { testimonial: '어려울 줄 알았는데 그림과 사례 덕에 술술 읽혔다. 다 읽고 바로 옵시디언을 깔았다.', name: '독자 B', job: '직장인 독자' },
+    ]}
+  />
+
+  <CallToAction
+    actions={[
+      { variant: 'primary', text: '책 구매 (교보문고)', href: LINKS.kyoboThirdbrain, target: '_blank', icon: 'tabler:book' },
+      { text: '기업의 지능화 — AI ERP 혁명', href: '/book', icon: 'tabler:building-factory-2' },
+    ]}
+  >
+    <Fragment slot="title">사람의 지능화에서 기업의 지능화로</Fragment>
+    <Fragment slot="subtitle">에이에스씨의 두 책은 하나의 이야기입니다 — 서드브레인을 가진 사람이, 서드브레인을 가진 기업을 만듭니다.</Fragment>
+  </CallToAction>
+</Layout>

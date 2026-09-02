@@ -1,8 +1,8 @@
 ---
+import { Image } from 'astro:assets';
+import logo from '~/assets/images/asc-logo-t.png';
 ---
 
-<span class="self-center ml-2 rtl:ml-0 rtl:mr-2 flex items-center gap-2 whitespace-nowrap">
-  <span class="text-2xl md:text-xl font-black italic tracking-wide" style="color:#1B3F94">A<span
-      style="color:#F5321E">·</span>SC</span>
-  <span class="hidden sm:inline text-[11px] font-bold leading-tight" style="color:#F5321E">AI System<br />Creator</span>
+<span class="self-center ml-2 rtl:ml-0 rtl:mr-2 flex items-center whitespace-nowrap">
+  <Image src={logo} alt="ASC 에이에스씨" class="h-9 md:h-8 w-auto" widths={[240]} />
 </span>

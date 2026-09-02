@@ -4,7 +4,6 @@ import Layout from '~/layouts/PageLayout.astro';
 import Hero from '~/components/widgets/Hero.astro';
 import Features from '~/components/widgets/Features.astro';
 import Content from '~/components/widgets/Content.astro';
-import Steps from '~/components/widgets/Steps.astro';
 import Stats from '~/components/widgets/Stats.astro';
 import CallToAction from '~/components/widgets/CallToAction.astro';
 
@@ -18,10 +17,10 @@ const metadata = {
 
   <Hero
     actions={[
-      { variant: 'primary', text: '컨설팅 문의', href: '#contact', icon: 'tabler:mail' },
-      { text: 'Odoo AI ERP', href: '/odoo', icon: 'tabler:cpu' },
+      { variant: 'primary', text: '상담 신청', href: '#contact', icon: 'tabler:mail' },
+      { text: '구축 서비스', href: '/services', icon: 'tabler:tools' },
     ]}
-    image={{ src: '~/assets/images/asc-logo.png', alt: 'ASC 로고' }}
+    image={{ src: '~/assets/images/asc-logo.png', alt: 'ASC 로고 — AI System Creator' }}
   >
     <Fragment slot="title">
       (주)에이에스씨 <br />
@@ -29,137 +28,58 @@ const metadata = {
     </Fragment>
 
     <Fragment slot="subtitle">
-      IoT·AI·RPA를 활용한 제조업 혁신 — <span class="font-semibold">AI 혁신의 DNA</span>를 가진 지능형
-      스마트공장·제조시스템 전문기업입니다. 30년 ERP·MES·SCM 컨설팅의 경험으로, 중소기업의 업무 실행 역량을
-      바꾸는 체질 전환 시스템을 만듭니다.
+      <span class="font-semibold">Odoo 파트너</span>로서 IoT·AI·RPA를 활용한 제조업 혁신 — 30년 ERP·MES·SCM
+      컨설팅의 경험으로 중소기업의 업무 실행 역량을 바꾸는 지능형 시스템을 만듭니다. 방법론의 전부를
+      『Odoo를 중심으로 AI ERP 혁명』으로 공개했습니다.
     </Fragment>
   </Hero>
+
+  <!-- 파트너십·정체성 ************** -->
+
+  <Features
+    id="identity"
+    tagline="에이에스씨는"
+    title="세 가지 정체성"
+    columns={3}
+    items={[
+      {
+        title: 'Odoo 파트너',
+        description: '오픈소스 Odoo 생태계의 공식 파트너로, 구축·커스터마이징·교육·유지보수를 제공합니다.',
+        icon: 'tabler:rosette-discount-check',
+      },
+      {
+        title: '컨설팅 회사',
+        description: '3정5S·눈으로 보는 관리·DMAIC — 30년 제조 현장에서 검증된 방법론으로 진단부터 환류까지.',
+        icon: 'tabler:compass',
+      },
+      {
+        title: 'AI 기술 회사',
+        description: '온톨로지-지식그래프로 암묵지를 실행하는 지식으로 — 판단하는 ERP의 기술을 보유합니다.',
+        icon: 'tabler:topology-star-3',
+      },
+    ]}
+  />
 
   <!-- 문제의식 ********************* -->
 
   <Content
     id="why"
-    tagline="문제의식 — Why"
+    tagline="문제의식"
     title="스마트공장의 75%는 왜 기초 단계에서 멈추는가"
     items={[
-      {
-        title: '프로세스의 양면성',
-        description: '정량적으로 표출되는 영역 밖에, 경험·직관·통찰이 좌우하는 활동 영역의 공백이 있습니다.',
-      },
-      {
-        title: '암묵지의 공백',
-        description: '기존 AI 학습 데이터로는 닿기 어려운 현장의 암묵적 지식 — 시스템 구축만으로는 채워지지 않습니다.',
-      },
-      {
-        title: '실행력의 한계',
-        description: 'ERP/SCM 표준 프로세스에서 간과되는 현장 지식 실행력. 부분적·단기적 개선에 그치는 이유입니다.',
-      },
+      { title: '프로세스의 양면성', description: '정량 영역 밖에, 경험·직관·통찰이 좌우하는 활동 영역의 공백이 있습니다.' },
+      { title: '암묵지의 공백', description: '기존 AI 학습 데이터로는 닿기 어려운 현장의 암묵적 지식 — 구축만으로는 채워지지 않습니다.' },
+      { title: '실행력의 한계', description: '표준 프로세스가 간과하는 현장 지식 실행력 — 부분적·단기적 개선에 그치는 이유입니다.' },
     ]}
     image={{ src: '~/assets/images/odoo-architecture.jpg', alt: 'IT-지능화-OT 아키텍처' }}
   >
     <Fragment slot="content">
       <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-2">그래서 에이에스씨는</h3>
-      기업의 암묵지를 <span class="font-semibold">지식그래프</span>로 명시화하고, AI 학습으로 전환해 현장의
-      실행 역량을 끌어올립니다. 암묵지 → 형식지 → 지식그래프 → AI 학습 — 이 파이프라인이 에이에스씨 방법론의
-      핵심이며, 저서 『AI ERP 혁명』 제3부에 그대로 담겨 있습니다.
+      기업의 암묵지를 지식그래프로 명시화하고 AI 학습으로 전환해 현장의 실행 역량을 끌어올립니다.
+      암묵지 → 형식지 → 지식그래프 → AI 학습 — 이 파이프라인이 에이에스씨 방법론의 핵심입니다.
     </Fragment>
-
-    <Fragment slot="bg">
-      <div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div>
-    </Fragment>
+    <Fragment slot="bg"><div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div></Fragment>
   </Content>
-
-  <!-- 서비스 형태 ****************** -->
-
-  <Features
-    id="how"
-    tagline="서비스 형태"
-    title="현장에 맞는 세 가지 방식"
-    subtitle="기업의 여건과 업무 성격에 따라 서비스 형태를 선택할 수 있습니다."
-    columns={3}
-    items={[
-      {
-        title: '상주형',
-        description: '고객 사무소에 당사 요원이 상주하며 서비스를 제공합니다. 밀착 변화관리가 필요한 구축기에 적합.',
-        icon: 'tabler:building',
-      },
-      {
-        title: '센터형',
-        description: '당사 센터에서 원격으로 서비스를 제공합니다. 운영기의 유지보수·개선에 경제적입니다.',
-        icon: 'tabler:server-2',
-      },
-      {
-        title: '복합형',
-        description: '업무 내용에 따라 상주와 센터를 조합합니다. 대부분의 프로젝트가 이 형태로 진행됩니다.',
-        icon: 'tabler:arrows-shuffle',
-      },
-    ]}
-  />
-
-  <!-- 진행 절차 ******************** -->
-
-  <Steps
-    id="process"
-    title="프로젝트는 이렇게 진행됩니다"
-    tagline="진행 절차"
-    items={[
-      {
-        title: '사전 준비 — <span class="font-medium">프로세스·데이터 수준 진단</span>',
-        description: '방문 상담과 인터뷰, 업무 혁신 활동 이력 분석으로 진단 보고서를 만듭니다.',
-        icon: 'tabler:clipboard-check',
-      },
-      {
-        title: '업무 계통 분석 — <span class="font-medium">Logic Tree · Pain Point</span>',
-        description: '결품·과잉재고·계획변경·다품종소량 등 유형별로 문제를 구조화하고 데이터를 진단합니다.',
-        icon: 'tabler:sitemap',
-      },
-      {
-        title: '구축 — <span class="font-medium">Odoo 단일 원장 + 지식그래프</span>',
-        description: '모듈 도입 순서와 관문을 정하고, 기준정보 3정5S부터 단계적으로 구축합니다.',
-        icon: 'tabler:tools',
-      },
-      {
-        title: '환류 — <span class="font-medium">데이터가 다시 경영으로</span>',
-        description: '생산·품질·설비 데이터가 예측과 판단으로 돌아오는 무한 루프를 정착시킵니다.',
-        icon: 'tabler:refresh',
-      },
-      {
-        title: '자율 운영 이양',
-        icon: 'tabler:check',
-      },
-    ]}
-    image={{ src: '~/assets/images/aierp-cover.jpg', alt: 'AI ERP 혁명' }}
-  />
-
-  <!-- 팀 *************************** -->
-
-  <Features
-    id="team"
-    tagline="사람"
-    title="세 명의 30년 컨설턴트"
-    subtitle="전국 3거점에서 직접 현장을 걷습니다."
-    columns={3}
-    items={[
-      {
-        title: '이형근 — 전라권',
-        description:
-          'ERP·MES·SCM 컨설턴트. 제조 현장의 데이터(DX)와 AX 경영. LGCNS, 스마트 추진단을 거쳐 에이에스씨에서 전라권 Odoo 기반 지능형 ERP를 컨설팅.',
-        icon: 'tabler:user',
-      },
-      {
-        title: '정인호 — 서울·경기·충남권',
-        description:
-          'ERP·MES·SCM 컨설턴트. 온톨로지 기반 AX 방법론 설계·구축. 한국IBM, 영림원을 거쳐 에이에스씨에서 수도권·충남권을 담당.',
-        icon: 'tabler:user',
-      },
-      {
-        title: '송무준 — 부산·영남권',
-        description:
-          'ERP·MES·SCM 컨설턴트. 현장 전산화와 데이터(DX) 경영. LGCNS, 산업현장교수, 스마트공장 평가위원, AI코칭 위원을 거쳐 부산·영남권을 담당.',
-        icon: 'tabler:user',
-      },
-    ]}
-  />
 
   <!-- Stats ************************ -->
 
@@ -167,22 +87,37 @@ const metadata = {
     stats={[
       { title: '현장 경력', amount: '30년' },
       { title: '거점', amount: '3곳' },
-      { title: '출간 도서', amount: '1권' },
+      { title: '출간 도서', amount: '2권' },
       { title: '핵심 플랫폼', amount: 'Odoo' },
     ]}
   />
 
-  <!-- 연락처 *********************** -->
+  <!-- 거점·연락처 ****************** -->
 
-  <section id="contact" class="px-4 py-16 sm:px-6 mx-auto max-w-4xl text-center">
-    <p class="text-base text-secondary font-bold tracking-wide uppercase">컨설팅 문의</p>
+  <section id="contact" class="px-4 py-16 sm:px-6 mx-auto max-w-5xl text-center">
+    <p class="text-base text-secondary font-bold tracking-wide uppercase">상담 신청</p>
     <h2 class="text-3xl md:text-4xl font-bold tracking-tight dark:text-white mb-4">현장 이야기를 들려주세요</h2>
-    <p class="text-muted mb-6">
-      진단은 회의실이 아니라 창고에서 시작합니다. 귀사의 상황을 알려주시면 방문 상담 일정을 잡아 드립니다.
+    <p class="text-muted mb-8">
+      진단은 회의실이 아니라 창고에서 시작합니다. 귀사의 상황을 이메일로 알려주시면 가까운 거점의 컨설턴트가
+      방문 상담 일정을 잡아 드립니다.
     </p>
+    <div class="grid gap-5 md:grid-cols-3 text-left mb-8">
+      <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/40">
+        <h3 class="font-bold text-lg dark:text-white mb-1">서울·경기 지사</h3>
+        <p class="text-muted text-sm">서울·경기·충남권 담당 — 정인호 컨설턴트</p>
+      </div>
+      <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/40">
+        <h3 class="font-bold text-lg dark:text-white mb-1">부산 지사</h3>
+        <p class="text-muted text-sm">부산·영남권 담당 — 송무준 컨설턴트</p>
+      </div>
+      <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/40">
+        <h3 class="font-bold text-lg dark:text-white mb-1">전라 지사 (나주)</h3>
+        <p class="text-muted text-sm">전라권 담당 — 이형근 대표 컨설턴트</p>
+      </div>
+    </div>
     <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40 inline-block text-left">
       <p class="mb-1"><span class="font-bold">회사</span> — (주)에이에스씨 (ASC, AI System Creator)</p>
-      <p class="mb-1"><span class="font-bold">주소</span> — 전라남도 나주시 (레이크뷰빌딩 3층)</p>
+      <p class="mb-1"><span class="font-bold">대표</span> — 이형근</p>
       <p class="mb-1"><span class="font-bold">전자우편</span> — <a class="underline hover:text-primary" href="mailto:asclhg@gmail.com">asclhg@gmail.com</a></p>
       <p><span class="font-bold">홈페이지</span> — asc.kr</p>
     </div>

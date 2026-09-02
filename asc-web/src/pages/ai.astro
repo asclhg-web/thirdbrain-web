@@ -1,0 +1,154 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+
+import Hero from '~/components/widgets/Hero.astro';
+import Note from '~/components/widgets/Note.astro';
+import Content from '~/components/widgets/Content.astro';
+import Steps from '~/components/widgets/Steps.astro';
+import Features from '~/components/widgets/Features.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+import { LINKS } from '~/data/links';
+
+const metadata = {
+  title: 'AI 지능화 기술 — 온톨로지-지식그래프',
+};
+---
+
+<Layout metadata={metadata}>
+  <Hero
+    actions={[
+      { variant: 'primary', text: '상담 신청', href: '/about#contact', icon: 'tabler:mail' },
+      { text: '책 제3부로 깊이 보기', href: '/book', icon: 'tabler:book' },
+    ]}
+    image={{ src: '~/assets/images/odoo-architecture.jpg', alt: '지능화 계층 아키텍처' }}
+  >
+    <Fragment slot="title">
+      AI 지능화 기술 <br />
+      <span class="text-accent dark:text-white">말이 시스템이 되는 길</span>
+    </Fragment>
+
+    <Fragment slot="subtitle">
+      ERP 구축이 끝나도 경영의 손실은 계속됩니다 — 손실은 늘 <span class="font-semibold">시스템이 비추지 않는
+      곳</span>에서 발생하기 때문입니다. 에이에스씨는 그 사각지대의 암묵지를
+      <span class="font-semibold">온톨로지-지식그래프</span>로 키워 실행까지 연결합니다. 다른 구축사가 멈추는
+      곳에서, 우리는 시작합니다.
+    </Fragment>
+  </Hero>
+
+  <Note title="한 문장으로:" description="암묵지 → 형식지 → 지식그래프 → AI 학습 — 발굴은 기계가, 확정은 사람이(HITL)." />
+
+  <!-- ① 문제: 경영 사각지대 (18장) -->
+  <Content
+    id="blindspot"
+    tagline="① 문제 — 경영 사각지대"
+    title="ERP가 보지 못하는 곳"
+    items={[
+      { title: '베테랑의 감(感)', description: '"그 거래처 도면은 늘 두 번 바뀌니 착수를 늦춘다" — 시스템 어디에도 없는 판단 기준.' },
+      { title: '부서 사이의 회색 지대', description: '영업과 생산 사이, 구매와 품질 사이 — 책임의 경계에서 손실이 자랍니다.' },
+      { title: '문서화되지 않은 예외', description: '"원래 그렇게 해 왔던" 절차들. 사람이 떠나면 지식도 함께 떠납니다.' },
+    ]}
+    image={{ src: '~/assets/images/aierp-cover.jpg', alt: '경영 사각지대' }}
+  >
+    <Fragment slot="content">
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-2">두 개의 프로세스</h3>
+      회사에는 시스템에 적힌 프로세스와, 경험과 직관이 움직이는 프로세스가 함께 있습니다. 스마트공장의 다수가
+      기초 단계에 머무는 이유는 두 번째 프로세스가 시스템 밖에 남아 있기 때문입니다.
+    </Fragment>
+    <Fragment slot="bg"><div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div></Fragment>
+  </Content>
+
+  <!-- ② 방법: 온톨로지-지식그래프 (19장) -->
+  <Steps
+    id="method"
+    title="② 방법 — 현장의 말이 지식이 되기까지"
+    tagline="온톨로지-지식그래프"
+    items={[
+      {
+        title: '발화 — <span class="font-medium">현장의 한마디를 붙잡는다</span>',
+        description: '"원래 그 라인이 좀 느려요" — 일상의 대화 속 한마디가 병목 온톨로지의 씨앗입니다.',
+        icon: 'tabler:message',
+      },
+      {
+        title: '구조화 — <span class="font-medium">5 Space × 6 Station 워크벤치</span>',
+        description: '회사 업무가 일어나는 다섯 공간과 문제가 통과하는 여섯 정거장 위에서, 말이 가설이 되고 가설이 검증됩니다.',
+        icon: 'tabler:layout-grid',
+      },
+      {
+        title: '검증 — <span class="font-medium">데이터로 확인한다</span>',
+        description: '거래 데이터·자원 속성·경로 분석으로 가설을 검정합니다. 그래프 역추적이 "왜"에 답합니다.',
+        icon: 'tabler:chart-dots-3',
+      },
+      {
+        title: '통치 — <span class="font-medium">사람이 승인한다 (HITL)</span>',
+        description: '기계가 발굴하고 사람이 확정합니다. 이 순환이 끊기면 지식은 캐비닛 속 보고서로 퇴화합니다.',
+        icon: 'tabler:user-check',
+      },
+      {
+        title: '지식그래프에 자산으로 축적',
+        icon: 'tabler:database-heart',
+      },
+    ]}
+    image={{ src: '~/assets/images/odoo-architecture.jpg', alt: '온톨로지-지식그래프 파이프라인' }}
+  />
+
+  <!-- ③ 실행 (20장) -->
+  <Features
+    id="execution"
+    tagline="③ 실행 — 알림에서 실행까지"
+    title="실행하는 온톨로지"
+    subtitle="알림으로 끝나는 시스템과 실행까지 가는 시스템의 차이 — 계산할 주체, 기한, 승인 권한이 있는가."
+    columns={3}
+    items={[
+      {
+        title: 'Agent Workflow',
+        description: '확정된 지식이 에이전트의 작업 규칙이 됩니다. 신호 감지 → 계산 → 시뮬레이션 → 사람 승인 → Odoo 반영.',
+        icon: 'tabler:robot',
+      },
+      {
+        title: 'War Room',
+        description: '실행 중인 모든 프로세스의 진행과 지연을 부서·주기·상태로 한눈에 — 경영의 관제탑.',
+        icon: 'tabler:device-desktop-analytics',
+      },
+      {
+        title: 'SCM Backbone',
+        description: '기간손익 프로젝션, 안전재고, 생산평준화, MAPE 등 8개 계산기가 수요예측부터 출하까지 하나의 사슬로.',
+        icon: 'tabler:settings-automation',
+      },
+    ]}
+  />
+
+  <!-- ④ 증명 (21장) -->
+  <Content
+    id="proof"
+    isReversed
+    tagline="④ 증명 — 구축 가능한 현실"
+    title="어느 중소 제조기업의 아침 7시 30분"
+    items={[
+      { title: '한 문장 브리핑', description: '"OO정밀 브래킷 납기 D-2, 알루미늄 재고 부족 예상, 어제 5번 품목 불량 2건" — 대표의 휴대폰으로.' },
+      { title: '은퇴한 반장의 메모', description: '신입 작업자가 낯선 도면을 열면, 3년 전 은퇴한 반장의 주의 메모가 옆에 표시됩니다.' },
+      { title: '멈추지 않는 루프', description: '오늘의 오차가 내일의 예측을 조금 더 정확하게 — 데이터는 복리로 쌓입니다.' },
+    ]}
+    image={{ src: '~/assets/images/aierp-cover.jpg', alt: '첫 90일 로드맵이 담긴 책' }}
+  >
+    <Fragment slot="content">
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-2">첫 90일의 순서까지</h3>
+      과장된 미래가 아닙니다. 이 하루의 모든 장면은 오늘의 기술로 구축 가능하며, 착수 90일의 순서는
+      『AI ERP 혁명』 제3부 21장에 공개되어 있습니다. 구축 사례와 성과는 상담에서 자세히 보여드립니다.
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a class="btn btn-primary" href="/about#contact">상담 신청</a>
+        <a class="btn" href={LINKS.kyobo} target="_blank">📕 책 제3부 보기</a>
+      </div>
+    </Fragment>
+    <Fragment slot="bg"><div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div></Fragment>
+  </Content>
+
+  <CallToAction
+    actions={[
+      { variant: 'primary', text: '상담 신청', href: '/about#contact', icon: 'tabler:mail' },
+      { text: 'Odoo 컨설팅 보기', href: '/odoo', icon: 'tabler:stack-2' },
+    ]}
+  >
+    <Fragment slot="title">서드브레인을 가진 기업이, 그렇지 않은 기업을 대체합니다</Fragment>
+    <Fragment slot="subtitle">작게 시작하되, 온톨로지는 첫날부터 — 에이에스씨가 함께 심습니다.</Fragment>
+  </CallToAction>
+</Layout>

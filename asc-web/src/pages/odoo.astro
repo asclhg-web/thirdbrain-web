@@ -3,7 +3,7 @@ import Layout from '~/layouts/PageLayout.astro';
 
 import Hero from '~/components/widgets/Hero.astro';
 import Note from '~/components/widgets/Note.astro';
-import Features from '~/components/widgets/Features.astro';
+import Features2 from '~/components/widgets/Features2.astro';
 import Content from '~/components/widgets/Content.astro';
 import Steps from '~/components/widgets/Steps.astro';
 import FAQs from '~/components/widgets/FAQs.astro';
@@ -11,166 +11,139 @@ import CallToAction from '~/components/widgets/CallToAction.astro';
 import { LINKS } from '~/data/links';
 
 const metadata = {
-  title: 'Odoo AI ERP — 영업·제조 지능화',
+  title: 'Odoo 컨설팅 — 모듈별 경영컨설팅',
 };
+
+// 『AI ERP 혁명』 제2부(8~17장)의 모듈별 컨설팅 체계
+const modules = [
+  {
+    title: '웹사이트·이커머스 (9장)',
+    q: '"방문자 중 몇 명이 구매하고, 몇 명이 장바구니에서 사라지는가"',
+    body: '고객 접점의 퍼널 데이터를 단일 원장으로 수집합니다. 전환율이 보이면 마케팅 예산의 근거가 생깁니다.',
+    icon: 'tabler:world',
+  },
+  {
+    title: 'CRM·판매 (10장)',
+    q: '"이번 달 수주는 얼마가 진짜로 들어오는가"',
+    body: '파이프라인 단계 정의의 합의가 먼저입니다 — 합의되지 않은 CRM은 입력되지 않고, 입력되지 않는 CRM은 어떤 AI로도 구제되지 않습니다.',
+    icon: 'tabler:target-arrow',
+  },
+  {
+    title: '매입·구매 (11장)',
+    q: '"그 단가는 최신인가, 발주는 왜 늦는가"',
+    body: '단가 수첩과 팩스 뭉치 속 조달 지식을 시스템으로. 재주문 규칙·RFQ 자동화·공급업체 리드타임 관리.',
+    icon: 'tabler:shopping-cart',
+  },
+  {
+    title: '재고 관리 (12장)',
+    q: '"지금 장부의 숫자는 진실인가"',
+    body: '로케이션 체계·로트 추적·재고 정확도 — 모든 지능화의 전제입니다. 재고에서 시작하라고 권하는 이유입니다.',
+    icon: 'tabler:packages',
+  },
+  {
+    title: '제조 관리 (13장)',
+    q: '"계획 대 실적은 왜 늘 어긋나는가"',
+    body: 'MRP와 현장 POP 실적의 24시간 이내 일치. 원가 적산, 그리고 유한능력 계획(frePPLe 부스터)까지.',
+    icon: 'tabler:building-factory-2',
+  },
+  {
+    title: '회계 (14장)',
+    q: '"영업이익이 줄어든 이유를 며칠 만에 아는가"',
+    body: '월 마감 체계와 이익 분해. 원가 상승 → 재작업 증가 → 특정 로트 — 역추적이 몇 주가 아니라 한 번의 질의가 됩니다.',
+    icon: 'tabler:calculator',
+  },
+  {
+    title: 'Odoo AI·지식센터 (15장)',
+    q: '"우리 회사의 노하우는 어디에 있는가"',
+    body: '업무가 일어나는 자리의 AI — 자연어 질의와 에이전트의 활용, 그리고 그 한계까지 정직하게 안내합니다.',
+    icon: 'tabler:message-chatbot',
+  },
+  {
+    title: '확장 부스터 (16장)',
+    q: '"플랫폼이 못 하는 것은 무엇으로 채우는가"',
+    body: '지식그래프 아키텍처 — 관계 추론과 데이터 주권. 에이에스씨의 AI 지능화 기술 페이지에서 자세히.',
+    icon: 'tabler:puzzle',
+  },
+  {
+    title: '도입 로드맵 (17장)',
+    q: '"그래서, 무엇부터 시작하면 되는가"',
+    body: '가치와 기반의 두 원리로 순서를 정합니다. 관문 미달의 대응은 연기가 아니라 범위 축소입니다.',
+    icon: 'tabler:map-2',
+  },
+];
 ---
 
 <Layout metadata={metadata}>
-  <!-- Hero ************************* -->
-
   <Hero
     actions={[
-      { variant: 'primary', text: '컨설팅 문의', href: '/about#contact', icon: 'tabler:mail' },
-      { text: '책으로 자세히', href: '/book', icon: 'tabler:book' },
+      { variant: 'primary', text: '상담 신청', href: '/about#contact', icon: 'tabler:mail' },
+      { text: '책 제2부로 깊이 보기', href: '/book', icon: 'tabler:book' },
     ]}
-    image={{ src: '~/assets/images/odoo-architecture.jpg', alt: 'Odoo 중심 AI ERP 아키텍처 — IT·지능화·OT 3계층' }}
+    image={{ src: '~/assets/images/odoo-architecture.jpg', alt: 'Odoo 단일 원장 아키텍처' }}
   >
     <Fragment slot="title">
-      Odoo 중심 AI ERP <br />
-      <span class="text-accent dark:text-white">영업·제조 지능화</span>
+      Odoo 컨설팅 <br />
+      <span class="text-accent dark:text-white">모듈이 아니라 경영을 봅니다</span>
     </Fragment>
 
     <Fragment slot="subtitle">
-      기존 ERP/MES/SCM/PLM의 구축 중심 사고에서 <span class="font-semibold">AI ERP 플랫폼</span>으로. 에이에스씨는
-      IT(운영) — 지능화(판단) — OT(수집)의 세 계층을 하나의 데이터 순환으로 잇습니다.
+      Odoo의 모든 모듈은 <span class="font-semibold">단일 원장 위의 관점</span>입니다. 웹 주문이 수주가 될 때
+      재입력이 없고, 제조 실적이 재고가 될 때 대사가 없습니다. 그래서 모듈 컨설팅의 본질은 기능 도입이 아니라
+      <span class="font-semibold">데이터 정비</span>입니다 — 이 페이지의 아홉 개 질문이 그 출발점입니다.
     </Fragment>
   </Hero>
 
-  <!-- IT 계층 ********************** -->
+  <Note title="컨설팅의 문법:" description="경영의 질문 → 데이터 3정5S → 보이는·말하는·추론하는 3단계 → KPI의 DMAIC 루프 — 아홉 모듈이 같은 문법으로." />
 
-  <Features
-    id="it"
-    tagline="IT 영역 — 실시간 운영솔루션"
-    title="Odoo 플랫폼: 하나의 원장, 모든 업무"
-    subtitle="전사 ERP · 협력사 SCM · 설계 PLM · 제조현장 MES가 단일 PostgreSQL 원장 위에서 움직입니다."
+  <!-- 모듈 9개 — 경영의 질문 카드 -->
+  <section class="px-4 py-12 sm:px-6 mx-auto max-w-6xl">
+    <div class="mb-10 text-center">
+      <p class="text-base text-secondary font-bold tracking-wide uppercase">모듈별 경영컨설팅</p>
+      <h2 class="text-3xl md:text-4xl font-bold tracking-tight dark:text-white">아홉 개의 질문</h2>
+      <p class="mt-2 text-muted">『AI ERP 혁명』 제2부(8~17장)의 체계 그대로 — 카드의 질문에 답이 막히는 곳이 컨설팅의 시작점입니다.</p>
+    </div>
+    <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      {
+        modules.map((m) => (
+          <div class="p-6 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/40 flex flex-col">
+            <h3 class="text-lg font-bold dark:text-white mb-1.5">{m.title}</h3>
+            <p class="text-primary dark:text-blue-300 font-semibold text-sm mb-2">{m.q}</p>
+            <p class="text-muted text-sm">{m.body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- 도입 시나리오 -->
+  <Steps
+    id="scenario"
+    title="업종·규모별 도입 시나리오"
+    tagline="무엇부터, 얼마나"
     items={[
       {
-        title: 'ERP — 전사 운영',
-        description: '견적→수주→출하→수금, 발주→입고→지불이 재입력 없이 흐릅니다. 사건은 한 번만 기록됩니다.',
-        icon: 'tabler:database',
+        title: '1인 이커머스 — <span class="font-medium">3주 경량 모델</span>',
+        description: '구축은 제공자가 대행하고 사업자는 검증만. 월 수백 건 규모가 되면 같은 플랫폼 위에서 정식 로케이션 체계로 — 재구축 없이.',
+        icon: 'tabler:shopping-bag',
       },
       {
-        title: 'SCM — 협력사 연동',
-        description: '재주문 규칙과 공급업체 포털로 조달을 자동화하고, 납품 이력이 품질 역추적의 근거가 됩니다.',
+        title: '5~50인 제조 — <span class="font-medium">재고에서 제조로, 9~13개월</span>',
+        description: '재고 정확도 없는 MRP는 틀린 소요량을 정밀하게 계산할 뿐. 재고→제조 POP→회계→지능화의 관문식 도입.',
+        icon: 'tabler:building-factory-2',
+      },
+      {
+        title: '유통·서비스 — <span class="font-medium">고객 접점에서 회계로, 6~10개월</span>',
+        description: 'CRM 파이프라인 합의에서 시작해 채널 재고 단일화, 현금 흐름으로 닫습니다.',
         icon: 'tabler:truck-delivery',
       },
       {
-        title: 'PLM — 설계 부문',
-        description: 'BOM·도면·설계변경(ECO)이 제조 오더와 같은 원장에서 관리됩니다.',
-        icon: 'tabler:pencil-cog',
-      },
-      {
-        title: 'MES — 제조 현장',
-        description: '작업지시·실적·불량이 POP로 실시간 집계되어 계획 대 실적이 한 화면에서 대비됩니다.',
-        icon: 'tabler:building-factory-2',
+        title: '공통 원칙',
+        description: '첫 단계는 기록의 단일화, 첫 환류는 6개월 이내, 확장은 모듈 수가 아니라 성숙도의 상승.',
+        icon: 'tabler:flag-check',
       },
     ]}
+    image={{ src: '~/assets/images/aierp-cover.jpg', alt: 'AI ERP 혁명 — 도입 로드맵' }}
   />
-
-  <!-- 지능화 계층 ****************** -->
-
-  <Note title="지능화 영역:" description="AI 에이전트 + 온톨로지·지식그래프 — 기록 위에 판단의 층위를 얹습니다." />
-
-  <Content
-    id="intelligence"
-    isReversed
-    tagline="지능화 영역 — Intelligent"
-    title="예측시스템: 일정 · 비용 · 품질 · 설비 · 공정"
-    items={[
-      {
-        title: 'APS · CPS · 빅데이터',
-        description: '계획부문 APS, Digital Twin, 품질불량·설비고장 예측, 공정최적화까지 예측의 전 영역.',
-      },
-      {
-        title: '온톨로지-지식그래프 플랫폼',
-        description: '베테랑의 감과 부서 관행 — 사각지대의 암묵지를 업무에 쓰는 지식으로 키워 근거 있는 답을 만듭니다.',
-      },
-      {
-        title: '제조현장 제어 (Control)',
-        description: '설비자동화·시뮬레이션 — PLC 기반 양방향 통신과 IoT 플랫폼으로 판단이 현장 제어로 이어집니다.',
-      },
-    ]}
-    image={{ src: '~/assets/images/odoo-architecture.jpg', alt: '지능화 영역 아키텍처' }}
-  >
-    <Fragment slot="content">
-      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-2">네 가지 지능화</h3>
-      <ul class="mb-4 list-disc list-inside text-muted">
-        <li>수요예측을 통한 영업 지능화</li>
-        <li>재고 최적화 및 생산계획 자동화</li>
-        <li>IoT를 이용한 설비예지 지능화</li>
-        <li>기업의 노하우를 지식센터 지능화</li>
-      </ul>
-      개선은 이벤트가 아니라 상시 상태로 — DMAIC 루프가 데이터 위에서 스스로 돕니다.
-    </Fragment>
-
-    <Fragment slot="bg">
-      <div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div>
-    </Fragment>
-  </Content>
-
-  <!-- OT 계층 ********************** -->
-
-  <Features
-    id="ot"
-    tagline="OT 영역 — 데이터 수집 솔루션"
-    title="현장 데이터가 시작점입니다"
-    subtitle="수기기록 → ICT 장비 입력 → PLC 자동 수집으로 단계적 전환. 환류: 생산·품질·설비 데이터가 다시 Odoo 플랫폼으로."
-    columns={3}
-    items={[
-      {
-        title: '설비 데이터 표준화',
-        description: '기계·공정별 소수점·단위·측정면·측정위치를 기준으로 데이터 속성을 표준화합니다.',
-        icon: 'tabler:ruler-measure',
-      },
-      {
-        title: 'Edge Computing · IoT',
-        description: '설비 센서와 PLC에서 발생하는 데이터를 엣지에서 수집·전처리해 플랫폼으로 올립니다.',
-        icon: 'tabler:cpu-2',
-      },
-      {
-        title: 'OCR · RPA 자동화',
-        description: '팩스 발주서도 스캔 한 번으로 — OCR·AI가 발주 정보를 추출해 중앙 DB에 자동 저장합니다.',
-        icon: 'tabler:scan',
-      },
-    ]}
-  />
-
-  <!-- 도입 순서 ******************** -->
-
-  <Steps
-    id="roadmap"
-    title="도입은 이 순서로"
-    tagline="도입 로드맵"
-    items={[
-      {
-        title: '진단 — <span class="font-medium">경영 질문·데이터 성숙도·현장 5S</span>',
-        description: '2~4주. 무엇을 알고 싶은지(경영 질문)와 데이터의 현재 상태를 함께 진단합니다.',
-        icon: 'tabler:search',
-      },
-      {
-        title: '기반 — <span class="font-medium">기록의 단일화</span>',
-        description: 'Odoo 단일 원장 구축. 품목·거래처 코드 통합과 재고 실사로 장부의 숫자를 진실로 만듭니다.',
-        icon: 'tabler:database',
-      },
-      {
-        title: '적재 — <span class="font-medium">현장 실적의 실시간화</span>',
-        description: 'POP·IoT로 현장 실적이 24시간 이내에 정확히 잡히는 상태를 만듭니다.',
-        icon: 'tabler:clock-check',
-      },
-      {
-        title: '지능화 — <span class="font-medium">예측·온톨로지·에이전트</span>',
-        description: '수요예측과 재고 최적화, 지식그래프 위의 판단, 승인 기반의 자동 실행(HITL).',
-        icon: 'tabler:sparkles',
-      },
-      {
-        title: '환류 — 오늘의 오차가 내일의 예측을 정확하게',
-        icon: 'tabler:refresh',
-      },
-    ]}
-    image={{ src: '~/assets/images/aierp-cover.jpg', alt: 'AI ERP 혁명 표지' }}
-  />
-
-  <!-- FAQ ************************* -->
 
   <FAQs
     id="faq"
@@ -181,36 +154,31 @@ const metadata = {
       {
         title: '왜 Odoo인가요?',
         description:
-          '라이선스 비용 없이 시작해 모듈로 확장하는 오픈소스 단일 플랫폼입니다. 전 부문 통합과 AI 확장의 자유 — 기존 국산 ERP·외산 대형 ERP 사이의 공백을 정확히 메웁니다.',
+          '라이선스 비용 없이 시작하는 오픈소스 단일 플랫폼으로, 전 부문 통합과 AI 확장의 자유를 동시에 줍니다. 국산 ERP와 외산 대형 ERP 사이의 공백을 정확히 메웁니다.',
       },
       {
-        title: '우리 회사는 규모가 작은데 가능할까요?',
-        description:
-          '1인 이커머스의 3주 경량 모델부터 50인 제조기업의 단계적 도입까지, 규모별 표준 시나리오로 시작합니다. 첫 환류는 6개월 이내가 원칙입니다.',
+        title: '기존 ERP·MES가 있으면 버려야 하나요?',
+        description: '아닙니다. 데이터 성숙도 진단 후, 지능화 층위만 얹는 경로와 단계적 이관 경로를 함께 검토합니다.',
       },
       {
-        title: '이미 ERP·MES가 있는데요?',
+        title: '한국 세무·회계는 되나요?',
         description:
-          '기존 시스템의 데이터 성숙도 진단부터 시작합니다. 교체가 아니라 지능화 층위를 얹는 경로, 단계적 이관 경로를 함께 검토합니다.',
+          '한국 로컬라이제이션은 파트너 생태계에 의존하는 영역이 있어, 구축 범위 설계 때 정직하게 구분해 안내합니다. 한계를 아는 도입만이 한계를 관리할 수 있습니다.',
       },
       {
-        title: '기간과 비용은 어느 정도인가요?',
-        description:
-          '범위에 따라 다르나, 제조기업 표준 시나리오 기준 재고→제조→지능화까지 약 9~13개월입니다. 진단 후 관문별 범위와 비용을 제시합니다.',
+        title: '이 내용은 어디서 더 볼 수 있나요?',
+        description: '이 페이지의 체계 전부가 『Odoo를 중심으로 AI ERP 혁명』 제2부에 공개되어 있습니다. 지식을 감추지 않는 것이 에이에스씨의 방식입니다.',
       },
     ]}
   />
 
-  <!-- CTA ************************* -->
-
   <CallToAction
-    id="cta"
     actions={[
-      { variant: 'primary', text: '컨설팅 문의', href: '/about#contact', icon: 'tabler:mail' },
-      { text: '책으로 깊이 보기', href: LINKS.kyobo, target: '_blank', icon: 'tabler:book' },
+      { variant: 'primary', text: '상담 신청', href: '/about#contact', icon: 'tabler:mail' },
+      { text: '제2부가 담긴 책 보기', href: LINKS.kyobo, target: '_blank', icon: 'tabler:book' },
     ]}
   >
-    <Fragment slot="title">기업의 사각지대가 성과로 바뀌는 길</Fragment>
-    <Fragment slot="subtitle">그 길의 지도는 『AI ERP 혁명』에, 첫 걸음은 에이에스씨와 함께.</Fragment>
+    <Fragment slot="title">아홉 개 질문 중 몇 개에 답하실 수 있습니까</Fragment>
+    <Fragment slot="subtitle">막히는 질문이 곧 개선 여지의 금액입니다. 진단에서 시작하세요.</Fragment>
   </CallToAction>
 </Layout>
