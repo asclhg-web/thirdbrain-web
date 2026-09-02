@@ -1,8 +1,17 @@
+# ⚠️ 이 브랜치(claude/odoo-ai-erp-book-wqx1bk)는 asc.kr(에이에스씨) 사이트를 배포한다.
+# base를 asc-web으로 강제 지정 — Netlify UI에서 Base directory를 비워 두어도 asc-web이 빌드된다.
+# (thirdbrain.kr은 main 브랜치에서 배포되므로 영향 없음. main에 병합할 때는 이 파일을 원복할 것.)
 [build]
-  publish = "dist"
+  base = "asc-web"
   command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
 [build.processing.html]
   pretty_urls = false
+
 [[headers]]
   for = "/_astro/*"
   [headers.values]
