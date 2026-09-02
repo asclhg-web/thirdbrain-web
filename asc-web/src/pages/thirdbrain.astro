@@ -50,6 +50,18 @@ const metadata = { title: '『서드브레인』 — 세 번째 뇌를 깨워라
     ]}
   />
 
+  <Features
+    id="more"
+    tagline="함께하면 좋은"
+    title="서드브레인의 실천 프로그램"
+    columns={3}
+    items={[
+      { title: '30일 몰입 프로그램 · 부트캠프', description: '책의 내용을 행동으로 — 몸·지식·AI·습관 4주 커리큘럼과 집중 워크숍.', icon: 'tabler:flame', callToAction: { text: '프로그램 보기 →', href: '/program' } },
+      { title: 'EEG 수면·인지개선', description: '뇌파(EEG)로 수면과 집중을 데이터로 확인하는 프로젝트.', icon: 'tabler:activity-heartbeat', callToAction: { text: '프로젝트 보기 →', href: '/eeg' } },
+      { title: '뇌건강 부록', description: '수면·운동·명상·영양 — 뇌를 최적 상태로 만드는 6편의 가이드.', icon: 'tabler:heart-plus', callToAction: { text: '부록 보기 →', href: '/appendix' } },
+    ]}
+  />
+
   <CallToAction
     actions={[
       { variant: 'primary', text: '책 구매 (교보문고)', href: LINKS.kyoboThirdbrain, target: '_blank', icon: 'tabler:book' },

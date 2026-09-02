@@ -1,0 +1,232 @@
+---
+import Layout from '~/layouts/PageLayout.astro';
+
+import Hero from '~/components/widgets/Hero.astro';
+import Note from '~/components/widgets/Note.astro';
+import Features from '~/components/widgets/Features.astro';
+import Content from '~/components/widgets/Content.astro';
+import Steps from '~/components/widgets/Steps.astro';
+import CallToAction from '~/components/widgets/CallToAction.astro';
+import { LINKS } from '~/data/links';
+
+const metadata = {
+  title: '부록 · 뇌운동과 뇌영양식품',
+  description:
+    '생물학적 뇌의 최적화 — 수면(글림프), 뇌운동(BDNF), 명상·복식호흡, 뇌식품(장-뇌축), 치매·파킨슨·뇌졸중 예방까지. 평생을 위한 두 번째 뇌 건강 가이드.',
+};
+---
+
+<Layout metadata={metadata}>
+  <!-- Hero ************************** -->
+
+  <Hero
+    actions={[
+      { variant: 'primary', text: '책 구매', href: LINKS.kyoboThirdbrain, icon: 'tabler:book' },
+      { text: '핵심 5영역 보기', href: '#areas' },
+    ]}
+    image={{ src: '~/assets/images/biological-brain.jpg', alt: '생물학적 뇌' }}
+  >
+    <Fragment slot="title">
+      부록 — 뇌운동과 <br />
+      <span class="text-accent dark:text-white">뇌영양식품</span>
+    </Fragment>
+    <Fragment slot="subtitle">
+      모든 인지의 토대는 <span class="font-semibold">건강한 생물학적 뇌</span>입니다.
+      가장 정교한 디지털 뇌도, 강력한 AI 협업도, 뇌가 무너지면 함께 무너집니다.
+      『뇌경영』(2008)의 통찰을 17년의 신경과학으로 업데이트한 평생 건강 가이드.
+    </Fragment>
+  </Hero>
+
+  <!-- Note ************************* -->
+
+  <Note
+    title="핵심 메시지:"
+    description="생물학적 뇌의 물리적 상태가 안정되어야 모든 인지의 정점이 가능합니다."
+  />
+
+  <!-- 5 핵심 영역 **************** -->
+
+  <Features
+    id="areas"
+    tagline="생물학적 뇌 최적화"
+    title="평생을 위한 다섯 가지 토대"
+    subtitle="이 다섯 가지가 70년의 물리적 토대를 만들고, 그 위에서 서드브레인이 작동합니다."
+    items={[
+      {
+        title: '① 수면과 꿈',
+        description:
+          '수면 중 뇌가 스스로를 청소합니다(글림프 시스템). 깊은 잠이 베타-아밀로이드를 씻어내 치매를 예방합니다.',
+        icon: 'tabler:moon',
+      },
+      {
+        title: '② 뇌 운동',
+        description:
+          '유산소·근력 운동이 BDNF(뇌의 기적의 비료)를 분비시켜 새 뉴런을 키우고 기억을 강화합니다.',
+        icon: 'tabler:run',
+      },
+      {
+        title: '③ 명상·멍때리기·호흡',
+        description:
+          '8주 마음챙김 명상이 뇌 구조를 바꿉니다. 멍때리기(DMN)와 4-4-8 복식호흡이 사고의 깊이를 만듭니다.',
+        icon: 'tabler:wind',
+      },
+      {
+        title: '④ 뇌 식품',
+        description:
+          '장-뇌 축 — 장 미생물이 세로토닌의 90%를 만듭니다. 한식은 세계 최고의 뇌 식단입니다.',
+        icon: 'tabler:salad',
+      },
+      {
+        title: '⑤ 예방',
+        description:
+          '치매·파킨슨·뇌졸중 위험의 80%는 생활습관이 결정합니다. 지금 시작해도 늦지 않습니다.',
+        icon: 'tabler:shield-heart',
+      },
+      {
+        title: '⑥ 간헐적 단식',
+        description:
+          '12~16시간 공복이 오토파지(세포 자가청소, 노벨상)를 깨워 손상 단백질을 재활용합니다.',
+        icon: 'tabler:clock',
+      },
+    ]}
+  />
+
+  <!-- 뇌 운동 3축 *************** -->
+
+  <Content
+    isReversed
+    tagline="뇌 운동 · BDNF"
+    title="운동이 뇌를 자라게 한다 — 3축 운동"
+    image={{ src: '~/assets/images/exercise-bdnf.png', alt: 'BDNF 신경세포 생성' }}
+    items={[
+      { title: 'HIIT (고강도 인터벌)', description: '4분 빠른 걷기 + 3분 천천히, 4회 반복. BDNF를 일반 유산소의 3배 분비.' },
+      { title: '저강도 지속', description: '하루 7,000보 이상의 걷기. 사망률을 절반으로.' },
+      { title: '근력 운동', description: '주 2회 가벼운 덤벨·체조. 마이오카인이 뇌를 보호.' },
+    ]}
+  >
+    <Fragment slot="content">
+      <p>
+        황금 균형은 심박수 <span class="font-semibold">(220 − 나이) × 0.6~0.7</span> 영역.
+        과하지도 부족하지도 않게, 8주 이상 꾸준히 — 인내가 핵심입니다.
+      </p>
+    </Fragment>
+    <Fragment slot="bg"><div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div></Fragment>
+  </Content>
+
+  <!-- 7가지 뇌 식품 ************* -->
+
+  <Content
+    isAfterContent
+    tagline="뇌 식품 · 장-뇌 축"
+    title="2026년의 7가지 핵심 뇌 식품"
+    items={[
+      { title: '등푸른 생선 (오메가-3)', description: '연어·고등어·정어리. 주 2~3회. 알츠하이머 위험 45%↓.' },
+      { title: '베리류 (안토시아닌)', description: '블루베리·오디. 뇌혈관 보호, 해마 신경 발생 자극.' },
+      { title: '잎채소', description: '시금치·케일·브로콜리. 인지 노화를 11년 늦춤.' },
+      { title: '견과류 (특히 호두)', description: '오메가-3 풍부. 매일 한 줌(28g).' },
+      { title: '발효 식품', description: '김치·된장·청국장. 건강한 장 미생물 = 한국의 행운.' },
+      { title: '강황·다크초콜릿', description: '커큐민(항염)과 플라보노이드. 해마 혈류 25%↑.' },
+    ]}
+    image={{ src: '~/assets/images/brain-food.png', alt: '7가지 핵심 뇌식품' }}
+  >
+    <Fragment slot="content">
+      <h3 class="text-2xl font-bold tracking-tight dark:text-white sm:text-3xl mb-2">한식 한 끼 = 세계 최고의 뇌 식단</h3>
+      <p>
+        밥·김치·된장국·시금치나물·고등어구이·호두·녹차 — 한식 한 끼에 7가지 중 6가지가 들어 있습니다.
+        한국인으로 사는 것은 식문화적 행운입니다.
+      </p>
+    </Fragment>
+    <Fragment slot="bg"><div class="absolute inset-0 bg-primary/5 dark:bg-transparent"></div></Fragment>
+  </Content>
+
+  <!-- 표준 하루 **************** -->
+
+  <Steps
+    id="day"
+    title="뇌 건강을 위한 표준 하루"
+    tagline="통합 루틴"
+    items={[
+      { title: '아침 · 깨움', description: '4-4-8 복식호흡 5분 → 마음챙김 명상 10분 → 뇌 주스(베리+시금치+호두+요거트+강황).', icon: 'tabler:sunrise' },
+      { title: '오전 · 몰입과 운동', description: '90분 몰입 세션 → HIIT 30분 → 한식 아침 + 녹차.', icon: 'tabler:run' },
+      { title: '낮 · 회복', description: '햇볕 산책 30분(멍때리기) → 한식 점심 → 20분 낮잠.', icon: 'tabler:walk' },
+      { title: '오후 · 연결', description: '몰입/근력 운동 → 사회적 만남·봉사(주 3회 이상).', icon: 'tabler:users' },
+      { title: '저녁 · 마무리', description: '저녁 7시 전 가벼운 식사(14시간 공복 시작) → 디지털 끄기 → 우유·국화차 → 4-4-8 호흡 → 취침.', icon: 'tabler:moon' },
+    ]}
+    image={{ src: '~/assets/images/daily-routine.png', alt: '뇌건강 일과표' }}
+  />
+
+  <!-- 자가 진단 *************** -->
+
+  <Content tagline="실천" title="이번 주 자가 점검">
+    <Fragment slot="content">
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div class="rounded-lg border border-gray-200 dark:border-slate-700 p-5">
+          <h4 class="font-bold mb-2">😴 수면 점수 (7일 평균)</h4>
+          <ul class="text-sm text-muted list-disc list-inside space-y-1">
+            <li>7~9시간을 잤는가?</li>
+            <li>30분 이내에 잠들었는가?</li>
+            <li>밤중에 깬 횟수 1회 이하?</li>
+            <li>일어나 상쾌했는가?</li>
+            <li>오전 졸림이 없었는가?</li>
+          </ul>
+          <p class="mt-2 text-xs text-muted">각 1~5점 · 20점↑ 좋음 / 15점↓ 개선 필요</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-slate-700 p-5">
+          <h4 class="font-bold mb-2">🥗 뇌 식품 점검 (주당 횟수)</h4>
+          <ul class="text-sm text-muted list-disc list-inside space-y-1">
+            <li>등푸른 생선 · 베리류 · 잎채소</li>
+            <li>견과류 · 발효식품</li>
+            <li>강황/카레 · 다크초콜릿</li>
+          </ul>
+          <p class="mt-2 text-xs text-muted">각 주 3회 이상이 최적 · 5개군↑이면 세계적 수준</p>
+        </div>
+      </div>
+    </Fragment>
+  </Content>
+
+  <!-- 장별 자세히 읽기 (전문) *** -->
+
+  <section class="px-4 py-12 sm:px-6 mx-auto max-w-5xl">
+    <div class="mb-8 text-center">
+      <p class="text-base text-secondary font-bold tracking-wide uppercase">원고 전문</p>
+      <h2 class="text-3xl font-bold tracking-tight dark:text-white">장별로 자세히 읽기</h2>
+      <p class="mt-2 text-muted">부록 원고 6개 장의 전문을 블로그에서 읽을 수 있습니다.</p>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2">
+      {
+        [
+          { n: '1장', t: '수면과 꿈, 글림프 시스템의 발견', d: '수면 중 뇌의 청소 · 매튜 워커 · 깊은 수면 전략', href: '/appendix-1-sleep' },
+          { n: '2장', t: '뇌 운동, BDNF의 분비를 깨우는 길', d: 'HIIT·저강도·근력 3축 운동과 정교한 균형', href: '/appendix-2-exercise' },
+          { n: '3장', t: '명상, 멍때리기, 복식 호흡', d: '8주가 바꾸는 뇌 · 명상 4종류 · 4-4-8 호흡', href: '/appendix-3-meditation' },
+          { n: '4장', t: '뇌 식품, 매일 먹는 음식의 진실', d: '장-뇌 축 · 7가지 식품 · 아침 주스 레시피', href: '/appendix-4-food' },
+          { n: '5장', t: '치매·파킨슨·뇌졸중의 예방', d: '12가지 위험요인 · 7단계 예방 · 오토파지', href: '/appendix-5-prevention' },
+          { n: '6장', t: '통합 — 표준 하루', d: '모든 권고를 하나의 하루로', href: '/appendix-6-routine' },
+        ].map((c) => (
+          <a
+            href={c.href}
+            class="block p-5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/40 hover:border-primary transition"
+          >
+            <div class="text-sm font-bold text-secondary mb-1">{c.n}</div>
+            <div class="text-lg font-bold text-accent dark:text-white mb-1">{c.t}</div>
+            <div class="text-sm text-muted">{c.d}</div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- CTA ******************** -->
+
+  <CallToAction
+    actions={[
+      { variant: 'primary', text: '책 구매', href: LINKS.kyoboThirdbrain, icon: 'tabler:book' },
+      { text: '30일 몰입 시작', href: '/program#apply', icon: 'tabler:flame' },
+    ]}
+  >
+    <Fragment slot="title">건강한 뇌 위에, 세 번째 뇌를</Fragment>
+    <Fragment slot="subtitle">
+      지금 시작해도 늦지 않습니다.<br class="hidden md:inline" />
+      매일의 작은 의식이 미래의 큰 차이를 만듭니다.
+    </Fragment>
+  </CallToAction>
+</Layout>

@@ -13,6 +13,9 @@ export const headerData = {
       links: [
         { text: 'AI ERP 혁명 (신간)', href: getPermalink('/book') },
         { text: '서드브레인', href: getPermalink('/thirdbrain') },
+        { text: '서드브레인 프로그램 (30일·부트캠프)', href: getPermalink('/program') },
+        { text: 'EEG 수면·인지개선 프로젝트', href: getPermalink('/eeg') },
+        { text: '뇌건강 (뇌운동·뇌영양)', href: getPermalink('/appendix') },
       ],
     },
     { text: '회사 소개', href: getPermalink('/about') },
@@ -38,6 +41,8 @@ export const footerData = {
       links: [
         { text: '『Odoo를 중심으로 AI ERP 혁명』', href: getPermalink('/book') },
         { text: '『서드브레인』', href: getPermalink('/thirdbrain') },
+        { text: '서드브레인 프로그램', href: getPermalink('/program') },
+        { text: '뇌건강 부록', href: getPermalink('/appendix') },
         { text: 'AI ERP 혁명 구매 (교보)', href: LINKS.kyobo },
         { text: '서드브레인 구매 (교보)', href: LINKS.kyoboThirdbrain },
       ],
