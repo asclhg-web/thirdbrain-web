@@ -101,7 +101,8 @@ class DeterministicBackend:
             for h in retrieved["hits"]:
                 kind = "승격 규칙" if h["kind"] == "rule" else "원인 후보(미승격)"
                 conf = f"{h['confidence']:.0%}" if h.get("confidence") else "-"
-                lines.append(f"{kind}: {h['text']} (확신도 {conf}) [근거: Rule:{h['rule_key']}]")
+                text = h["text"] or confidence.rule_text(h.get("dims", {}))
+                lines.append(f"{kind}: {text} (확신도 {conf}) [근거: Rule:{h['rule_key']}]")
         elif qt == "history":
             for h in retrieved["hits"]:
                 lines.append(f"{h['date']} {h['type']} — {h.get('note','')} "

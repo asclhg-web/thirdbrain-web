@@ -46,7 +46,8 @@ def register(asset_id: str, kind: str, location: str, owner: str,
 def latest(asset_id: str) -> dict | None:
     init()
     return db.one(
-        "SELECT * FROM asset_ledger WHERE asset_id=? ORDER BY updated_at DESC LIMIT 1",
+        "SELECT * FROM asset_ledger WHERE asset_id=? "
+        "ORDER BY updated_at DESC, version DESC LIMIT 1",
         (asset_id,),
     )
 
