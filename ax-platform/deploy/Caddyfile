@@ -1,0 +1,23 @@
+# 리버스 프록시 — 사내 TLS, 경로 라우팅 (M0-1)
+{$AXP_DOMAIN} {
+	tls /certs/axp.crt /certs/axp.key
+
+	handle_path /auth/* {
+		reverse_proxy keycloak:8080
+	}
+	handle_path /board/* {
+		reverse_proxy superset:8088
+	}
+	handle_path /lab/* {
+		reverse_proxy jupyter:8888
+	}
+	handle_path /flow/* {
+		reverse_proxy n8n:5678
+	}
+	handle_path /mlflow/* {
+		reverse_proxy mlflow:5000
+	}
+	handle {
+		reverse_proxy axp-api:8000   # 근거 API·판단 카드·승인함·War Room
+	}
+}

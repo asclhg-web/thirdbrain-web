@@ -1,0 +1,27 @@
+# 데이터 계약 규격서 템플릿 (M0-3, W4 양식)
+# 파일명 = 테이블/특징셋 이름. PR 승인(스튜어드+플랫폼 리드) 없이 병합 금지.
+name: fact_example          # 테이블 또는 특징셋 이름
+kind: fact                  # fact | dim | staging | features
+owner: 현장 스튜어드 <이름>  # 이 데이터의 소유자(질문을 받는 사람)
+version: v1.0
+update_cycle: daily         # realtime | daily | weekly | on_upload
+description: 한 줄 설명 — 이 데이터가 답하는 질문
+source: staging.example     # 원천(스테이징 테이블·업로드 양식·장표 폼)
+columns:
+  - name: date_key
+    type: date
+    required: true
+    description: 발생일
+  - name: equipment_id      # 4M 차원 키 예시
+    type: text
+    ref: dim_equipment.equipment_id
+    description: 설비(Machine)
+  - name: qty
+    type: number
+    unit: EA                # 단위 필수 — 단위 없는 수치는 사고의 씨앗
+    min: 0
+    description: 수량
+quality_notes: |
+  게이트가 자동 검사하는 것 외의 주의사항을 적는다.
+change_log:
+  - {version: v1.0, date: 2026-09-10, note: 최초 제정}

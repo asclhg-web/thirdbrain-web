@@ -1,0 +1,154 @@
+# AX Platform — 폐쇄망 코어 스택 (M0-1)
+# 기동: cp .env.example .env && 값 채우기 && docker compose up -d
+# 검증: docker compose ps 로 전 서비스 healthy 확인 (runbook.md 참조)
+name: ax-platform
+
+networks:
+  core:          # 폐쇄망 코어 — 외부 노출 없음
+    internal: true
+  edge:          # 리버스 프록시만 접속
+
+volumes:
+  pg_data:
+  minio_data:
+  neo4j_data:
+  mlflow_data:
+  ollama_data:
+  n8n_data:
+  keycloak_data:
+  backup:        # M0-2 백업 1차 사본 (2차 매체·원격은 backup/ 스크립트가 처리)
+
+services:
+  proxy:
+    image: caddy:2.8.4
+    restart: unless-stopped
+    networks: [edge, core]
+    ports: ["443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    healthcheck: { test: ["CMD", "caddy", "version"], interval: 30s, timeout: 5s, retries: 3 }
+
+  postgres:
+    image: postgres:16.4
+    restart: unless-stopped
+    networks: [core]
+    environment:
+      POSTGRES_DB: axp
+      POSTGRES_USER: axp
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    secrets: [pg_password]
+    volumes: ["pg_data:/var/lib/postgresql/data"]
+    command: ["postgres", "-c", "wal_level=logical"]   # M1 CDC 대비
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U axp"], interval: 10s, timeout: 5s, retries: 10 }
+
+  minio:
+    image: minio/minio:RELEASE.2024-08-17T01-24-54Z
+    restart: unless-stopped
+    networks: [core]
+    environment:
+      MINIO_ROOT_USER: axp
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_password
+    secrets: [minio_password]
+    command: server /data --console-address ":9001"
+    volumes: ["minio_data:/data"]
+    healthcheck: { test: ["CMD", "mc", "ready", "local"], interval: 30s, timeout: 5s, retries: 5 }
+
+  neo4j:
+    image: neo4j:5.23.0-community
+    restart: unless-stopped
+    networks: [core]
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?set in .env}
+      NEO4J_server_memory_heap_max__size: 2G
+    volumes: ["neo4j_data:/data"]
+    healthcheck: { test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null"], interval: 30s, timeout: 10s, retries: 10 }
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.16.0
+    restart: unless-stopped
+    networks: [core]
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri postgresql://axp@postgres:5432/axp
+      --artifacts-destination s3://mlflow/
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+    depends_on: { postgres: { condition: service_healthy } }
+    volumes: ["mlflow_data:/mlflow"]
+
+  ollama:
+    image: ollama/ollama:0.3.12
+    restart: unless-stopped
+    networks: [core]
+    volumes: ["ollama_data:/root/.ollama"]
+    # GPU: deploy.resources.reservations.devices 로 현장 사양에 맞게 활성화
+
+  jupyter:
+    image: jupyter/minimal-notebook:python-3.11
+    restart: unless-stopped
+    networks: [core]
+    environment: { JUPYTER_ENABLE_LAB: "yes" }
+    volumes: ["../core:/home/jovyan/core:ro", "../registry:/home/jovyan/registry:ro"]
+    # M3 원칙: 노트북은 데이터 계약을 통해서만 접근 — 원본(스테이징) 계정 권한 없음
+
+  superset:
+    image: apache/superset:4.0.2
+    restart: unless-stopped
+    networks: [core]
+    environment:
+      SUPERSET_SECRET_KEY_FILE: /run/secrets/superset_key
+    secrets: [superset_key]
+    depends_on: { postgres: { condition: service_healthy } }
+
+  n8n:
+    image: n8nio/n8n:1.58.2
+    restart: unless-stopped
+    networks: [core]
+    environment: { N8N_DIAGNOSTICS_ENABLED: "false" }
+    volumes: ["n8n_data:/home/node/.n8n"]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.6
+    restart: unless-stopped
+    networks: [core]
+    command: ["start", "--hostname-strict=false", "--proxy-headers=xforwarded", "--http-enabled=true"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD_FILE: /run/secrets/kc_password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/axp
+      KC_DB_USERNAME: axp
+    secrets: [kc_password]
+    volumes: ["keycloak_data:/opt/keycloak/data"]
+    depends_on: { postgres: { condition: service_healthy } }
+
+  axp-api:      # 코어 서비스 — 근거 API(M5-3)·카드 API(M6)·승인함 백엔드(M7)
+    build: { context: ../core }
+    restart: unless-stopped
+    networks: [core]
+    environment:
+      AXP_MODE: prod
+      AXP_DB_URL: postgresql://axp@postgres:5432/axp
+      AXP_MINIO: http://minio:9000
+      AXP_NEO4J: bolt://neo4j:7687
+      AXP_OLLAMA: http://ollama:11434
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  axp-scheduler:  # 야간 배치(M2 변환·M3 마이닝·M5 적재)·에이전트 트리거(M7)
+    build: { context: ../core }
+    command: ["python", "-m", "axp.agents.runtime", "--schedule"]
+    restart: unless-stopped
+    networks: [core]
+    environment:
+      AXP_MODE: prod
+      AXP_DB_URL: postgresql://axp@postgres:5432/axp
+    depends_on:
+      postgres: { condition: service_healthy }
+
+secrets:
+  pg_password:      { file: ./secrets/pg_password }
+  minio_password:   { file: ./secrets/minio_password }
+  superset_key:     { file: ./secrets/superset_key }
+  kc_password:      { file: ./secrets/kc_password }
