@@ -14,7 +14,7 @@ from .. import db
 from ..graph import confidence
 from ..judge import cards as jcards
 from ..judge import generator
-from ..learn import anomaly, policy, simulate
+from ..learn import anomaly, forecast, policy, simulate
 from . import runtime
 
 
@@ -85,9 +85,19 @@ def equip_alert_agent(ctx: dict) -> list[int]:
     for a in alerts:
         eq = a["equipment_id"]
         rep = anomaly.weekly_hit_report(eq)
+        # 연속 경보 일수 — 3일 이상이면 '점검'이 아니라 '계획 정비'를 제안한다
+        streak = db.scalar("""
+            SELECT COUNT(*) FROM anomaly_scores
+            WHERE equipment_id=? AND is_alert=1
+              AND date_key > date(?, '-5 days') AND date_key <= ?""",
+            (eq, as_of, as_of)) or 1
+        planned = streak >= 3
+        proposal = (f"{eq} 연속 {streak}일 이상 신호 — 48시간 내 계획 정비(부하 낮은 "
+                    f"야간대) 제안" if planned
+                    else f"{eq} 이상 신호 — 점검(온도계 교정·구동부 확인) 제안")
         card = {
             "kind": "equip_alert", "agent": "equip_alert_agent",
-            "proposal": f"{eq} 이상 신호 — 점검(온도계 교정·구동부 확인) 제안",
+            "proposal": proposal,
             "narrative": "\n".join([
                 f"{a['date_key']} 재구성 오차 {a['score']:.3f}가 임계 {a['threshold']:.3f}를 "
                 f"초과했습니다. [근거: anomaly_scores {eq}]",
@@ -99,12 +109,75 @@ def equip_alert_agent(ctx: dict) -> list[int]:
                 {"name": "임계", "value": round(a["threshold"], 3),
                  "source": f"anomaly_{eq} 모델 카드"}],
             "evidence": {"kind": "dims", "dims": {"equipment_id": eq},
-                         "equipment_id": eq, "date": a["date_key"]},
+                         "equipment_id": eq, "date": a["date_key"],
+                         "alert_streak_days": int(streak),
+                         "recommendation": "planned_maintenance" if planned else "inspection"},
             "alternatives": [{"name": "관망", "why_not": "과거 고장 전 동일 패턴 — 선행 정비가 저비용"}],
             "approver": "카드 승인자",
         }
         out.append(jcards.create(card))
     return out
+
+
+def production_plan_agent(ctx: dict) -> list[int]:
+    """⑥ 생산계획(2단계 확장) — 익일 수요 예측을 라인 용량 안에서 생산 오더로.
+
+    용량 = 라인별 과거 최대 일 계획량 × 1.1. 초과분은 '용량 초과' 경고와 함께
+    감축안을 제시 — 결정은 언제나 카드 승인으로."""
+    as_of = ctx["run_date"]
+    pred = forecast.predict(as_of)
+    next_day = pred["date_key"].min()
+    day = pred[pred["date_key"] == next_day]
+    by_prod = day.groupby("product_id")[["p50", "p90"]].sum().reset_index()
+    if by_prod.empty:
+        return []
+    lines = db.df("""
+        SELECT product_id, line_id, MAX(daily) AS cap FROM (
+          SELECT product_id, line_id, date_key, SUM(qty_planned) AS daily
+          FROM fact_production GROUP BY product_id, line_id, date_key)
+        GROUP BY product_id, line_id""")
+    line_cap = db.df("""
+        SELECT line_id, MAX(daily)*1.1 AS cap FROM (
+          SELECT line_id, date_key, SUM(qty_planned) AS daily
+          FROM fact_production GROUP BY line_id, date_key)
+        GROUP BY line_id""").set_index("line_id")["cap"]
+    plan, warn = [], []
+    load = {l: 0.0 for l in line_cap.index}
+    for r in by_prod.itertuples():
+        lrow = lines[lines["product_id"] == r.product_id]
+        line = lrow.iloc[0]["line_id"] if len(lrow) else "L1"
+        qty = float(r.p50) * 1.03                     # 폐기 여유 3%
+        load[line] = load.get(line, 0) + qty
+        plan.append({"product_id": r.product_id, "line_id": line,
+                     "qty": round(qty), "p90": round(float(r.p90))})
+    for line, used in load.items():
+        cap = float(line_cap.get(line, used))
+        if used > cap:
+            warn.append(f"{line} 용량 초과: 계획 {used:.0f} > 용량 {cap:.0f} — "
+                        f"저마진 품목 감축 또는 조 추가 검토")
+    narrative = "\n".join(
+        [f"{p['product_id']} {p['qty']}개({p['line_id']}) — 예측 P50+여유 3%. "
+         f"[근거: demand_forecast 예측 {next_day}]" for p in plan[:6]]
+        + [f"경고: {w} [근거: fact_production 라인 용량]" for w in warn])
+    card = {
+        "kind": "production_plan", "agent": "production_plan_agent",
+        "proposal": f"{next_day} 생산계획 — {len(plan)}개 품목, 총 "
+                    f"{sum(p['qty'] for p in plan):,}개"
+                    + (f" (용량 경고 {len(warn)}건)" if warn else ""),
+        "narrative": narrative,
+        "values": [{"name": f"생산 {p['product_id']}", "value": p["qty"], "unit": "EA",
+                    "source": f"demand_forecast P50×1.03 ({next_day})"} for p in plan],
+        "range": {"total_p50": sum(p["qty"] for p in plan),
+                  "total_p90": sum(p["p90"] for p in plan)},
+        "evidence": {"kind": "forecast", "store_id": "ALL", "product_id": "ALL",
+                     "plan_date": next_day, "plan": plan, "capacity_warnings": warn,
+                     "daily": day.to_dict("records")[:10]},
+        "alternatives": [
+            {"name": "P90 기준 생산", "why_not": "신선 폐기 급증 — 유통기한 1일"},
+            {"name": "전일 실적 반복", "why_not": "요일·행사 변동 무시"}],
+        "approver": "카드 승인자",
+    }
+    return [jcards.create(card)]
 
 
 def knowledge_agent(ctx: dict) -> list[int]:
@@ -130,6 +203,7 @@ def knowledge_agent(ctx: dict) -> list[int]:
 
 
 SPECS = {
+    "production_plan_agent": "트리거: 일 배치 05:30 · 입력: 익일 예측+라인 용량(fact_production) · 카드: 품목×라인 생산 오더(용량 경고 포함) · 승인자: 카드 승인자",
     "demand_agent": "트리거: 일 배치 07:00 · 입력: 특징 저장소 · 호출: demand_forecast 모델 · 카드: 7일 발주 기준수량 · 승인자: 카드 승인자",
     "replenish_agent": "트리거: 주 1회(월) · 입력: fact_sales 90일 · 호출: InventoryTwin+정책 탐색 · 카드: 정책 변경(기준선 우위 시만) · 승인자: 카드 승인자",
     "allocation_agent": "트리거: 생산 완료 이벤트 · 입력: fact_production 금일 · 호출: 판매 비중 · 카드: 매장 배분안 · 승인자: 카드 승인자",
@@ -139,6 +213,8 @@ SPECS = {
 
 
 def register_all() -> None:
+    runtime.register("production_plan_agent", "daily", production_plan_agent,
+                     SPECS["production_plan_agent"])
     runtime.register("demand_agent", "daily", demand_agent, SPECS["demand_agent"])
     runtime.register("replenish_agent", "weekly", replenish_agent, SPECS["replenish_agent"])
     runtime.register("allocation_agent", "event:production_done", allocation_agent,

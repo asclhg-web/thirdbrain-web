@@ -131,6 +131,11 @@ def apply_feedback(card_id: int, actor: str) -> dict:
         res = confidence.decide(card["evidence"]["cc_id"], True, actor,
                                 f"승인함 카드 {card_id}")
         written.append({"rule": res})
+    elif card["kind"] == "production_plan":
+        for p in card["evidence"].get("plan", []):
+            written.append(_set_param(
+                f"prod_plan:{card['evidence']['plan_date']}:{p['product_id']}",
+                float(p["qty"]), card_id, actor))
     elif card["kind"] == "allocation":
         for a in card["evidence"].get("allocations", []):
             written.append(_set_param(

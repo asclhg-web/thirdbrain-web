@@ -27,6 +27,21 @@ def test_twin_conservation():
     assert abs(served + r["stockout_qty"] - r["total_demand"]) < 1e-6
 
 
+def test_production_plan_feedback(tmp_db):
+    from axp.judge import cards as jcards
+    from axp.agents import inbox
+    cid = jcards.create({
+        "kind": "production_plan", "agent": "t", "proposal": "p",
+        "values": [{"name": "생산 P-X", "value": 100, "source": "s"}],
+        "evidence": {"kind": "forecast", "store_id": "ALL", "product_id": "ALL",
+                     "plan_date": "2026-01-02",
+                     "plan": [{"product_id": "P-X", "line_id": "L1", "qty": 100}],
+                     "daily": [{"date_key": "2026-01-02"}]},
+        "approver": "a"})
+    d = inbox.decide(cid, "승인자", "card_approver", True)
+    assert d["feedback"]["written"][0]["param"] == "prod_plan:2026-01-02:P-X"
+
+
 def test_inbox_permission_and_feedback_guard(tmp_db):
     from axp.judge import cards as jcards
     from axp.agents import inbox

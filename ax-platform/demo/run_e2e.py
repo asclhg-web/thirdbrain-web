@@ -127,8 +127,12 @@ def main(fresh: bool = True) -> dict:
     an = anomaly.train_and_register("OVEN-2", "2026-03-05", "2026-05-20")
     anomaly.score_range("OVEN-2", "2026-03-05", "2026-08-31")
     hit = anomaly.weekly_hit_report("OVEN-2")
-    print(f"이상탐지: 고장 {hit['failures']}건 중 {hit['detected']}건 선행 감지 "
-          f"(선행 {hit['median_lead_days']}일)")
+    anomaly.train_and_register("OVEN-1", "2026-03-05", "2026-05-31")   # 특이도 대조군
+    anomaly.score_range("OVEN-1", "2026-03-05", "2026-08-31")
+    spec = anomaly.weekly_hit_report("OVEN-1")
+    print(f"이상탐지: OVEN-2 고장 {hit['failures']}건 중 {hit['detected']}건 선행 감지 "
+          f"(선행 {hit['median_lead_days']}일) · 정상 설비 OVEN-1 오경보율 "
+          f"{spec['alert_day_rate']:.1%}")
     rv = simulate.replay_validate("P-CREAM", "S-MAIN", "2026-05-01", AS_OF)
     print(f"Twin 재생 검증: {'통과' if rv['pass'] else '실패'} "
           f"(sim {rv['sim_scrap_rate']:.1%} vs 실제 {rv['actual_scrap_rate']:.1%})")
