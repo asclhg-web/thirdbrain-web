@@ -257,9 +257,9 @@ def main() -> None:
     con.commit()
     con.close()
 
-    # ── 센서 90일 (마지막 90일, 10분 주기) — P3 드리프트 포함
+    # ── 센서 180일 (10분 주기) — P3 드리프트 포함, 고장 전 정상 구간 확보
     sensor_rows = []
-    s_start = END - timedelta(days=90)
+    s_start = END - timedelta(days=180)
     fail2 = date(2026, 6, 18)
     for d in daterange(s_start, END):
         for hh in range(0, 24):
