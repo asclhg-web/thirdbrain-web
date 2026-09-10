@@ -23,7 +23,7 @@ class AxpJudgmentCard(models.Model):
     platform_id = fields.Integer("플랫폼 카드 ID", required=True, index=True)
     kind = fields.Selection([
         ("demand_forecast", "수요예측"), ("replenish", "보충 정책"),
-        ("allocation", "배분"), ("equip_alert", "설비경보"), ("knowledge", "지식 승격")],
+        ("allocation", "배분"), ("equip_alert", "설비경보"), ("knowledge", "지식 승격"), ("sop_revision", "SOP 개정")],
         string="유형", required=True)
     agent = fields.Char("에이전트")
     proposal = fields.Text("제안", required=True)

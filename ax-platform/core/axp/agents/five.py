@@ -181,9 +181,46 @@ def production_plan_agent(ctx: dict) -> list[int]:
 
 
 def knowledge_agent(ctx: dict) -> list[int]:
-    """확신도 임계 도달 후보 — Rule 승격 상신 카드."""
+    """⑤ 지식검증 — Rule 승격 상신 + 승격된 규칙의 SOP 개정 제안(3단계 심화).
+
+    승격은 지식의 '고정', SOP 개정은 지식의 '작업 표준화' — 규칙이 문장으로
+    남지 않고 현장 절차가 되게 한다."""
     subs = confidence.check_thresholds()
     out = []
+    # 승격 완료 규칙 중 SOP 개정 카드가 아직 없는 것 → 개정 제안
+    for rule in confidence.rules("promoted"):
+        already = db.one(
+            "SELECT 1 FROM judgment_cards WHERE kind='sop_revision' "
+            "AND evidence_json LIKE ?", (f'%{rule["rule_id"]}%',))
+        if already:
+            continue
+        dims = rule["dims"]
+        from ..graph import evidence as ev
+        where, params = ev._dims_filter_sql(dims)
+        top_sop = db.one(
+            f"SELECT sop_id, COUNT(*) n FROM fact_defect WHERE {where} "
+            f"AND sop_id IS NOT NULL GROUP BY sop_id ORDER BY n DESC LIMIT 1", params)
+        if not top_sop:
+            continue
+        sop_id = top_sop["sop_id"]
+        cond = " × ".join(f"{k}={v}" for k, v in dims.items())
+        card = {
+            "kind": "sop_revision", "agent": "knowledge_agent",
+            "proposal": f"{sop_id} 개정 제안 — '{cond} 조건 투입 전 사전 점검' 항목 추가",
+            "narrative": "\n".join([
+                f"승격 규칙: {confidence.rule_text(dims)} [근거: Rule:{rule['rule_id']}]",
+                f"이 조합의 불량이 {sop_id} 작업에서 {top_sop['n']}건 확인되었습니다. "
+                f"[근거: fact_defect sop_id 집계]",
+                "규칙이 문장으로만 남으면 담당자가 바뀔 때 사라집니다 — 표준작업에 "
+                "점검 항목으로 고정할 것을 제안합니다. [근거: 커스터디 원칙(구조가 지킨다)]"]),
+            "values": [{"name": "관련 불량 건수", "value": int(top_sop["n"]),
+                        "source": "fact_defect 집계"}],
+            "evidence": {"kind": "rule", "rule_key": rule["rule_id"],
+                         "sop_id": sop_id, "dims": dims},
+            "alternatives": [{"name": "구두 전파", "why_not": "교대·이직 시 소실 — 재발 반복"}],
+            "approver": "카드 승인자",
+        }
+        out.append(jcards.create(card))
     for s in subs:
         card = {
             "kind": "knowledge", "agent": "knowledge_agent",

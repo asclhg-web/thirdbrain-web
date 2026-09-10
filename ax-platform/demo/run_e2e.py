@@ -165,9 +165,15 @@ def main(fresh: bool = True) -> dict:
     from axp.judge import cards as jcards
     # 지식 카드(Rule 승격 상신) 승인 → Rule 고정
     know = [c for c in inbox.pending() if c["kind"] == "knowledge"]
-    if know:
-        inbox.decide(know[0]["card_id"], APPROVER, "card_approver", True)
-        print("Rule 승격:", confidence.rules("promoted")[0]["rule_id"])
+    for k in know:                                     # 임계 도달 후보 전건 심사
+        inbox.decide(k["card_id"], APPROVER, "card_approver", True)
+    print("Rule 승격:", [r["rule_id"] for r in confidence.rules("promoted")])
+    # 3단계 심화 — 승격 규칙의 SOP 개정 제안(지식 에이전트 2차 실행)
+    runtime.run_agent("knowledge_agent", {"run_date": AS_OF}, shadow=True)
+    sop_cards = [c for c in inbox.pending() if c["kind"] == "sop_revision"]
+    if sop_cards:
+        inbox.decide(sop_cards[0]["card_id"], APPROVER, "card_approver", True)
+        print("SOP 개정 승인:", sop_cards[0]["proposal"])
     reg = regression.run()
     print(f"회귀 10선: {reg['n_pass']}/{reg['n_total']} {'통과' if reg['pass'] else '실패'}")
     summary["m6"] = {"regression": f"{reg['n_pass']}/{reg['n_total']}"}

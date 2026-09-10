@@ -57,6 +57,9 @@ def ingest_mining(run_date: str) -> dict:
     store.init()
     added = updated = 0
     cands = mining.new_candidates()
+    # 시간순 처리 — 관측 창이 뒤섞이면 이른 창이 '가까운 과거'로 오인되어
+    # 독립 확인에서 탈락한다 (z 순 처리의 함정, I-11)
+    cands.sort(key=lambda c: (c["window_end"], -c["z"]))
     for c in cands:
         dims_j = _norm_dims(c["dims"])
         row = db.one("SELECT * FROM causal_candidates WHERE dims=?", (dims_j,))

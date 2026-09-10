@@ -126,6 +126,10 @@ def apply_feedback(card_id: int, actor: str) -> dict:
         written.append(_set_param(
             f"inspection_flag:{card['evidence'].get('equipment_id','?')}", 1.0,
             card_id, actor))
+    elif card["kind"] == "sop_revision":
+        written.append(_set_param(
+            f"sop_revision:{card['evidence']['sop_id']}:{card['evidence']['rule_key']}",
+            1.0, card_id, actor))
     elif card["kind"] == "knowledge":
         from ..graph import confidence
         res = confidence.decide(card["evidence"]["cc_id"], True, actor,
