@@ -70,3 +70,32 @@ def war_room(as_of: str):
 def rules():
     from .judge import assembler
     return assembler.answer("규칙", assembler.search_rules())
+
+
+# ── 반출 게이트 (M0-3) — n8n 워크플로가 호출하는 원장 API ─────────────
+@app.post("/export/request")
+def export_request(what: str, dest: str, why: str, requester: str, payload: str):
+    from .custody import export_gate
+    return {"req_id": export_gate.request(what, dest, why, requester, payload),
+            "what": what, "dest": dest}
+
+
+@app.post("/export/decide")
+def export_decide(req_id: int, approver: str, approve: bool):
+    from .custody import export_gate
+    return export_gate.decide(req_id, approver, approve)
+
+
+@app.post("/export/execute")
+def export_execute(req_id: int, payload: str, dest: str):
+    from .custody import export_gate
+    try:
+        return export_gate.check_and_mark_executed(req_id, payload, dest)
+    except export_gate.ExportDenied as e:
+        raise HTTPException(403, str(e))
+
+
+@app.get("/export/audit")
+def export_audit():
+    from .custody import export_gate
+    return export_gate.audit_log()

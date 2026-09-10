@@ -1,0 +1,72 @@
+{
+  "name": "AXP 반출 게이트 (M0-3)",
+  "meta": {
+    "description": "신청 → 승인자 알림 → 승인/거부 → 게이트 검문 통과 시에만 실행 → 로그. axp-api의 export_requests 테이블과 같은 원장을 쓴다."
+  },
+  "nodes": [
+    {
+      "id": "webhook_request", "name": "반출 신청 수신", "type": "n8n-nodes-base.webhook",
+      "parameters": {"path": "axp-export-request", "httpMethod": "POST",
+        "responseMode": "lastNode"},
+      "position": [0, 0]
+    },
+    {
+      "id": "register", "name": "신청 기록(axp-api)", "type": "n8n-nodes-base.httpRequest",
+      "parameters": {"method": "POST", "url": "http://axp-api:8000/export/request",
+        "sendBody": true, "bodyParameters": {"parameters": [
+          {"name": "what", "value": "={{$json.what}}"},
+          {"name": "dest", "value": "={{$json.dest}}"},
+          {"name": "why", "value": "={{$json.why}}"},
+          {"name": "requester", "value": "={{$json.requester}}"},
+          {"name": "payload", "value": "={{$json.payload}}"}]}},
+      "position": [220, 0]
+    },
+    {
+      "id": "notify", "name": "승인자 알림(사내 메신저)", "type": "n8n-nodes-base.httpRequest",
+      "parameters": {"method": "POST", "url": "={{$env.AXP_ALERT_WEBHOOK}}",
+        "sendBody": true, "bodyParameters": {"parameters": [
+          {"name": "text", "value": "=[AXP 반출 신청 #{{$json.req_id}}] {{$json.what}} → {{$json.dest}}. 승인: {{$env.AXP_BASE}}/flow/approve/{{$json.req_id}}"}]}},
+      "position": [440, 0]
+    },
+    {
+      "id": "wait_approval", "name": "승인 대기(Webhook)", "type": "n8n-nodes-base.webhook",
+      "parameters": {"path": "axp-export-decide", "httpMethod": "POST"},
+      "position": [660, 0]
+    },
+    {
+      "id": "decide", "name": "결정 기록(axp-api)", "type": "n8n-nodes-base.httpRequest",
+      "parameters": {"method": "POST", "url": "http://axp-api:8000/export/decide",
+        "sendBody": true, "bodyParameters": {"parameters": [
+          {"name": "req_id", "value": "={{$json.req_id}}"},
+          {"name": "approver", "value": "={{$json.approver}}"},
+          {"name": "approve", "value": "={{$json.approve}}"}]}},
+      "position": [880, 0]
+    },
+    {
+      "id": "if_approved", "name": "승인?", "type": "n8n-nodes-base.if",
+      "parameters": {"conditions": {"boolean": [
+        {"value1": "={{$json.status === 'approved'}}", "value2": true}]}},
+      "position": [1100, 0]
+    },
+    {
+      "id": "execute", "name": "게이트 검문·실행", "type": "n8n-nodes-base.httpRequest",
+      "parameters": {"method": "POST", "url": "http://axp-api:8000/export/execute",
+        "sendBody": true, "bodyParameters": {"parameters": [
+          {"name": "req_id", "value": "={{$json.req_id}}"}]}},
+      "notes": "check_and_mark_executed — 내용 해시·허용 호스트 최종 검문. 여기서만 외부 전송.",
+      "position": [1320, -80]
+    },
+    {
+      "id": "log_denied", "name": "거부 로그", "type": "n8n-nodes-base.noOp",
+      "position": [1320, 80]
+    }
+  ],
+  "connections": {
+    "반출 신청 수신": {"main": [[{"node": "신청 기록(axp-api)", "type": "main", "index": 0}]]},
+    "신청 기록(axp-api)": {"main": [[{"node": "승인자 알림(사내 메신저)", "type": "main", "index": 0}]]},
+    "승인 대기(Webhook)": {"main": [[{"node": "결정 기록(axp-api)", "type": "main", "index": 0}]]},
+    "결정 기록(axp-api)": {"main": [[{"node": "승인?", "type": "main", "index": 0}]]},
+    "승인?": {"main": [[{"node": "게이트 검문·실행", "type": "main", "index": 0}],
+                      [{"node": "거부 로그", "type": "main", "index": 0}]]}
+  }
+}

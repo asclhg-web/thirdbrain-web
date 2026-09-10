@@ -31,9 +31,14 @@ def apply_schema() -> None:
 
 
 def _rebuild(table: str, frame: pd.DataFrame) -> int:
-    db.execute(f"DELETE FROM {table}")
-    if len(frame):
-        db.write_df(frame, table)
+    """전량 재구축(멱등) — 재구축 트랜잭션 동안만 FK 검사를 끈다.
+    (부모 차원을 지웠다 다시 넣는 동안의 일시 위반 허용 — 종료 시 원상복구)"""
+    with db.conn() as c:
+        c.execute("PRAGMA foreign_keys=OFF")
+        c.execute(f"DELETE FROM {table}")
+        if len(frame):
+            frame.to_sql(table, c, if_exists="append", index=False)
+        c.execute("PRAGMA foreign_keys=ON")
     return len(frame)
 
 

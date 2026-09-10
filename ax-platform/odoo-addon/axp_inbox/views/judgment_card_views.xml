@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_axp_card_tree" model="ir.ui.view">
+        <field name="name">axp.judgment.card.tree</field>
+        <field name="model">axp.judgment.card</field>
+        <field name="arch" type="xml">
+            <tree decoration-info="state=='proposed'" decoration-muted="state in ('rejected','executed')"
+                  decoration-success="state=='approved'">
+                <field name="platform_id"/>
+                <field name="kind"/>
+                <field name="proposal"/>
+                <field name="agent" optional="hide"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_axp_card_form" model="ir.ui.view">
+        <field name="name">axp.judgment.card.form</field>
+        <field name="model">axp.judgment.card</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_approve" type="object" string="승인"
+                            class="btn-primary" groups="axp_inbox.group_card_approver"
+                            invisible="state not in ('proposed','review')"/>
+                    <button name="action_reject" type="object" string="반려"
+                            groups="axp_inbox.group_card_approver"
+                            invisible="state not in ('proposed','review')"/>
+                    <button name="action_why" type="object" string="왜? (근거 경로)"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="proposed,review,approved,executed"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="제안">
+                            <field name="kind"/>
+                            <field name="proposal"/>
+                            <field name="range_json" string="구간(P10~P90)"/>
+                        </group>
+                        <group string="반려 사유 (반려 시 필수)">
+                            <field name="reject_reason"/>
+                            <field name="reject_note"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="설명 (전 문장 근거 인용)">
+                            <field name="narrative" readonly="1"/>
+                        </page>
+                        <page string="수치·대안">
+                            <field name="values_json" readonly="1"/>
+                            <field name="alternatives_json" readonly="1"/>
+                        </page>
+                        <page string="근거 경로">
+                            <field name="evidence_text" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_axp_cards" model="ir.actions.act_window">
+        <field name="name">판단 카드 승인함</field>
+        <field name="res_model">axp.judgment.card</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_pending': 1}</field>
+    </record>
+
+    <record id="view_axp_card_search" model="ir.ui.view">
+        <field name="name">axp.judgment.card.search</field>
+        <field name="model">axp.judgment.card</field>
+        <field name="arch" type="xml">
+            <search>
+                <filter name="pending" string="대기 중"
+                        domain="[('state','in',('proposed','review'))]"/>
+                <filter name="mine" string="유형별" context="{'group_by':'kind'}"/>
+            </search>
+        </field>
+    </record>
+
+    <menuitem id="menu_axp_root" name="AX 승인함" sequence="35"/>
+    <menuitem id="menu_axp_cards" parent="menu_axp_root" action="action_axp_cards"
+              name="판단 카드" groups="axp_inbox.group_card_viewer"/>
+</odoo>

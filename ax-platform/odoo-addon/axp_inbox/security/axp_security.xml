@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_axp" model="ir.module.category">
+        <field name="name">AX Platform</field>
+    </record>
+    <!-- 열람은 넓게, 승인은 좁게 — M0-2 권한 매트릭스와 동일 -->
+    <record id="group_card_viewer" model="res.groups">
+        <field name="name">판단 카드 열람</field>
+        <field name="category_id" ref="module_category_axp"/>
+    </record>
+    <record id="group_card_approver" model="res.groups">
+        <field name="name">판단 카드 승인자</field>
+        <field name="category_id" ref="module_category_axp"/>
+        <field name="implied_ids" eval="[(4, ref('group_card_viewer'))]"/>
+    </record>
+    <!-- 야간 동기화 크론 -->
+    <record id="cron_axp_sync" model="ir.cron">
+        <field name="name">AX 판단 카드 동기화</field>
+        <field name="model_id" ref="model_axp_judgment_card"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_sync()</field>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+    </record>
+</odoo>
