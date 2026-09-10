@@ -43,9 +43,18 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
     stage("graph_load", lambda: (loader.load_dimensions(),
                                  loader.backfill_defects(start, run_date)))
 
-    from .studio import mining, briefing, boards
+    from .studio import mining, briefing, boards, knowledge
     stage("mining", lambda: mining.nightly(run_date))
     stage("confidence", lambda: confidence.ingest_mining(run_date))
+    stage("memo_candidates",
+          lambda: confidence.ingest_model_importance(knowledge.surge_candidates(run_date)))
+
+    # 주 1회(월요일): 재학습 판정·개방 포맷 내보내기
+    if date.fromisoformat(run_date).weekday() == 0:
+        from .learn import retrain
+        from .dataset import export
+        stage("weekly_retrain", lambda: retrain.weekly(run_date))
+        stage("parquet_export", lambda: export.export_parquet())
 
     from .agents import five, runtime, promotion
     five.register_all()

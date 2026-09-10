@@ -67,6 +67,31 @@ def surges(end: str, weeks: int = 8) -> list[dict]:
     return out[["keyword", "n", "prev"]].to_dict("records")
 
 
+def surge_candidates(end: str, weeks: int = 8) -> list[dict]:
+    """급증 키워드 → 원인 후보 (지식센터 → 그래프 M5).
+
+    급증 키워드가 특정 설비/근무조의 불량 메모에 집중되어 있으면(점유율 60%+,
+    5건+) 원인 후보로 만든다 — 현장의 말이 그래프의 후보가 되는 길."""
+    out = []
+    start = (pd.Timestamp(end) - pd.Timedelta(weeks=2)).date().isoformat()
+    for s in surges(end, weeks):
+        kw = s["keyword"]
+        hits = db.df("""
+            SELECT equipment_id, shift, COUNT(*) n FROM fact_defect
+            WHERE memo LIKE ? AND date_key BETWEEN ? AND ?
+            GROUP BY equipment_id, shift""", (f"%{kw}%", start, end))
+        if hits.empty:
+            continue
+        total = hits["n"].sum()
+        for dim in ("equipment_id", "shift"):
+            g = hits.groupby(dim)["n"].sum().sort_values(ascending=False)
+            if len(g) and g.iloc[0] >= 5 and g.iloc[0] / total >= 0.6:
+                out.append({"dims": {dim: g.index[0]},
+                            "importance": round(float(g.iloc[0] / total), 3),
+                            "source": f"memo_surge:{kw}"})
+    return out
+
+
 def search_memos(query: str, limit: int = 5) -> dict:
     """메모 검색 — assembler의 'memo' 질의 유형이 쓴다. 원장 참조 필수."""
     c = corpus("0000-01-01", "9999-12-31")
