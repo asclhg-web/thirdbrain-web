@@ -58,4 +58,20 @@
 | OP-6 W9 인수인계 | docs/handover-W9.md | 🏗 현장 검수 항목 |
 
 **36개 중 ✅ 25 · 🔶 9(전부 prod 어댑터 지점 명시) · 🏗 2(현장 전용).**
+
+## 계획 외 확장 구현 (프롬프트집 개정 시 편입 후보)
+
+| 확장 | 구현 위치 | 근거 프롬프트 |
+|---|---|---|
+| 생산계획 에이전트(6호) — 용량 감안 생산 오더 | agents/five.py production_plan_agent | M7-2의 '+α', 2단계 재고·생산 앱 |
+| 연속 경보 → 계획 정비 승격 | agents/five.py equip_alert_agent | M7-2 설비경보의 심화 |
+| SOP 개정 제안(Rule→절차) | agents/five.py knowledge_agent | 3단계 지식센터 심화 |
+| 승급 자동 실행 결선 | agents/runtime.py + inbox role='auto' | M7-3 |
+| 재학습 자동화(판정→그림자→게이트) | learn/retrain.py | OP-3의 코드화 |
+| 교차 원천 검증 | dataset/validation.py | M2 계약의 '검증용' 조항 |
+| 리스크 5 자동 점검 | agents/risk.py | OP-5의 코드화 |
+| 지식센터 씨앗(메모 급증·검색) | studio/knowledge.py | 4대 지능화 ④ 1단계 |
+| 승인함 웹 UI(demo) | axp/inbox_ui.py (/inbox) | M7-1의 demo 대체 화면 |
+| 개방 포맷 내보내기 | dataset/export.py | 인터페이스 원칙 ② |
+
 프롬프트를 고치면 이 표도 고친다 — 둘의 어긋남이 곧 기술 부채다.
