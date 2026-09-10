@@ -20,6 +20,12 @@ def health():
     return {"ok": True}
 
 
+@app.get("/inbox", response_class=HTMLResponse)
+def inbox_page():
+    from .inbox_ui import PAGE
+    return PAGE
+
+
 @app.get("/cards")
 def list_cards(status: str | None = None):
     return jcards.listing(status=status)
