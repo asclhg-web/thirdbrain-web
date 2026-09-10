@@ -66,6 +66,15 @@ def war_room(as_of: str):
     return Path(warroom.render(as_of)).read_text(encoding="utf-8")
 
 
+@app.get("/rules/{rule_key}/why", response_class=HTMLResponse)
+def rule_why_html(rule_key: str):
+    from .graph import evidence_view
+    try:
+        return evidence_view.render_rule(rule_key)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
 @app.get("/rules", response_class=PlainTextResponse)
 def rules():
     from .judge import assembler

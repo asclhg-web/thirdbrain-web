@@ -70,10 +70,15 @@ def surges(end: str, weeks: int = 8) -> list[dict]:
 def surge_candidates(end: str, weeks: int = 8) -> list[dict]:
     """급증 키워드 → 원인 후보 (지식센터 → 그래프 M5).
 
-    급증 키워드가 특정 설비/근무조의 불량 메모에 집중되어 있으면(점유율 60%+,
-    5건+) 원인 후보로 만든다 — 현장의 말이 그래프의 후보가 되는 길."""
+    급증 키워드의 4M 분포가 전체 불량의 분포보다 특정 값에 쏠려 있을 때만
+    (점유율 60%+ · 5건+ · 기저 대비 lift 1.5+) 후보로 만든다 — '전부가 주간이라
+    주간에 쏠렸다' 같은 무대조 신호는 걸러진다."""
     out = []
     start = (pd.Timestamp(end) - pd.Timedelta(weeks=2)).date().isoformat()
+    base = db.df("""
+        SELECT equipment_id, shift, COUNT(*) n FROM fact_defect
+        WHERE date_key BETWEEN ? AND ? GROUP BY equipment_id, shift""",
+        (start, end))
     for s in surges(end, weeks):
         kw = s["keyword"]
         hits = db.df("""
@@ -83,12 +88,20 @@ def surge_candidates(end: str, weeks: int = 8) -> list[dict]:
         if hits.empty:
             continue
         total = hits["n"].sum()
+        base_total = base["n"].sum()
         for dim in ("equipment_id", "shift"):
             g = hits.groupby(dim)["n"].sum().sort_values(ascending=False)
-            if len(g) and g.iloc[0] >= 5 and g.iloc[0] / total >= 0.6:
-                out.append({"dims": {dim: g.index[0]},
-                            "importance": round(float(g.iloc[0] / total), 3),
-                            "source": f"memo_surge:{kw}"})
+            if not len(g) or g.iloc[0] < 5 or g.iloc[0] / total < 0.6:
+                continue
+            top_val = g.index[0]
+            base_share = (base.groupby(dim)["n"].sum().get(top_val, 0) / base_total
+                          if base_total else 0)
+            share = g.iloc[0] / total
+            if base_share > 0 and share / base_share < 1.5:
+                continue                       # 기저 분포와 다르지 않음 — 신호 아님
+            out.append({"dims": {dim: top_val},
+                        "importance": round(float(share), 3),
+                        "source": f"memo_surge:{kw}"})
     return out
 
 
