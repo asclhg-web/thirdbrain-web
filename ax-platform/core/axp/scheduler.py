@@ -32,9 +32,10 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
     stage("cdc_reconcile", lambda: odoo_cdc.reconcile())
     stage("iot_gap_check", lambda: iot.gap_check())
 
-    from .dataset import transform, quality, features
+    from .dataset import transform, quality, features, validation
     stage("transform", lambda: transform.run_all())
     stage("quality_report", lambda: quality.daily_report(run_date))
+    stage("cross_validation", lambda: validation.excel_vs_ledger())
     stage("features", lambda: features.materialize(run_date, horizon=7))
 
     from .graph import loader, confidence

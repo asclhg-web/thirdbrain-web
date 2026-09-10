@@ -47,6 +47,15 @@ def build(run_date: str) -> str:
                 f"(원천: mining_candidates)")
         lines.append("")
 
+    from . import knowledge
+    surges = knowledge.surges(run_date)
+    if surges:
+        lines.append("## 현장의 말 — 이번 주 급증 키워드")
+        for s in surges[:5]:
+            lines.append(f"- \"{s['keyword']}\" {int(s['prev'])}→{s['n']}회 — "
+                         f"현장 기록 원문은 검색으로 (원천: 메모 말뭉치)")
+        lines.append("")
+
     if db.table_exists("judgment_cards"):
         pend = db.query(
             "SELECT approver, COUNT(*) AS n FROM judgment_cards "

@@ -116,6 +116,11 @@ class DeterministicBackend:
         elif qt == "numeric":
             lines.append(f"{retrieved['metric']} = {retrieved['value']:.0f} "
                          f"[근거: {retrieved['ref']}]")
+        elif qt == "memo":
+            for h in retrieved["hits"]:
+                lines.append(f"{h['date']} 현장 기록: \"{h['memo']}\" [근거: {h['src']} {h['ref']}]")
+            if not retrieved["hits"]:
+                lines.append("관련 현장 기록이 없습니다. [근거: 메모 검색 0건]")
         return "\n".join(lines)
 
 
