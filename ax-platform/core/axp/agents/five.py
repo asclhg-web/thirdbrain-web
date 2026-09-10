@@ -19,9 +19,9 @@ from . import runtime
 
 
 def demand_agent(ctx: dict) -> list[int]:
+    from .. import profile_rt
     as_of = ctx["run_date"]
-    pairs = ctx.get("pairs") or [("S-MAIN", "P-CREAM"), ("S-MAIN", "P-PIE"),
-                                 ("B2B-MART", "P-CREAM")]
+    pairs = ctx.get("pairs") or profile_rt.primary_pairs()
     out = []
     for store_id, product_id in pairs:
         out.append(generator.demand_card(as_of, store_id, product_id,
@@ -34,8 +34,10 @@ def replenish_agent(ctx: dict) -> list[int]:
     start = (db.scalar("SELECT date_key FROM dim_calendar WHERE date_key<=? "
                        "ORDER BY date_key DESC LIMIT 1 OFFSET 90", (as_of,))
              or "2026-05-01")
+    from .. import profile_rt
     out = []
-    for store_id, product_id in ctx.get("pairs") or [("S-MAIN", "P-CREAM")]:
+    for store_id, product_id in ctx.get("pairs") or [
+            (profile_rt.primary_store(), profile_rt.primary_product())]:
         twin = simulate.build_twin(product_id, store_id, start, as_of, forecast_kind="dow")
         prop = policy.propose(twin, product_id, store_id)
         if prop:                                   # 기준선을 이긴 제안만
@@ -45,7 +47,9 @@ def replenish_agent(ctx: dict) -> list[int]:
 
 def allocation_agent(ctx: dict) -> list[int]:
     """생산 완료 이벤트 — 예측 비중대로 매장 배분안."""
-    as_of, product_id = ctx["run_date"], ctx.get("product_id", "P-CREAM")
+    from .. import profile_rt
+    as_of = ctx["run_date"]
+    product_id = ctx.get("product_id") or profile_rt.primary_product()
     done = db.scalar(
         "SELECT SUM(qty_done) FROM fact_production WHERE date_key=? AND product_id=?",
         (as_of, product_id)) or 0

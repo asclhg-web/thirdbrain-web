@@ -20,6 +20,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "core"))
 from axp import config  # noqa: E402
 
 AS_OF = "2026-07-31"          # '오늘' — 이후 7일을 예측한다
+
+def _prt():
+    from axp import profile_rt
+    return profile_rt
 STEWARD = "박스튜어드"
 APPROVER = "김승인"
 LEAD = "플랫폼 리드"
@@ -71,11 +75,13 @@ def main(fresh: bool = True) -> dict:
                          "행사명": "promo_name", "할인율": "discount_pct"}, "이현업")
         r3 = xu.upload(p2, "이현업")
     print(f"엑셀: 판매집계 {r2['rows_ok']}행(2회째 자동 매핑) · 프로모션 {r3['rows_ok']}행")
-    forms.submit("scrap", AS_OF, "김현장", "S-MAIN",
-                 {"line_id": "S-MAIN", "product_id": "P-CREAM", "qty": 5,
+    prt = _prt()
+    p_store, p_prod = prt.primary_store(), prt.primary_product()
+    forms.submit("scrap", AS_OF, "김현장", p_store,
+                 {"line_id": p_store, "product_id": p_prod, "qty": 5,
                   "reason": "유통기한", "memo": "마감 소진 실패 — 금요일 과다 발주 느낌"})
     d = forms.submit_ocr_draft("inspection", AS_OF, "L2",
-                               {"equipment_id": "OVEN-2", "item": "온도계 교정",
+                               {"equipment_id": prt.plant_equipment(), "item": "온도계 교정",
                                 "result": "주의", "memo": "편차 커 보임"})
     forms.confirm_ocr(d, STEWARD)
     n_iot = iot.ingest_frame(pd.read_csv(config.DATA / "sensor_replay.csv"))
@@ -89,8 +95,7 @@ def main(fresh: bool = True) -> dict:
     (config.ARTIFACTS / "quality_report.md").write_text(
         quality.render_md(q), encoding="utf-8")
     # 스튜어드 격리 확정 — 프로모션 달력의 제품'명' 별칭을 표준 코드로
-    name2code = {"바게트": "P-BAG", "조각케이크": "P-CAKE", "샌드위치": "P-SAND",
-                 "크루아상": "P-CROI", "도넛": "P-DONUT"}
+    name2code = _prt().name2code()
     n_conf = 0
     for q_row in codemap.pending():
         codemap.confirm(q_row["q_id"], name2code.get(q_row["alias"], q_row["alias"]),
@@ -118,22 +123,25 @@ def main(fresh: bool = True) -> dict:
 
     step("5. M4 학습 엔진 — 수요예측·분류·이상탐지·Twin 정책")
     from axp.learn import forecast, classify, anomaly, simulate, policy
+    from axp import db
     fr = forecast.train_and_register(AS_OF)
     best = fr["comparison"].iloc[0]
     base = fr["comparison"][fr["comparison"]["model"] == "ewm_7"].iloc[0]
     print(f"수요예측: {best['model']} WAPE {best['wape']:.1%} "
           f"(출발선 ewm {base['wape']:.1%}) — 모델 카드 v1 등록")
     cl = classify.train_and_register("2024-09-01", "2026-03-01", "2026-08-31")
-    an = anomaly.train_and_register("OVEN-2", "2026-03-05", "2026-05-20")
-    anomaly.score_range("OVEN-2", "2026-03-05", "2026-08-31")
-    hit = anomaly.weekly_hit_report("OVEN-2")
-    anomaly.train_and_register("OVEN-1", "2026-03-05", "2026-05-31")   # 특이도 대조군
-    anomaly.score_range("OVEN-1", "2026-03-05", "2026-08-31")
-    spec = anomaly.weekly_hit_report("OVEN-1")
-    print(f"이상탐지: OVEN-2 고장 {hit['failures']}건 중 {hit['detected']}건 선행 감지 "
-          f"(선행 {hit['median_lead_days']}일) · 정상 설비 OVEN-1 오경보율 "
+    eq_bad = _prt().plant_equipment()
+    eq_ok = db.scalar("SELECT equipment_id FROM dim_equipment WHERE equipment_id!=? LIMIT 1", (eq_bad,)) or eq_bad
+    an = anomaly.train_and_register(eq_bad, "2026-03-05", "2026-05-20")
+    anomaly.score_range(eq_bad, "2026-03-05", "2026-08-31")
+    hit = anomaly.weekly_hit_report(eq_bad)
+    anomaly.train_and_register(eq_ok, "2026-03-05", "2026-05-31")   # 특이도 대조군
+    anomaly.score_range(eq_ok, "2026-03-05", "2026-08-31")
+    spec = anomaly.weekly_hit_report(eq_ok)
+    print(f"이상탐지: {eq_bad} 고장 {hit['failures']}건 중 {hit['detected']}건 선행 감지 "
+          f"(선행 {hit['median_lead_days']}일) · 정상 설비 {eq_ok} 오경보율 "
           f"{spec['alert_day_rate']:.1%}")
-    rv = simulate.replay_validate("P-CREAM", "S-MAIN", "2026-05-01", AS_OF)
+    rv = simulate.replay_validate(p_prod, p_store, "2026-05-01", AS_OF)
     print(f"Twin 재생 검증: {'통과' if rv['pass'] else '실패'} "
           f"(sim {rv['sim_scrap_rate']:.1%} vs 실제 {rv['actual_scrap_rate']:.1%})")
     summary["m4"] = {"forecast_wape": float(best["wape"]),
@@ -197,7 +205,7 @@ def main(fresh: bool = True) -> dict:
     from axp import db
     alert_day = db.scalar(
         "SELECT MIN(date_key) FROM anomaly_scores WHERE is_alert=1 "
-        "AND equipment_id='OVEN-2' AND date_key>='2026-06-01'")
+        "AND equipment_id=? AND date_key>='2026-06-01'", (_prt().plant_equipment(),))
     if alert_day:
         r_eq = runtime.run_agent("equip_alert_agent", {"run_date": alert_day})
         if r_eq.get("cards"):

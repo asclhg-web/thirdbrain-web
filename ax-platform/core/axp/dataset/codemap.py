@@ -42,6 +42,13 @@ def init() -> None:
     db.executemany(
         "INSERT OR IGNORE INTO code_dictionary (domain, alias, standard_code) VALUES (?,?,?)",
         SEED)
+    # 고객사 프로파일의 어휘 시드 — 온보딩 워크숍의 산출물이 여기로 들어온다
+    from .. import profile_rt
+    extra = profile_rt.alias_seed()
+    if extra:
+        db.executemany(
+            "INSERT OR IGNORE INTO code_dictionary (domain, alias, standard_code) VALUES (?,?,?)",
+            extra)
 
 
 STANDARD_LOOKUP = {          # 별칭이 이미 표준 코드와 완전 일치하면 자기 매핑

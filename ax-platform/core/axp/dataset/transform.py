@@ -18,11 +18,15 @@ from . import codemap
 HOLIDAY_WEEKS = [("2025-01-27", "2025-02-02"), ("2025-10-03", "2025-10-09"),
                  ("2026-02-14", "2026-02-20")]
 
-PRODUCT_NAMES = {"P-CREAM": "크림빵", "P-RED": "단팥빵", "P-BAG": "바게트",
-                 "P-CAKE": "조각케이크", "P-SAND": "샌드위치", "P-PIE": "파이만쥬",
-                 "P-CROI": "크루아상", "P-DONUT": "도넛"}
-STORE_NAMES = {"S-MAIN": ("본점", "retail"), "S-STATION": ("역전점", "retail"),
-               "B2B-MART": ("마트 납품", "B2B"), "B2B-CAFE": ("카페 납품", "B2B")}
+from .. import profile_rt
+
+
+def _product_names() -> dict:
+    return profile_rt.product_names()
+
+
+def _store_meta() -> tuple[dict, dict]:
+    return profile_rt.store_names(), profile_rt.store_channels()
 
 
 def apply_schema() -> None:
@@ -58,14 +62,16 @@ def build_dims() -> dict[str, int]:
         cal.loc[(cal["date_key"] >= a) & (cal["date_key"] <= b), "is_holiday_week"] = 1
     counts["dim_calendar"] = _rebuild("dim_calendar", cal)
 
+    pnames = _product_names()
     prod = db.df("SELECT product_id, AVG(unit_price) AS unit_price FROM staging_sales GROUP BY product_id")
-    prod["product_name"] = prod["product_id"].map(PRODUCT_NAMES).fillna(prod["product_id"])
+    prod["product_name"] = prod["product_id"].map(pnames).fillna(prod["product_id"])
     prod["category"] = "bakery"
     counts["dim_product"] = _rebuild("dim_product", prod[["product_id", "product_name", "category", "unit_price"]])
 
+    snames, schannels = _store_meta()
     stores = db.df("SELECT DISTINCT store_id FROM staging_sales")
-    stores["store_name"] = stores["store_id"].map(lambda s: STORE_NAMES.get(s, (s,))[0])
-    stores["channel"] = stores["store_id"].map(lambda s: STORE_NAMES.get(s, (s, "retail"))[1])
+    stores["store_name"] = stores["store_id"].map(lambda s: snames.get(s, s))
+    stores["channel"] = stores["store_id"].map(lambda s: schannels.get(s, "retail"))
     counts["dim_store"] = _rebuild("dim_store", stores)
 
     workers = db.df("SELECT DISTINCT worker_id FROM staging_mrp")
