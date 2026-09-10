@@ -99,10 +99,18 @@ core/axp/
   graph/          M5  4M 스키마 · FACT 적재 · 확신도 루프 · 근거 API
   judge/          M6  근거 조립기(인용 강제) · 판단 카드 생성기 · 반출 폴백
   agents/         M7  런타임 · 승인함 · 기본 에이전트 5종 · War Room · 승급
-core/tests/       pytest 단위·통합 시험
-demo/             합성 데이터 · E2E 수직 완주 · 수용 시험
-docs/             G1 헌장 · G2 심사 · G3 지표 · G4 수용 · 설치/운영 가이드
+  api.py          FastAPI — 카드·근거('왜?')·승인·반출 게이트·War Room
+  cli.py          스튜어드 CLI — 카드 승인·격리 확정·브리핑·그래프 질의
+  scheduler.py    야간 배치 오케스트레이션(정합→변환→검증→마이닝→에이전트→브리핑)
+core/tests/       pytest 단위·통합 시험 (19건)
+odoo-addon/       axp_inbox — 승인함 Odoo 화면 내장 애드온(스켈레톤)
+demo/             합성 데이터 · E2E 수직 완주 · 수용 시험 · 예시 노트북
+docs/             G1 헌장 · G2 심사 · G3 지표 · G4 수용 · W9 인수인계 · 설치/운영 가이드
 ```
+
+추가 구성요소: 지식센터 씨앗(`studio/knowledge.py` — 메모 급증 키워드·검색),
+교차 원천 검증(`dataset/validation.py` — 엑셀 대 원장), 승급 자동 실행
+(`agents/runtime.py` — 활성 승급·상한 이내 카드만, 감사 로그 명시).
 
 ## 커스터디
 
