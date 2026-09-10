@@ -73,11 +73,21 @@ def amend(card_id: int, actor: str, role: str, new_values: dict) -> None:
 
 def decide(card_id: int, actor: str, role: str, approve: bool,
            reason_code: str = "", reason_text: str = "") -> dict:
-    """승인/반려 — card_approver 역할만. 반려는 사유 필수(구조화)."""
-    if role != "card_approver":
+    """승인/반려 — card_approver 역할만. 예외 하나: 승급(M7-3)이 활성인 유형의
+    상한 이내 카드는 role='auto'로 자동 승인 가능(감사 로그에 승급 근거 명시).
+    반려는 사유 필수(구조화)."""
+    card = cards.get(card_id)
+    if role == "auto":
+        from . import promotion
+        if not (approve and promotion.can_auto_execute(card)):
+            _log(card_id, "decide_denied", actor, role, note="승급 조건 미충족")
+            raise PermissionError_("자동 실행 불가 — 활성 승급 없음 또는 상한 초과")
+        p = promotion.active_for(card["kind"])
+        reason_text = (f"자동 실행(승급 #{p['promo_id']}: 상한 {p['amount_cap']}, "
+                       f"승인율 기준 {p['min_approval_rate']:.0%}) " + reason_text)
+    elif role != "card_approver":
         _log(card_id, "decide_denied", actor, role, note="권한 없음")
         raise PermissionError_(f"'{role}' 역할은 승인 권한이 없다 — card_approver만")
-    card = cards.get(card_id)
     if card["status"] not in ("proposed", "review"):
         raise ValueError(f"결정 가능한 상태가 아님: {card['status']}")
     if approve:

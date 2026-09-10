@@ -44,9 +44,19 @@ def run_agent(name: str, ctx: dict, shadow: bool = False) -> dict:
         run_id = cur.lastrowid
     try:
         card_ids = a["fn"](dict(ctx, shadow=shadow)) or []
+        auto_executed = []
+        if not shadow:                     # M7-3 승급: 상한 이내 저위험 카드 자동 실행
+            from . import inbox, promotion
+            from ..judge import cards as jcards
+            for cid in card_ids:
+                card = jcards.get(cid)
+                if promotion.can_auto_execute(card):
+                    inbox.decide(cid, "system(승급)", "auto", True)
+                    auto_executed.append(cid)
         db.execute("UPDATE agent_runs SET status='ok', cards_created=?, finished_at=? "
                    "WHERE run_id=?", (len(card_ids), common.now_iso(), run_id))
-        return {"run_id": run_id, "agent": name, "cards": card_ids, "ok": True}
+        return {"run_id": run_id, "agent": name, "cards": card_ids,
+                "auto_executed": auto_executed, "ok": True}
     except Exception as e:  # noqa: BLE001
         err = f"{e}\n{traceback.format_exc(limit=3)}"
         db.execute("UPDATE agent_runs SET status='error', error=?, finished_at=? "
