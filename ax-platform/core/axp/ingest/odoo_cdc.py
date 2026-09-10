@@ -1,0 +1,106 @@
+"""M1-1 Odoo CDC 커넥터 — 6대 테이블 계열을 스테이징으로.
+
+demo: 합성 Odoo DB(sqlite)를 증분 폴링(마지막 src_id 이후) — CDC 의미론 재현.
+prod: PostgreSQL 논리 복제(wal_level=logical) — 구성 SQL은 odoo_cdc_prod.sql,
+      본 모듈의 적재·정합 로직은 동일하게 재사용된다.
+
+원칙: 원장에 쓰지 않는다. 스테이징에서 변환하지 않는다(원본 보존).
+"""
+from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
+
+from .. import common, config, db
+from . import staging
+
+# Odoo 원천 테이블 → 스테이징 매핑 (demo 합성 스키마 기준, prod에서는 실제 컬럼명)
+SERIES = {
+    "sale_order_line":      ("staging_sales",
+        "id, order_ref, order_date, store_id, product_id, qty, unit_price, channel, promo_flag, write_date"),
+    "purchase_order_line":  ("staging_purchase",
+        "id, po_ref, order_date, receipt_date, vendor_id, material_id, qty, unit_price, lot_id, write_date"),
+    "stock_move":           ("staging_stock_move",
+        "id, move_date, product_id, from_loc, to_loc, qty, move_type, lot_id, reason, write_date"),
+    "mrp_production":       ("staging_mrp",
+        "id, mo_ref, prod_date, product_id, line_id, worker_id, equipment_id, sop_id, qty_planned, qty_done, shift, write_date"),
+    "quality_check":        ("staging_quality",
+        "id, check_date, mo_ref, product_id, line_id, worker_id, equipment_id, material_lot_id, sop_id, defect_type, qty_defect, shift, memo, write_date"),
+    "maintenance_request":  ("staging_maintenance",
+        "id, event_date, equipment_id, event_type, duration_min, note, write_date"),
+}
+
+
+def source_path() -> Path:
+    return config.DATA / "odoo.db"          # demo 합성 Odoo
+
+
+def sync(source: str = "odoo") -> dict[str, int]:
+    """증분 동기화 — cdc_state의 last_src_id 이후 행만 가져온다(멱등)."""
+    staging.init()
+    counts: dict[str, int] = {}
+    src = sqlite3.connect(source_path())
+    src.row_factory = sqlite3.Row
+    try:
+        for otable, (stable, cols) in SERIES.items():
+            last = db.scalar(
+                "SELECT last_src_id FROM cdc_state WHERE table_name=?", (stable,)) or 0
+            rows = src.execute(
+                f"SELECT {cols} FROM {otable} WHERE id > ? ORDER BY id", (last,)
+            ).fetchall()
+            if rows:
+                ncols = len(rows[0])
+                placeholders = ",".join(["?"] * (ncols + 2))
+                ts = common.now_iso()
+                db.executemany(
+                    f"INSERT INTO {stable} VALUES ({placeholders})",
+                    [tuple(r) + (ts, source) for r in rows],
+                )
+                db.execute(
+                    "INSERT INTO cdc_state (table_name, last_src_id, last_run_at) VALUES (?,?,?) "
+                    "ON CONFLICT(table_name) DO UPDATE SET last_src_id=excluded.last_src_id, "
+                    "last_run_at=excluded.last_run_at",
+                    (stable, rows[-1]["id"], ts),
+                )
+            counts[stable] = len(rows)
+    finally:
+        src.close()
+    return counts
+
+
+def reconcile() -> dict:
+    """야간 정합 배치 — 원장 대비 건수·수량 합계 대조. 오차는 경보."""
+    src = sqlite3.connect(source_path())
+    report, ok = [], True
+    try:
+        for otable, (stable, cols) in SERIES.items():
+            qty_col = "qty" if "qty," in cols or cols.endswith(", qty") else None
+            if otable == "mrp_production":
+                qty_col = "qty_done"
+            if otable == "quality_check":
+                qty_col = "qty_defect"
+            if otable == "maintenance_request":
+                qty_col = "duration_min"
+            o_cnt = src.execute(f"SELECT COUNT(*) FROM {otable}").fetchone()[0]
+            s_cnt = db.scalar(f"SELECT COUNT(*) FROM {stable}")
+            row = {"series": stable, "odoo_count": o_cnt, "staging_count": s_cnt,
+                   "count_diff": o_cnt - s_cnt}
+            if qty_col:
+                o_sum = src.execute(f"SELECT COALESCE(SUM({qty_col}),0) FROM {otable}").fetchone()[0]
+                s_sum = db.scalar(f"SELECT COALESCE(SUM({qty_col}),0) FROM {stable}")
+                row["qty_diff"] = round((o_sum or 0) - (s_sum or 0), 6)
+            bad = row["count_diff"] != 0 or abs(row.get("qty_diff", 0)) > 1e-6
+            row["ok"] = not bad
+            if bad:
+                ok = False
+                common.alert("crit", "M1-1", f"정합 오차: {row}")
+            report.append(row)
+    finally:
+        src.close()
+    result = {"ok": ok, "series": report, "checked_at": common.now_iso()}
+    db.executescript(
+        "CREATE TABLE IF NOT EXISTS recon_log (run_at TEXT, ok INTEGER, detail TEXT)")
+    import json
+    db.execute("INSERT INTO recon_log VALUES (?,?,?)",
+               (result["checked_at"], int(ok), json.dumps(report, ensure_ascii=False)))
+    return result
