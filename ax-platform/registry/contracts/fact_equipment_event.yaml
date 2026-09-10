@@ -1,0 +1,14 @@
+name: fact_equipment_event
+kind: fact
+owner: 현장 스튜어드
+version: v1.0
+update_cycle: daily
+description: 설비 정지·경보·정비 사실 + 센서 일집계(fact_sensor_daily 부속).
+source: staging_maintenance (Odoo maintenance_request CDC) · staging_iot 집계
+columns:
+  - {name: event_id, type: number, required: true, unique: true, description: 이벤트 ID}
+  - {name: date_key, type: date, required: true, description: 발생일}
+  - {name: equipment_id, type: text, required: true, ref: dim_equipment.equipment_id, description: 설비}
+  - {name: event_type, type: text, required: true, description: 예방 점검/고장 수리/경보}
+  - {name: duration_min, type: number, unit: MIN, min: 0, description: 소요/정지 시간}
+change_log: [{version: v1.0, date: 2026-09-10, note: 최초 제정}]

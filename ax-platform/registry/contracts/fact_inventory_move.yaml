@@ -1,0 +1,16 @@
+name: fact_inventory_move
+kind: fact
+owner: 현장 스튜어드
+version: v1.0
+update_cycle: daily
+description: 재고 이동·폐기 사실 — 폐기(scrap)는 reason 필수 운영 규칙.
+source: staging_stock_move (Odoo stock_move CDC)
+columns:
+  - {name: move_id, type: number, required: true, unique: true, description: 이동 ID}
+  - {name: date_key, type: date, required: true, description: 이동일}
+  - {name: product_id, type: text, required: true, ref: dim_product.product_id, description: 제품}
+  - {name: from_loc, type: text, description: 출발 위치}
+  - {name: to_loc, type: text, description: 도착 위치}
+  - {name: move_type, type: text, required: true, description: production/delivery/scrap}
+  - {name: qty, type: number, unit: EA, min: 0, required: true, description: 수량}
+change_log: [{version: v1.0, date: 2026-09-10, note: 최초 제정}]

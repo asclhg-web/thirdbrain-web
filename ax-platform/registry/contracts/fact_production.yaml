@@ -1,0 +1,18 @@
+name: fact_production
+kind: fact
+owner: 현장 스튜어드
+version: v1.0
+update_cycle: daily
+description: 제조오더 단위 생산 사실 — 4M 키(작업자·설비·SOP) 보유.
+source: staging_mrp (Odoo mrp_production CDC)
+columns:
+  - {name: mo_ref, type: text, required: true, unique: true, description: 제조오더}
+  - {name: date_key, type: date, required: true, ref: dim_calendar.date_key, description: 생산일}
+  - {name: shift, type: text, required: true, description: 근무조(주간/야간)}
+  - {name: product_id, type: text, required: true, ref: dim_product.product_id, description: 제품}
+  - {name: worker_id, type: text, ref: dim_worker.worker_id, description: 작업자(Man)}
+  - {name: equipment_id, type: text, ref: dim_equipment.equipment_id, description: 설비(Machine)}
+  - {name: sop_id, type: text, ref: dim_sop.sop_id, description: 표준작업(Method)}
+  - {name: qty_planned, type: number, unit: EA, min: 0, description: 계획 수량}
+  - {name: qty_done, type: number, unit: EA, min: 0, description: 양품 수량}
+change_log: [{version: v1.0, date: 2026-09-10, note: 최초 제정}]

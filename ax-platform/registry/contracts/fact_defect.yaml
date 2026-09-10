@@ -1,0 +1,20 @@
+name: fact_defect
+kind: fact
+owner: 현장 스튜어드
+version: v1.0
+update_cycle: daily
+description: 불량 사실(defect_fact) — 4M 차원 키 전부 보유, 지식그래프 DefectEvent의 원천.
+source: staging_quality (Odoo quality_check CDC) + staging_mrp 조인
+columns:
+  - {name: defect_id, type: number, required: true, unique: true, description: 불량 이벤트 ID}
+  - {name: date_key, type: date, required: true, ref: dim_calendar.date_key, description: 발생일}
+  - {name: shift, type: text, description: 근무조}
+  - {name: product_id, type: text, required: true, ref: dim_product.product_id, description: 제품}
+  - {name: worker_id, type: text, ref: dim_worker.worker_id, description: 작업자(Man)}
+  - {name: equipment_id, type: text, ref: dim_equipment.equipment_id, description: 설비(Machine)}
+  - {name: material_lot_id, type: text, ref: dim_material_lot.lot_id, description: 자재 로트(Material)}
+  - {name: sop_id, type: text, ref: dim_sop.sop_id, description: 표준작업(Method)}
+  - {name: defect_type, type: text, required: true, description: 불량 유형}
+  - {name: qty_defect, type: number, unit: EA, min: 0, required: true, description: 불량 수량}
+  - {name: memo, type: text, description: 현장 메모 원문 — 지식센터 원료, 임의 수정 금지}
+change_log: [{version: v1.0, date: 2026-09-10, note: 최초 제정}]

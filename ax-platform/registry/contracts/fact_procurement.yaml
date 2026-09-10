@@ -1,0 +1,16 @@
+name: fact_procurement
+kind: fact
+owner: 현장 스튜어드
+version: v1.0
+update_cycle: daily
+description: 구매·입고 사실 — 자재 로트 추적의 출발점.
+source: staging_purchase (Odoo purchase_order_line CDC)
+columns:
+  - {name: po_ref, type: text, required: true, description: 발주서}
+  - {name: date_key, type: date, required: true, description: 입고일}
+  - {name: vendor_id, type: text, required: true, description: 공급사}
+  - {name: material_id, type: text, required: true, ref: dim_material.material_id, description: 자재}
+  - {name: lot_id, type: text, required: true, ref: dim_material_lot.lot_id, description: 자재 로트(Material)}
+  - {name: qty, type: number, unit: KG, min: 0, description: 입고량}
+  - {name: amount, type: number, unit: KRW, min: 0, description: 금액}
+change_log: [{version: v1.0, date: 2026-09-10, note: 최초 제정}]

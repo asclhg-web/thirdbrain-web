@@ -1,0 +1,17 @@
+name: features_demand
+kind: features
+owner: ML 엔지니어
+version: v1.0
+update_cycle: daily
+description: 수요예측 특징 20종 — 시점 안전(as_of 이전 값만), 프로모션·명절은 사전 인지(planned) 특징.
+source: fact_sales · dim_calendar · dim_promo · fact_inventory_move · dim_product · dim_store
+columns:
+  - {name: as_of, type: date, required: true, description: 특징 기준 시점}
+  - {name: date_key, type: date, required: true, description: 대상 일자}
+  - {name: store_id, type: text, required: true, description: 매장}
+  - {name: product_id, type: text, required: true, description: 제품}
+  - {name: features, type: json, required: true, description: "20종 — 정의는 axp.dataset.features.DEFINITIONS(v1.0)와 1:1"}
+  - {name: target, type: number, unit: EA, description: 실제 판매(학습용, 미래는 NULL)}
+quality_notes: |
+  past 특징의 미래 정보 누출 금지 — 검증은 core/tests/test_features.py 가 강제한다.
+change_log: [{version: v1.0, date: 2026-09-10, note: 최초 제정 — 특징 20종}]

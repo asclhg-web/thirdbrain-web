@@ -1,0 +1,16 @@
+name: fact_sales
+kind: fact
+owner: 현장 스튜어드
+version: v1.0
+update_cycle: daily
+description: 일×매장×제품 판매 사실 — 수요예측의 정본. 정본은 Odoo, 엑셀 판매집계는 검증용(이중 계상 금지).
+source: staging_sales (Odoo sale_order_line CDC)
+columns:
+  - {name: date_key, type: date, required: true, ref: dim_calendar.date_key, description: 판매일}
+  - {name: store_id, type: text, required: true, ref: dim_store.store_id, description: 매장/거래처}
+  - {name: product_id, type: text, required: true, ref: dim_product.product_id, description: 제품}
+  - {name: qty, type: number, unit: EA, min: 0, required: true, description: 판매 수량}
+  - {name: revenue, type: number, unit: KRW, min: 0, required: true, description: 매출액}
+  - {name: channel, type: text, description: retail/B2B}
+  - {name: promo_flag, type: number, min: 0, max: 1, description: 행사 여부}
+change_log: [{version: v1.0, date: 2026-09-10, note: 최초 제정}]
