@@ -15,6 +15,46 @@
   → M7 에이전트·HITL 승인함·War Room(판단 카드)
 ```
 
+## 아키텍처
+
+```mermaid
+flowchart TB
+  subgraph SRC[세 가지 현실]
+    XL[엑셀]:::src
+    FM[수작업 장표\n태블릿 폼·OCR]:::src
+    OD[(Odoo\nPostgreSQL)]:::src
+    IO[IoT 센서]:::src
+  end
+  subgraph CORE[판단의 공장]
+    M1[M1 수집\n원본 불변 보존]:::m
+    M2[M2 표준 데이터셋\n사실 6계열 · 4M 키\n품질 게이트 · 특징 20종]:::m
+    M3[M3 분석 스튜디오\nEDA 6종 · 야간 마이닝]:::m
+    M4[M4 학습 엔진\n평활→GBDT · 모델 카드\n이상탐지 · 재고 Twin]:::m
+    M5[M5 지식그래프\nFACT · 확신도 70%×3회\n→ Rule 승격]:::m
+    M6[M6 판단 조립\n인용 강제 · 수치 생성 금지]:::m
+    M7[M7 에이전트 5종\nHITL 승인함 · War Room]:::m
+  end
+  subgraph APPS[4대 지능화 앱]
+    A1[수요예측·영업]:::a
+    A2[재고·생산]:::a
+    A3[설비예지]:::a
+    A4[지식센터]:::a
+  end
+  M0[M0 공통 기반 — SSO · 백업 3-2-1 · 스키마 레지스트리 · 자산 대장 · 반출 게이트]:::base
+
+  XL & FM & OD & IO --> M1 --> M2 --> M3 --> M4 --> M5 --> M6 --> M7
+  M3 -. 마이닝 후보 .-> M5
+  M7 == 판단 카드 ==> APPS
+  APPS -. 승인 실적·반려 사유 환류 .-> M2
+  M7 -- 승인된 결정만 --> OD
+  CORE --- M0
+
+  classDef src fill:#F8F2EA,stroke:#9C5227,color:#2E241C
+  classDef m fill:#fff,stroke:#0E8F86,color:#2E241C
+  classDef a fill:#FDF3E0,stroke:#E8A33D,color:#2E241C
+  classDef base fill:#2B1D12,stroke:#2B1D12,color:#F8F2EA
+```
+
 ## 설계 원칙 다섯
 
 1. **오픈소스 우선** — 코어 전 계층 오픈소스. 상용은 어댑터로만.

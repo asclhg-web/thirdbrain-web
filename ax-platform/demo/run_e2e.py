@@ -174,6 +174,22 @@ def main(fresh: bool = True) -> dict:
     summary["m7"] = {"first_feedback": dec["feedback"]["written"][0]["param"],
                      "audit_rows": len(inbox.audit())}
 
+    step("8b. 설비예지 데모 — 경보일의 점검 카드(2단계 앱 미리보기)")
+    # OVEN-2 고장(6/18) 2주 전 드리프트 구간의 경보일로 설비경보 에이전트 실행
+    from axp import db
+    alert_day = db.scalar(
+        "SELECT MIN(date_key) FROM anomaly_scores WHERE is_alert=1 "
+        "AND equipment_id='OVEN-2' AND date_key>='2026-06-01'")
+    if alert_day:
+        r_eq = runtime.run_agent("equip_alert_agent", {"run_date": alert_day})
+        if r_eq.get("cards"):
+            eq_cid = r_eq["cards"][0]
+            inbox.decide(eq_cid, APPROVER, "card_approver", True)
+            flag = db.one("SELECT * FROM odoo_params WHERE param_key LIKE 'inspection_flag%'")
+            print(f"경보일 {alert_day}: 점검 카드 {eq_cid} 승인 → "
+                  f"{flag['param_key'] if flag else '환류 없음'} (고장 13일 전 선행 신호)")
+            summary["equip_alert"] = {"alert_day": alert_day, "card": eq_cid}
+
     step("9. War Room·승급·산출물")
     wr = warroom.render(AS_OF)
     pr = promotion.request("demand_forecast", 2000, 0.3, LEAD)
