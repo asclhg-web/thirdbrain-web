@@ -28,7 +28,8 @@ def input_drift(as_of: str, ref_days: int = 84, cur_days: int = 14) -> pd.DataFr
     ref = df[(df["date_key"] >= ref_start) & (df["date_key"] < cur_start)]
     cur = df[df["date_key"] >= cur_start]
     calendar_feats = {"days_since_start", "month", "dow", "is_weekend",
-                      "is_holiday_week", "promo_flag"}   # 달력·계획 특징은 당연히 이동 — 제외
+                      "is_holiday_week", "promo_flag",
+                      "seasonal_idx"}   # 달력·계획·달력 파생 특징은 당연히 이동 — 제외
     rows = []
     for f in features.DEFINITIONS:
         if f in calendar_feats or ref[f].nunique() < 3:
