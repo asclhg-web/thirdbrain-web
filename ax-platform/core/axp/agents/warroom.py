@@ -30,6 +30,12 @@ def metrics(as_of: str) -> dict:
         "SELECT agent, COUNT(*) runs, SUM(cards_created) cards, "
         "SUM(status='error') errors FROM agent_runs GROUP BY agent") \
         if db.table_exists("agent_runs") else []
+    risks = []
+    if db.table_exists("risk_reports"):
+        latest = db.scalar("SELECT MAX(run_at) FROM risk_reports")
+        if latest:
+            risks = db.query("SELECT risk_id, level, metric, action FROM risk_reports "
+                             "WHERE run_at=?", (latest,))
     kpi = {}
     if db.table_exists("fact_sales"):
         kpi["scrap_28d"] = db.scalar(
@@ -49,7 +55,7 @@ def metrics(as_of: str) -> dict:
             "processing_rate": (decided / total) if total else 0,
             "approval_rate": (approved / decided) if decided else 0,
             "reject_reasons": reasons, "agent_runs": agent_runs,
-            "kpi": kpi, "drift_top": drift_rows}
+            "kpi": kpi, "drift_top": drift_rows, "risks": risks}
 
 
 def render(as_of: str) -> str:
@@ -63,6 +69,11 @@ def render(as_of: str) -> str:
     drift_rows = "".join(
         f"<tr><td>{r['feature']}</td><td>{r['psi']}</td><td>{r['level']}</td></tr>"
         for r in m["drift_top"]) or "<tr><td colspan=3>-</td></tr>"
+    mark = {"녹": "🟢", "황": "🟡", "적": "🔴"}
+    risk_rows = "".join(
+        f"<tr><td>{r['risk_id']}</td><td>{mark.get(r['level'], '')} {r['level']}</td>"
+        f"<td>{r['metric']}</td><td>{r['action'] or '—'}</td></tr>"
+        for r in m["risks"]) or "<tr><td colspan=4>점검 이력 없음(격주)</td></tr>"
     status_rows = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>"
                           for k, v in sorted(m["by_status"].items()))
     html = f"""<!doctype html><meta charset="utf-8"><title>War Room</title>{CSS}
@@ -79,6 +90,7 @@ def render(as_of: str) -> str:
 <h2>반려 사유 분포</h2><table><tr><th>사유</th><th>건수</th></tr>{reason_rows}</table>
 <h2>에이전트 가동</h2><table><tr><th>에이전트</th><th>실행</th><th>카드</th><th>오류</th></tr>{agent_rows}</table>
 <h2>입력 드리프트 상위</h2><table><tr><th>특징</th><th>PSI</th><th>수준</th></tr>{drift_rows}</table>
+<h2>리스크 5 (격주 자동 점검)</h2><table><tr><th>리스크</th><th>판정</th><th>관측 지표</th><th>대응</th></tr>{risk_rows}</table>
 <p><small>주간 리뷰 순서: ① 상단 KPI ② 반려 사유 → 개선 안건 ③ 에이전트 오류 ④ 드리프트 → 재학습 판정 ⑤ 승급/강등 결정</small></p>"""
     out = config.ARTIFACTS / "boards"
     out.mkdir(parents=True, exist_ok=True)
