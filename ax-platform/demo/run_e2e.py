@@ -88,10 +88,17 @@ def main(fresh: bool = True) -> dict:
     q = quality.daily_report(AS_OF)
     (config.ARTIFACTS / "quality_report.md").write_text(
         quality.render_md(q), encoding="utf-8")
-    pend = codemap.pending()
-    if pend:                                          # 스튜어드 격리 확정 시연
-        # 프로모션 달력의 제품 코드는 이미 표준 코드 — 자기 자신으로 확정
-        codemap.confirm(pend[0]["q_id"], pend[0]["alias"], STEWARD)
+    # 스튜어드 격리 확정 — 프로모션 달력의 제품'명' 별칭을 표준 코드로
+    name2code = {"바게트": "P-BAG", "조각케이크": "P-CAKE", "샌드위치": "P-SAND",
+                 "크루아상": "P-CROI", "도넛": "P-DONUT"}
+    n_conf = 0
+    for q_row in codemap.pending():
+        codemap.confirm(q_row["q_id"], name2code.get(q_row["alias"], q_row["alias"]),
+                        STEWARD)
+        n_conf += 1
+    if n_conf:
+        transform.build_dims()                        # 확정 반영 재변환(멱등)
+        print(f"격리 확정 {n_conf}건 → 사전 축적, 차원 재구축")
     n_feat = features.materialize(AS_OF, horizon=7)
     print(f"사실 6계열 {sum(v for k, v in tcounts.items() if k.startswith('fact'))}행 · "
           f"품질 {'통과' if q['ok'] else '위반'} · 미매핑 {q['unmapped_rate']:.2%} · "

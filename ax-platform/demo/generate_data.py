@@ -283,10 +283,12 @@ def main() -> None:
     # ── 엑셀 양식 2종 (업로더 시험용)
     xls_dir = config.DATA / "inbox"
     xls_dir.mkdir(parents=True, exist_ok=True)
-    promos.rename(columns={"date_start": "시작일", "date_end": "종료일",
-                           "product_id": "제품코드", "promo_name": "행사명",
-                           "discount_pct": "할인율"}) \
-        .to_excel(xls_dir / "프로모션_달력.xlsx", index=False)
+    promo_xls = promos.copy()
+    promo_xls["product_id"] = promo_xls["product_id"].map(lambda p: PRODUCTS[p][0])
+    promo_xls.rename(columns={"date_start": "시작일", "date_end": "종료일",
+                              "product_id": "제품코드", "promo_name": "행사명",
+                              "discount_pct": "할인율"}) \
+        .to_excel(xls_dir / "프로모션_달력.xlsx", index=False)   # 현실처럼 제품'명' 기입
     recent = [s for s in sales if s[1] >= (END - timedelta(days=14)).isoformat()
               and s[2] == "S-MAIN"]
     pd.DataFrame([{"판매일": r[1], "매장": r[2], "품목": r[3], "수량": r[4]} for r in recent]) \

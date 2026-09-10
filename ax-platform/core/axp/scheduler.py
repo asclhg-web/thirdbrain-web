@@ -55,6 +55,10 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
         from .dataset import export
         stage("weekly_retrain", lambda: retrain.weekly(run_date))
         stage("parquet_export", lambda: export.export_parquet())
+        # 격주(짝수 ISO 주): 리스크 5 자동 점검
+        if date.fromisoformat(run_date).isocalendar().week % 2 == 0:
+            from .agents import risk
+            stage("risk_check", lambda: risk.check_all(run_date))
 
     from .agents import five, runtime, promotion
     five.register_all()

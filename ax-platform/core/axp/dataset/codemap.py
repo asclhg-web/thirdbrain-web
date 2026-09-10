@@ -44,8 +44,17 @@ def init() -> None:
         SEED)
 
 
+STANDARD_LOOKUP = {          # 별칭이 이미 표준 코드와 완전 일치하면 자기 매핑
+    "product": ("dim_product", "product_id"),
+    "store": ("dim_store", "store_id"),
+    "worker": ("dim_worker", "worker_id"),
+    "equipment": ("dim_equipment", "equipment_id"),
+}
+
+
 def resolve(domain: str, alias: str, context: str = "") -> str | None:
-    """별칭 → 표준 코드. 실패 시 격리 큐 적재 후 None (행은 보존, 사실 반영은 보류)."""
+    """별칭 → 표준 코드. 표준 코드 자기 일치는 자동 매핑(사전에 기록).
+    그 외 실패는 격리 큐 적재 후 None (행은 보존, 사실 반영은 보류)."""
     init()
     if alias is None or str(alias).strip() == "":
         return None
@@ -54,7 +63,16 @@ def resolve(domain: str, alias: str, context: str = "") -> str | None:
                  (domain, alias))
     if row:
         return row["standard_code"]
-    # 표준 코드가 이미 표준 형태(P-/S-/W- 등)인 경우 자기 자신
+    lookup = STANDARD_LOOKUP.get(domain)
+    if lookup and db.table_exists(lookup[0]):
+        hit = db.one(f"SELECT 1 FROM {lookup[0]} WHERE {lookup[1]}=?", (alias,))
+        if hit:                                # 이미 표준 코드 — 자기 매핑 기록
+            db.execute(
+                "INSERT OR REPLACE INTO code_dictionary "
+                "(domain, alias, standard_code, confirmed_by, confirmed_at) "
+                "VALUES (?,?,?,?,?)",
+                (domain, alias, alias, "auto(표준 코드 일치)", common.now_iso()))
+            return alias
     existing = db.one("SELECT 1 FROM quarantine_queue WHERE domain=? AND alias=? AND status='pending'",
                       (domain, alias))
     if existing:
@@ -85,6 +103,19 @@ def confirm(q_id: int, standard_code: str, by: str) -> None:
         "INSERT OR REPLACE INTO code_dictionary (domain, alias, standard_code, confirmed_by, confirmed_at) "
         "VALUES (?,?,?,?,?)",
         (row["domain"], row["alias"], standard_code, by, common.now_iso()))
+
+
+def drain_self_matches(by: str = "auto(표준 코드 일치)") -> int:
+    """대기 큐 정리 — 표준 코드와 완전 일치하는 별칭을 일괄 자기 매핑으로 확정."""
+    init()
+    n = 0
+    for q in pending():
+        lookup = STANDARD_LOOKUP.get(q["domain"])
+        if lookup and db.table_exists(lookup[0]) and db.one(
+                f"SELECT 1 FROM {lookup[0]} WHERE {lookup[1]}=?", (q["alias"],)):
+            confirm(q["q_id"], q["alias"], by)
+            n += 1
+    return n
 
 
 def unmapped_rate() -> float:
