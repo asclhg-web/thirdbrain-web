@@ -179,6 +179,7 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 </style>"""
 
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
+       ("/upload", "자료 반입", ("steward",)),
        ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
        ("/briefing", "브리핑", ("viewer", "steward", "approver")),
        ("/ask", "질문", ("viewer", "steward", "approver")),
@@ -342,6 +343,90 @@ def card_decide(card_id: int, request: Request,
 
 
 # ── 격리 큐 (스튜어드) ──────────────────────────────────
+# ── P4-3: 자료 반입 — 엑셀·POS 파일을 화면에서 올린다 ─────────
+UPLOAD_KINDS = {
+    "excel": ("엑셀 (판매집계·행사달력·단가표)", None),
+    "pos_daily": ("POS 일별 정산 집계", "daily"),
+    "pos_receipt": ("POS 영수증 거래 로그", "receipt"),
+}
+MAX_UPLOAD_MB = int(os.environ.get("AXP_MAX_UPLOAD_MB", "20"))
+
+
+def _upload_form(msg: str = "") -> str:
+    opts = "".join(f"<option value='{k}'>{v[0]}</option>" for k, v in UPLOAD_KINDS.items())
+    return f"""<h2>자료 반입 — 가져와서 정리합니다</h2>
+<p class="sub">개인정보 컬럼(연락처·주소 등)은 반입 시점에 자동 차단되고, 원본은 불변 보존됩니다.
+같은 파일을 두 번 올려도 중복 반입되지 않습니다.</p>{msg}
+<form method="post" enctype="multipart/form-data" class="card" style="max-width:560px">
+  <p><select name="kind" style="width:100%">{opts}</select></p>
+  <p><input type="file" name="file" required accept=".csv,.xlsx,.xls" style="width:100%"></p>
+  <button class="btn ok">반입</button>
+  <span class="sub" style="margin-left:8px">CSV(cp949 포함)·엑셀 · 최대 {MAX_UPLOAD_MB}MB</span>
+</form>"""
+
+
+@app.get("/upload", response_class=HTMLResponse)
+def upload_form(request: Request):
+    u = _require(request, ("steward",))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "자료 반입", _upload_form(), "/upload"))
+
+
+@app.post("/upload", response_class=HTMLResponse)
+async def upload_post(request: Request):
+    u = _require(request, ("steward",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    kind = str(form.get("kind", ""))
+    f = form.get("file")
+    if kind not in UPLOAD_KINDS or f is None or not getattr(f, "filename", ""):
+        return HTMLResponse(page(u, "자료 반입", _upload_form(
+            "<div class='card warn'>파일과 유형을 선택하세요.</div>"), "/upload"), 400)
+    data = await f.read()
+    if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
+        return HTMLResponse(page(u, "자료 반입", _upload_form(
+            f"<div class='card warn'>파일이 너무 큽니다(최대 {MAX_UPLOAD_MB}MB).</div>"), "/upload"), 413)
+    # 안전한 파일명으로 수신함에 저장 후 어댑터 호출(원본 보존은 어댑터가 수행)
+    import re as _re
+    from pathlib import Path as _P
+    safe = _re.sub(r"[^\w.\-가-힣]", "_", f.filename)[-80:] or "upload.bin"
+    inbox_dir = config.DATA / "raw" / "webupload"
+    inbox_dir.mkdir(parents=True, exist_ok=True)
+    dst = inbox_dir / f"{common.now_iso().replace(':', '')}_{safe}"
+    dst.write_bytes(data)
+    try:
+        if kind == "excel":
+            from .ingest import excel_uploader
+            res = excel_uploader.upload(dst, by=u["username"])
+        else:
+            from .ingest import pos
+            fn = pos.ingest_daily if UPLOAD_KINDS[kind][1] == "daily" else pos.ingest_receipt
+            res = fn(dst, by=u["username"])
+    except Exception as e:  # noqa: BLE001
+        return HTMLResponse(page(u, "자료 반입", _upload_form(
+            f"<div class='card warn'>반입 실패: {html.escape(str(e)[:300])}</div>"), "/upload"), 500)
+    if res.get("status") == "needs_mapping":
+        cols = ", ".join(res.get("columns", [])[:20]) or \
+            ", ".join(c["name"] for c in res.get("profile", {}).get("columns", [])[:20])
+        body = (f"<div class='card warn'><b>처음 보는 양식</b> — {html.escape(res.get('message',''))}"
+                f"<div class='sub'>발견한 열: {html.escape(cols)}</div>"
+                f"<div class='sub'>열 매핑 등록은 관리자에게 요청하세요(다음부터 자동 반입).</div></div>")
+    elif res.get("status") == "duplicate":
+        body = f"<div class='card warn'>{html.escape(res.get('message',''))}</div>"
+    else:
+        errs = "".join(f"<div class='ln'>· {html.escape(e)}</div>" for e in res.get("errors", [])[:10])
+        warns = "".join(f"<div class='ln'>⚠ {html.escape(w)}</div>"
+                        for w in res.get("double_count_warnings", [])[:5])
+        body = (f"<div class='card ok'><b>반입 완료</b> — {res.get('rows_ok', 0)}행"
+                f" (거절 {res.get('rows_rejected', 0)}행)"
+                + (f"<div style='margin-top:6px'>{errs}</div>" if errs else "")
+                + (f"<div style='margin-top:6px'>{warns}</div>" if warns else "")
+                + "<div class='sub' style='margin-top:6px'>미확인 코드는 <a href='/quarantine'>격리 큐</a>에서 확정하세요.</div></div>")
+    return HTMLResponse(page(u, "자료 반입", _upload_form() + body, "/upload"))
+
+
 @app.get("/quarantine", response_class=HTMLResponse)
 def quarantine_page(request: Request):
     u = _require(request)

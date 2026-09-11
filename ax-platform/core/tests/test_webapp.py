@@ -159,3 +159,34 @@ def test_trial_watermark_shown(tmp_db):
     assert "체험판 · 합성 데이터" in body and "체험 고객사" in body
     login_page = c.get("/login").text               # 로그인 화면에도 고지
     assert "체험판 · 합성 데이터" in login_page
+
+
+def test_upload_pos_daily_via_web(tmp_db):
+    """P4-3: 웹 업로드 → POS 어댑터 → 스테이징 + 멱등."""
+    c = _client()
+    _login(c, "steward")
+    csv = ("영업일자,매장명,상품코드,판매수량,판매금액\n"
+           "2025-09-01,S-CHORYANG,P-PIE,120,144000\n").encode("cp949")
+    r = c.post("/upload", data={"kind": "pos_daily"},
+               files={"file": ("정산.csv", csv, "text/csv")})
+    assert r.status_code == 200 and "반입 완료" in r.text and "1행" in r.text
+    assert db.scalar("SELECT COUNT(*) FROM staging_sales WHERE _source='pos_daily'") == 1
+    r2 = c.post("/upload", data={"kind": "pos_daily"},
+                files={"file": ("정산.csv", csv, "text/csv")})
+    assert "이미 반입" in r2.text                      # sha256 멱등
+
+
+def test_upload_requires_steward(tmp_db):
+    c = _client()
+    _login(c, "approver")
+    r = c.post("/upload", data={"kind": "pos_daily"},
+               files={"file": ("x.csv", b"a,b\n", "text/csv")})
+    assert r.status_code == 403
+
+
+def test_upload_unknown_format_asks_mapping(tmp_db):
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/upload", data={"kind": "pos_daily"},
+               files={"file": ("mystery.csv", "colA,colB\n1,2\n".encode(), "text/csv")})
+    assert "처음 보는 양식" in r.text
