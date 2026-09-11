@@ -47,6 +47,29 @@ def init() -> None:
     db.executescript(DDL)
 
 
+PII_COLUMN_PATTERNS = (
+    "전화", "휴대폰", "핸드폰", "연락처", "이메일", "email", "phone", "mobile",
+    "주민", "생년월일", "카드번호", "계좌", "주소",
+)
+
+
+def strip_pii_columns(df, source: str = "") -> tuple:
+    """P2-C4: 개인정보 컬럼 차단 — 반입 시점에 낙하시키고 경보만 남긴다.
+
+    거래 데이터에 섞여 들어오는 담당자 연락처·주소 등은 플랫폼이 필요로
+    하지 않는다. 컬럼명이 차단 목록과 부분 일치하면 반입 자체를 하지 않는다
+    (값은 로그에도 남기지 않는다 — 컬럼명만 기록)."""
+    from .. import common as _common
+    dropped = [c for c in df.columns
+               if any(pat in str(c).lower() for pat in PII_COLUMN_PATTERNS)]
+    if dropped:
+        df = df.drop(columns=dropped)
+        _common.alert("warn", "excel_uploader",
+                      f"개인정보 의심 컬럼 {len(dropped)}개 반입 차단: "
+                      f"{', '.join(map(str, dropped))} ({source})")
+    return df, dropped
+
+
 def fingerprint(columns: list[str]) -> str:
     norm = "|".join(str(c).strip().lower() for c in columns)
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()[:16]
@@ -118,6 +141,7 @@ def upload(path: Path, by: str, sheet: str | int = 0) -> dict:
     mapping = json.loads(m["mapping"])
     kind = m["sheet_kind"]
     df = pd.read_excel(path, sheet_name=sheet, header=prof["header_row"])
+    df, _pii = strip_pii_columns(df, source=str(path))
     errors: list[str] = []
     ok_rows: list[dict] = []
     required = {f for f, req in STANDARD_FIELDS[kind].items() if req}

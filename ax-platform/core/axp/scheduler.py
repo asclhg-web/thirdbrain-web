@@ -54,6 +54,7 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
         from .learn import retrain
         from .dataset import export
         stage("weekly_retrain", lambda: retrain.weekly(run_date))
+        stage("rule_review", lambda: confidence.review_promoted(run_date))
         stage("parquet_export", lambda: export.export_parquet())
         # 격주(짝수 ISO 주): 리스크 5 자동 점검
         if date.fromisoformat(run_date).isocalendar().week % 2 == 0:

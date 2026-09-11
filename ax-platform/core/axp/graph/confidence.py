@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS causal_candidates (
   confidence REAL NOT NULL DEFAULT 0,
   confirmations TEXT NOT NULL DEFAULT '[]',   -- [{window_end, z, source}]
   status TEXT NOT NULL DEFAULT 'watching'
-         CHECK (status IN ('watching','submitted','promoted','rejected')),
+         CHECK (status IN ('watching','submitted','promoted','rejected','demoted')),
   rule_id TEXT, updated_at TEXT
 );
 CREATE TABLE IF NOT EXISTS rule_history (
@@ -186,6 +186,121 @@ def decide(cc_id: int, approve: bool, actor: str, note: str = "") -> dict:
     db.execute("INSERT INTO rule_history (cc_id, action, actor, note, at) VALUES (?,?,?,?,?)",
                (cc_id, "rejected", actor, note, common.now_iso()))
     return {"cc_id": cc_id, "status": "rejected→watching", "confidence_halved": True}
+
+
+REFUTE_REVIEWS = 2      # 연속 반증 리뷰 횟수 → 강등
+REFUTE_LIFT = 1.05      # 이 배율 이하로 효과 소멸 시 반증으로 판정
+
+
+def _combo_rate(dims: dict, start: str, end: str) -> tuple[float, float]:
+    """(조합 불량률, 전체 기준률) — vendor 차원은 로트 접두로 매핑."""
+    conds, params = [], []
+    for k, v in dims.items():
+        if k == "vendor":
+            conds.append("material_lot_id IN "
+                         "(SELECT lot_id FROM dim_material_lot WHERE vendor_id=?)")
+            params.append(v)
+        else:
+            conds.append(f"{k} = ?")
+            params.append(v)
+    where = " AND ".join(conds) or "1=1"
+    row = db.one(
+        f"SELECT SUM(qty_defect) d, SUM(qty_produced) p FROM fact_defect "
+        f"WHERE date_key BETWEEN ? AND ? AND {where}",
+        tuple([start, end] + params))
+    combo = (row["d"] or 0) / max(row["p"] or 0, 1)
+    base_row = db.one(
+        "SELECT SUM(qty_defect) d, SUM(qty_produced) p FROM fact_defect "
+        "WHERE date_key BETWEEN ? AND ?", (start, end))
+    base = (base_row["d"] or 0) / max(base_row["p"] or 0, 1)
+    return combo, base
+
+
+def _ensure_demoted_status() -> None:
+    """구DB 마이그레이션 — status CHECK에 'demoted'가 없으면 재구축/재제약."""
+    from .. import db as _db
+    if _db.BACKEND == "postgres":
+        with _db.conn() as c:
+            c.raw.execute(
+                "DO $$ DECLARE r record; BEGIN "
+                "FOR r IN SELECT conname FROM pg_constraint "
+                "WHERE conrelid='causal_candidates'::regclass AND contype='c' LOOP "
+                "EXECUTE 'ALTER TABLE causal_candidates DROP CONSTRAINT '||r.conname; "
+                "END LOOP; "
+                "ALTER TABLE causal_candidates ADD CHECK (status IN "
+                "('watching','submitted','promoted','rejected','demoted')); END $$;")
+        return
+    ddl = _db.scalar(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='causal_candidates'")
+    if ddl and "'demoted'" not in ddl:
+        with _db.conn() as c:
+            c.execute("ALTER TABLE causal_candidates RENAME TO _cc_old")
+        _db.executescript(DDL)
+        with _db.conn() as c:
+            c.execute(
+                "INSERT INTO causal_candidates (cc_id, dims, confidence, confirmations, "
+                "status, rule_id, updated_at) SELECT cc_id, dims, confidence, "
+                "confirmations, status, rule_id, updated_at FROM _cc_old")
+            c.execute("DROP TABLE _cc_old")
+
+
+def review_promoted(as_of: str, window_days: int = 28) -> list[dict]:
+    """P2-C4: 규칙 반증 강등 루프 — 지식의 노화 관리.
+
+    승격 규칙의 조합 효과를 최근 창에서 재측정한다. 효과가 사라졌으면
+    (조합 불량률 ≤ 기준률×REFUTE_LIFT) 반증 1회를 기록하고, 연속
+    REFUTE_REVIEWS회면 강등한다: 후보는 demoted, 그래프 Rule 노드에
+    demoted 표시, SOP 개정 재검토 경보. 효과가 살아 있으면 반증 계수 리셋."""
+    import datetime as _dt
+    db.executescript(DDL)
+    _ensure_demoted_status()
+    start = (_dt.date.fromisoformat(as_of)
+             - _dt.timedelta(days=window_days)).isoformat()
+    out = []
+    for row in db.query(
+            "SELECT * FROM causal_candidates WHERE status='promoted'"):
+        dims = json.loads(row["dims"])
+        combo, base = _combo_rate(dims, start, as_of)
+        refuted = combo <= base * REFUTE_LIFT
+        hist = db.query(
+            "SELECT action FROM rule_history WHERE cc_id=? ORDER BY hist_id DESC LIMIT ?",
+            (row["cc_id"], REFUTE_REVIEWS - 1))
+        prior = sum(1 for h in hist if h["action"] == "refute")
+        if not refuted:
+            if prior:
+                db.execute(
+                    "INSERT INTO rule_history (cc_id, action, actor, note, at) VALUES (?,?,?,?,?)",
+                    (row["cc_id"], "refute_reset", "system",
+                     f"효과 재확인 combo={combo:.4f} base={base:.4f}", common.now_iso()))
+            continue
+        db.execute(
+            "INSERT INTO rule_history (cc_id, action, actor, note, at) VALUES (?,?,?,?,?)",
+            (row["cc_id"], "refute", "system",
+             f"{start}~{as_of} combo={combo:.4f} ≤ base×{REFUTE_LIFT} ({base:.4f})",
+             common.now_iso()))
+        if prior + 1 >= REFUTE_REVIEWS:
+            db.execute(
+                "UPDATE causal_candidates SET status='demoted', updated_at=? WHERE cc_id=?",
+                (common.now_iso(), row["cc_id"]))
+            db.execute(
+                "INSERT INTO rule_history (cc_id, action, actor, note, at) VALUES (?,?,?,?,?)",
+                (row["cc_id"], "demoted", "system",
+                 f"연속 {REFUTE_REVIEWS}회 반증 — 강등", common.now_iso()))
+            if row.get("rule_id"):
+                n = store.node(store.nid("Rule", row["rule_id"]))
+                if n:
+                    props = n["props"]
+                    props["status"] = "demoted"
+                    store.upsert_node("Rule", row["rule_id"], props)
+            common.alert("warn", "confidence",
+                         f"규칙 강등: {rule_text(dims)} — 최근 {window_days}일 효과 소멸. "
+                         f"연계 SOP 개정 재검토 필요")
+            out.append({"cc_id": row["cc_id"], "rule_id": row.get("rule_id"),
+                        "action": "demoted", "combo": combo, "base": base})
+        else:
+            out.append({"cc_id": row["cc_id"], "rule_id": row.get("rule_id"),
+                        "action": "refute", "streak": prior + 1})
+    return out
 
 
 def rule_text(dims: dict) -> str:
