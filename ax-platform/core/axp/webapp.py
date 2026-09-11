@@ -1032,10 +1032,59 @@ def quarantine_page(request: Request):
     body = f"""<h2>격리 큐</h2>
 <p class="sub">처음 보는 현장 어휘 — 확신 없으면 추측하지 말고 현장에 물어보세요 (I-09 교훈)</p>
 <table><tr><th>#</th><th>영역</th><th>별칭</th><th>행수</th><th>확정</th></tr>{rows or '<tr><td colspan=5>대기 없음 ✔</td></tr>'}</table>
+{f'''<div class="card"><b>일괄 처리 (P5-U2)</b>
+<form method="post" action="/quarantine/bulk" style="margin-top:8px">
+  <textarea name="lines" placeholder="한 줄에 하나: 번호=표준코드   예) 12=P-COOKIE" style="width:100%;height:70px;font-family:monospace"></textarea>
+  <button class="btn ok" style="margin-top:6px">일괄 확정</button>
+</form>
+<form method="post" action="/quarantine/drain" style="margin-top:6px">
+  <button class="btn plain">표준 코드와 똑같은 별칭 자동 확정</button>
+  <span class="sub">별칭이 이미 표준 코드와 완전 일치하는 건만 (예: 별칭 P-PIE → P-PIE)</span>
+</form></div>''' if can else ''}
 <h2 style="font-size:17px">최근 확정 — 잘못 확정했다면 취소하세요</h2>
 <p class="sub">취소하면 다음 야간 배치의 전량 재구축이 소급 반영합니다</p>
 <table><tr><th>#</th><th>별칭</th><th>확정 코드</th><th>확정자</th><th>취소</th></tr>{undo or '<tr><td colspan=5>기록 없음</td></tr>'}</table>"""
     return HTMLResponse(page(u, "격리 큐", body, "/quarantine"))
+
+
+@app.post("/quarantine/bulk")
+async def quarantine_bulk(request: Request):
+    """P5-U2: 일괄 확정 — '번호=코드' 줄 단위, 틀린 줄은 한글 사유와 함께 건너뜀."""
+    u = _require(request, roles=("steward",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    done, errors = 0, []
+    for i, line in enumerate(str(form.get("lines", "")).splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in line.replace("=", " ").split()]
+        if len(parts) != 2 or not parts[0].isdigit() or not parts[1]:
+            errors.append(f"{i}행: '번호=코드' 형식이 아닙니다 — {line[:30]}")
+            continue
+        try:
+            codemap.confirm(int(parts[0]), parts[1], by=u["display"])
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"{i}행(#{parts[0]}): {str(e)[:60]}")
+    note = (f"<div class='card ok'>일괄 확정 {done}건"
+            + ("".join(f"<div class='ln'>· {html.escape(e)}</div>" for e in errors[:10]) if errors else "")
+            + "</div>")
+    common.alert("info", "quarantine", f"일괄 확정 {done}건·거절 {len(errors)}건 by {u['username']}")
+    resp = quarantine_page(request)
+    return HTMLResponse(resp.body.decode().replace("<h2>격리 큐</h2>", f"<h2>격리 큐</h2>{note}", 1))
+
+
+@app.post("/quarantine/drain")
+def quarantine_drain(request: Request):
+    """자기 일치 자동 확정 — 별칭이 표준 코드와 완전 일치하는 대기 건."""
+    u = _require(request, roles=("steward",))
+    if isinstance(u, Response):
+        return u
+    n = codemap.drain_self_matches(by=f"자동(표준 일치, {u['display']})")
+    common.alert("info", "quarantine", f"자기 일치 자동 확정 {n}건 by {u['username']}")
+    return RedirectResponse("/quarantine", status_code=303)
 
 
 @app.post("/quarantine/{q_id}/confirm")

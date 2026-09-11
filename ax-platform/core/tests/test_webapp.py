@@ -509,3 +509,34 @@ def test_audit_search_filters(tmp_db):
     assert ">#7</a>" in only7 and ">#8</a>" not in only7
     rej = c.get("/audit?action=reject").text
     assert ">#8</a>" in rej and ">#7</a>" not in rej
+
+
+def test_quarantine_bulk_confirm(tmp_db):
+    """P5-U2: 일괄 확정 — 정상 줄 처리·틀린 줄 한글 사유."""
+    codemap.init()
+    db.execute("INSERT INTO quarantine_queue (domain, alias, context, n_rows, status, created_at) "
+               "VALUES ('product','새쿠키A','excel',3,'pending','2026-09-11')")
+    db.execute("INSERT INTO quarantine_queue (domain, alias, context, n_rows, status, created_at) "
+               "VALUES ('product','새쿠키B','excel',2,'pending','2026-09-11')")
+    ids = [r["q_id"] for r in db.query(
+        "SELECT q_id FROM quarantine_queue WHERE status='pending' ORDER BY q_id")]
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/quarantine/bulk", data={"lines": f"{ids[0]}=P-CK-A\n잘못된줄\n{ids[1]} P-CK-B"})
+    assert r.status_code == 200 and "일괄 확정 2건" in r.text and "2행" in r.text
+    assert codemap.resolve("product", "새쿠키A") == "P-CK-A"
+    assert codemap.resolve("product", "새쿠키B") == "P-CK-B"
+
+
+def test_quarantine_drain_self_matches(tmp_db):
+    codemap.init()
+    db.execute("INSERT INTO quarantine_queue (domain, alias, context, n_rows, status, created_at) "
+               "VALUES ('product','P-PIE','pos',5,'pending','2026-09-11')")
+    from axp.dataset import transform  # dim에 P-PIE가 있어야 자기 일치 성립
+    db.executescript("CREATE TABLE IF NOT EXISTS dim_product (product_id TEXT PRIMARY KEY, product_name TEXT)")
+    db.execute("INSERT OR REPLACE INTO dim_product VALUES ('P-PIE','파이만쥬')")
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/quarantine/drain")
+    assert r.status_code == 303
+    assert codemap.resolve("product", "P-PIE") == "P-PIE"
