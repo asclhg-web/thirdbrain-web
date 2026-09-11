@@ -100,11 +100,21 @@ def build_dims() -> dict[str, int]:
     # P3-I9: 실 Odoo에서는 발주 시점에 로트가 없다(로트는 입고에서 생긴다) —
     # 미상 로트를 제외하면 fact_procurement(PK에 lot_id 포함)가 NULL로 깨진다.
     # 제외 대신 'LOT-미상' 표식으로 차원·사실 양쪽에 일관 적재한다(원장 보존).
+    # P5-D 후속: 입고(stock_move)에서 확정된 실로트도 차원에 합류 —
+    # 발주 시점 'LOT-미상' 표식이 입고 후 재처리(backfill)에서 실로트로 이어진다.
     unk = "COALESCE(lot_id, 'LOT-미상:'||material_id||':'||COALESCE(vendor_id,''))"
     lots = db.df(
-        f"SELECT {unk} AS lot_id, material_id, vendor_id, "
-        "MIN(receipt_date) AS received_date "
-        f"FROM staging_purchase GROUP BY {unk}, material_id, vendor_id")
+        f"""SELECT lot_id, MIN(material_id) AS material_id,
+                   MIN(vendor_id) AS vendor_id, MIN(received_date) AS received_date
+            FROM (
+                SELECT {unk} AS lot_id, material_id, vendor_id,
+                       receipt_date AS received_date
+                  FROM staging_purchase
+                UNION ALL
+                SELECT lot_id, product_id AS material_id, NULL AS vendor_id,
+                       move_date AS received_date
+                  FROM staging_stock_move WHERE lot_id IS NOT NULL
+            ) u GROUP BY lot_id""")
     n_unk = int(lots["lot_id"].astype(str).str.startswith("LOT-미상").sum()) if len(lots) else 0
     if n_unk:
         common.alert("warn", "transform",
@@ -148,8 +158,11 @@ def build_facts() -> dict[str, int]:
         FROM staging_sales GROUP BY order_date, store_id, product_id""")
     counts["fact_sales"] = _rebuild("fact_sales", sales)
 
+    # P5-I2: 실 Odoo MO에는 교대(shift)가 없다(교대는 현장 장표 소관) —
+    # NOT NULL 사실 키를 '미상' 표식으로 지켜 적재한다. 장표 반입 시 재처리로 채움.
     prodn = db.df("""
-        SELECT mo_ref, prod_date AS date_key, shift, line_id, product_id,
+        SELECT mo_ref, prod_date AS date_key,
+               COALESCE(shift, '미상') AS shift, line_id, product_id,
                worker_id, equipment_id, sop_id, qty_planned, qty_done
         FROM staging_mrp""")
     counts["fact_production"] = _rebuild("fact_production", prodn)

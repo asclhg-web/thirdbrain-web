@@ -357,3 +357,18 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
   → **staging_mrp까지 도달 실측**. 설비 예지·불량 상관의 실데이터 연결 고리 완성.
 - 적용 중 잡은 것: mrp_workcenter.name은 varchar(jsonb 아님) — ::text 캐스트.
 - 전체 92+3skip(sqlite)·95(PG) green · 소크 17사이클 무경보.
+
+## P5-D 후속: 로트 차원 합류 + 실 MO 사실 적재 (2026-09-11 23:4x)
+
+- **로트 차원 합류**: dim_material_lot을 조달(staging_purchase)과 입고 무브
+  (staging_stock_move의 실로트) 합집합으로 구성 — 재변환에서
+  **LOT-2609-A가 차원에 실합류** 확인. 'LOT-미상' 표식 → 입고 후 backfill로
+  실로트 연결되는 경로가 코드로 완성.
+- **P5-I2 실버그**: 실 Odoo MO엔 교대(shift)가 없어 fact_production NOT NULL
+  붕괴(P3-I9와 동류 — demo 데이터엔 늘 shift가 있어 숨어 있었음) →
+  '미상' 표식 적재로 수정, WH/MO/00002가 OVEN-2·qty 100으로 사실 테이블 도달.
+- prod 모드 전 구간 사이클 재확인 — **전 단계 정상**. 92+3skip·95(PG) green.
+
+| 번호 | 문제 | 처리 |
+|---|---|---|
+| P5-I2 | 실 Odoo MO에 교대 없음 → fact_production NOT NULL 붕괴 | shift '미상' 표식 적재(장표 반입 시 재처리로 채움) (**해결**) |
