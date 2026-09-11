@@ -191,3 +191,9 @@ S-CHORYANG/P-PIE 318(템플릿+업로드 110 합산). 테넌트는 검증 후 �
   체험 UX의 마지막 조각.
 - 테스트 1종(권한·완료/실패 기록·동시 차단·날짜 검증) —
   전체 78+3skip(sqlite)·81(PG) green.
+
+## 배포 패키지 정합 (2026-09-11)
+
+- install-app-server.sh에 하트비트 타이머 등록 추가(P4-4 결선), 완료 안내에
+  Tunnel·체험 운영 크론 경로 명시. `deploy/crontab.example` 신설 —
+  0시 리셋·24h 파기·`--no-subscriptions` 백업(P2-I9)을 복붙 가능한 형태로.

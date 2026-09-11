@@ -1,0 +1,14 @@
+# AX 플랫폼 운영 크론 예시 (P4) — crontab -e 로 axp 계정에 등록
+# 시각은 UTC 기준 서버라면 KST-9 변환에 주의 (아래는 KST 기준 주석)
+
+# 체험 테넌트 매일 0시(KST) 초기화 — UTC 15:00
+0 15 * * * cd /opt/ax-platform/core && python3 -m axp.cli tenant reset trial-demo >> /var/log/axp/tenant.log 2>&1
+
+# 체험 업로드 파일 24시간 시효 파기 (정직 조항) — 매시
+0 * * * * cd /opt/ax-platform/core && python3 -m axp.cli tenant purge-uploads trial-demo >> /var/log/axp/tenant.log 2>&1
+
+# 야간 전체 백업 (--no-subscriptions 필수 — P2-I9)
+30 17 * * * sudo -u postgres pg_dump -d axp --no-subscriptions -Fc -f /var/backups/axp/axp-$(date +\%u).dump
+
+# 하트비트는 crontab이 아니라 systemd 타이머로:
+#   systemctl enable --now axp-heartbeat.timer

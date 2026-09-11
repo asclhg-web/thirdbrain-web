@@ -65,14 +65,19 @@ cd "$AXP_HOME"
 sudo -u axp env AXP_DATA="$AXP_DATA" python3 -m pytest -q core/tests | tail -1
 sudo -u axp env $(grep -v '^#' "$ENV_FILE" | xargs) python3 -m pytest -q core/tests | tail -1
 
-echo "== 7/7 systemd 등록·기동 =="
+echo "== 7/7 systemd 등록·기동 (웹·스케줄러·하트비트) =="
 cp "$AXP_HOME/deploy/systemd/axp-web.service" /etc/systemd/system/
 cp "$AXP_HOME/deploy/systemd/axp-scheduler.service" /etc/systemd/system/
+cp "$AXP_HOME/deploy/systemd/axp-heartbeat.service" /etc/systemd/system/
+cp "$AXP_HOME/deploy/systemd/axp-heartbeat.timer" /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now axp-web axp-scheduler
+systemctl enable --now axp-web axp-scheduler axp-heartbeat.timer
 sleep 2
 systemctl --no-pager -l status axp-web | head -5
 
 echo
 echo "완료. 초기 계정 비밀번호: ${AXP_DATA}/initial-credentials.txt (전달 후 삭제)"
-echo "웹앱: http://127.0.0.1:8900  — 외부 공개는 Caddy(deploy/Caddyfile) 경유로만."
+echo "웹앱: http://127.0.0.1:8900  — 외부 공개는 Caddy(deploy/Caddyfile) 또는"
+echo "      Cloudflare Tunnel(deploy/install-tunnel.sh — odooaierp.com 공개용)."
+echo "체험 테넌트 운영은 docs/deploy-odooaierp.md 4장(크론 3종)을 따르세요:"
+echo "  crontab 예시 → deploy/crontab.example"
