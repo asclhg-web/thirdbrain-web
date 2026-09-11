@@ -263,3 +263,19 @@ worker 차원의 NULL 방어도 함께. 테스트 82+3skip(sqlite)·85(PG) green
 - Caddyfile에 신뢰 경계 주석(공개 Tunnel엔 /api 금지 — 실제로 install-tunnel.sh는
   webapp만 노출), crontab.example에 월 1회 복구 드릴 추가.
 - 전체 84+3skip(sqlite)·87(PG) green. 소크 9사이클 무경보 지속.
+
+## 보안 자체 리뷰와 수정 5건 (2026-09-11, 2시간 루프 2)
+
+공개 전 마지막 관문으로 전체 코드 보안 리뷰(자동 식별 패스)를 수행 —
+Medium 5건 발견, **전부 즉시 수정**:
+
+| 번호 | 발견 | 수정 |
+|---|---|---|
+| SEC1 | War Room 저장 XSS — 반려 사유 등 DB 유래 값이 이스케이프 없이 렌더(사유는 사용자 입력에서 유래), CSP에 form-action 부재 | render 전 값 전부 escape + 반려 사유 서버측 화이트리스트 강제 + CSP form-action 'self'·base-uri 'none' |
+| SEC2 | 세션 폐기 불가 — 비밀번호 변경·재발급 후에도 도난 쿠키가 12h 유효 | 세션 서명에 비밀번호 해시 조각 바인딩 — 변경 즉시 전 세션 무효(테스트로 도난 쿠키 축출 실증) |
+| SEC3 | AXP_SECRET 미설정 시 하드코딩 폴백 — 운영에서 뜨면 세션·CSRF 전면 위조 가능 | prod 모드에서 미설정이면 기동 거부(페일 클로즈드) |
+| SEC4 | 세션/CSRF 서명의 도메인 미분리 + 순수 숫자 아이디로 교차 해석 여지 | 'sess|'/'csrf|…|form' 접두 분리 + 숫자 전용 아이디 금지 |
+| SEC5 | GET /logout — 외부 페이지가 강제 로그아웃 유발 가능 | 로그아웃 POST+CSRF화(GET은 무동작), 헤더를 인라인 폼으로 |
+
+SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전부 파라미터화·
+이스케이프·화이트리스트 확인). 테스트 5종 추가 — **89+3skip(sqlite)·92(PG) green**.

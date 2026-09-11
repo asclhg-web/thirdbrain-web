@@ -72,20 +72,24 @@ def metrics(as_of: str) -> dict:
 
 
 def render(as_of: str) -> str:
+    # P5-SEC1: 이 파일은 웹앱이 그대로 서빙한다 — DB 유래 값도 전부 이스케이프
+    # (반려 사유 등은 사용자 입력에서 왔다). as_of 반사도 동일.
+    from html import escape as _e
     m = metrics(as_of)
-    reason_rows = "".join(f"<tr><td>{r['reason_code']}</td><td>{r['n']}</td></tr>"
+    as_of = _e(str(as_of))          # 이후의 HTML 삽입용(질의는 원값으로 이미 수행)
+    reason_rows = "".join(f"<tr><td>{_e(str(r['reason_code']))}</td><td>{r['n']}</td></tr>"
                           for r in m["reject_reasons"]) or "<tr><td colspan=2>없음</td></tr>"
     agent_rows = "".join(
-        f"<tr><td>{r['agent']}</td><td>{r['runs']}</td><td>{r['cards'] or 0}</td>"
+        f"<tr><td>{_e(str(r['agent']))}</td><td>{r['runs']}</td><td>{r['cards'] or 0}</td>"
         f"<td class={'warn' if r['errors'] else ''}>{r['errors'] or 0}</td></tr>"
         for r in m["agent_runs"]) or "<tr><td colspan=4>없음</td></tr>"
     drift_rows = "".join(
-        f"<tr><td>{r['feature']}</td><td>{r['psi']}</td><td>{r['level']}</td></tr>"
+        f"<tr><td>{_e(str(r['feature']))}</td><td>{r['psi']}</td><td>{_e(str(r['level']))}</td></tr>"
         for r in m["drift_top"]) or "<tr><td colspan=3>-</td></tr>"
     mark = {"녹": "🟢", "황": "🟡", "적": "🔴"}
     risk_rows = "".join(
-        f"<tr><td>{r['risk_id']}</td><td>{mark.get(r['level'], '')} {r['level']}</td>"
-        f"<td>{r['metric']}</td><td>{r['action'] or '—'}</td></tr>"
+        f"<tr><td>{_e(str(r['risk_id']))}</td><td>{mark.get(r['level'], '')} {_e(str(r['level']))}</td>"
+        f"<td>{_e(str(r['metric']))}</td><td>{_e(str(r['action'] or '—'))}</td></tr>"
         for r in m["risks"]) or "<tr><td colspan=4>점검 이력 없음(격주)</td></tr>"
     status_rows = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>"
                           for k, v in sorted(m["by_status"].items()))

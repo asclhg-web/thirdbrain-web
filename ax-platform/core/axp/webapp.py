@@ -27,7 +27,12 @@ from .dataset import codemap
 from .graph import confidence, evidence
 from .judge import cards as jcards
 
-SECRET = os.environ.get("AXP_SECRET", "dev-secret-change-me")
+SECRET = os.environ.get("AXP_SECRET", "")
+if not SECRET:
+    if os.environ.get("AXP_MODE") == "prod":
+        # P5-SEC3: 운영에서 서명 키 없이 뜨면 세션·CSRF 전부 위조 가능 — 기동 거부
+        raise RuntimeError("AXP_SECRET 미설정 — 운영(prod)에서는 필수입니다 (/etc/axp/env)")
+    SECRET = "dev-secret-change-me"      # 개발·테스트 전용 폴백
 BOOTSTRAP_PW = os.environ.get("AXP_BOOTSTRAP_PW", "")  # 비우면 무작위 생성
 
 app = FastAPI(title="AX Platform Web", docs_url=None, redoc_url=None)
@@ -122,14 +127,20 @@ def _sign(value: str) -> str:
 
 
 # P5-S1: 세션 만료 — 토큰은 username|만료시각|서명. 만료 지나면 재로그인.
+# P5-SEC2: 서명에 비밀번호 해시 조각을 바인딩 — 비밀번호 변경·재발급 즉시
+#   기존 세션 전부 무효(도난 쿠키 축출). 'sess|' 접두로 CSRF와 도메인 분리(P5-SEC4).
 SESSION_HOURS = int(os.environ.get("AXP_SESSION_HOURS", "12"))
 
 
+def _session_sig(username: str, exp: str | int, pw_hash: str) -> str:
+    return _sign(f"sess|{username}|{exp}|{pw_hash[:12]}")
+
+
 def _session_token(username: str) -> str:
+    u = db.one("SELECT pw_hash FROM axp_users WHERE username=?", (username,))
     exp = int((datetime.now(timezone.utc)
                + timedelta(hours=SESSION_HOURS)).timestamp())
-    body = f"{username}|{exp}"
-    return f"{body}|{_sign(body)}"
+    return f"{username}|{exp}|{_session_sig(username, exp, u['pw_hash'])}"
 
 
 def current_user(request: Request) -> dict | None:
@@ -138,20 +149,23 @@ def current_user(request: Request) -> dict | None:
     if len(parts) != 3:
         return None
     name, exp, sig = parts
-    if not hmac.compare_digest(_sign(f"{name}|{exp}"), sig):
-        return None
     try:
         if int(exp) < datetime.now(timezone.utc).timestamp():
             return None                        # 만료 — 재로그인 유도
     except ValueError:
         return None
     ensure_users()
-    return db.one("SELECT * FROM axp_users WHERE username=?", (name,))
+    u = db.one("SELECT * FROM axp_users WHERE username=?", (name,))
+    if u is None or not hmac.compare_digest(
+            _session_sig(name, exp, u["pw_hash"]), sig):
+        return None                            # 위조 또는 비밀번호 변경 후 구세션
+    return u
 
 
 # P5-S3: CSRF — 세션에서 파생한 토큰을 모든 POST 폼에 심고 검사한다.
+# 'csrf|' 접두 + 말미 고정 문자열로 세션 서명과 형식이 절대 겹치지 않는다(P5-SEC4).
 def _csrf_token(u: dict) -> str:
-    return _sign("csrf|" + u["username"])
+    return _sign("csrf|" + u["username"] + "|form")
 
 
 def csrf_field(u: dict) -> str:
@@ -240,7 +254,8 @@ async def security_middleware(request: Request, call_next):
     resp.headers.setdefault("Referrer-Policy", "same-origin")
     resp.headers.setdefault(
         "Content-Security-Policy",
-        "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+        "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+        "form-action 'self'; base-uri 'none'")   # P5-SEC1: 주입 폼의 외부 전송 차단
     return resp
 
 
@@ -265,7 +280,9 @@ def page(user: dict | None, title: str, body: str, active: str = "") -> str:
         for p, t, _ in NAV)
     who = (f"<span class='who'>{html.escape(user['display'])} ({user['role']}) · "
            f"<a href='/password' style='color:#B9A78F'>비밀번호</a> · "
-           f"<a href='/logout' style='color:#B9A78F'>로그아웃</a></span>") if user else ""
+           f"<form method='post' action='/logout' style='display:inline'>"
+           f"<button style='background:none;border:none;color:#B9A78F;cursor:pointer;"
+           f"padding:0;font:inherit;text-decoration:underline'>로그아웃</button></form></span>") if user else ""
     warn = ("<div class='note'>⚠ 초기 비밀번호 사용 중 — <a href='/password'><b>지금 변경</b></a>하세요.</div>"
             if user and user.get("must_change") else "")
     # P4-2: 회사명 표시 + 체험판 워터마크 — 합성 데이터임을 화면에 상시 고지
@@ -324,11 +341,17 @@ def login(username: str = Form(...), password: str = Form(...)):
     return r
 
 
-@app.get("/logout")
+@app.post("/logout")
 def logout():
+    # P5-SEC5: 상태 변경은 POST + CSRF — 외부 페이지의 강제 로그아웃 차단
     r = RedirectResponse("/login", status_code=303)
     r.delete_cookie("axp_session")
     return r
+
+
+@app.get("/logout")
+def logout_get():
+    return RedirectResponse("/inbox", status_code=303)   # GET은 아무것도 바꾸지 않는다
 
 
 @app.get("/password", response_class=HTMLResponse)
@@ -413,6 +436,10 @@ def card_decide(card_id: int, request: Request,
     ok = approve == "1"
     if not ok and not reason:
         return HTMLResponse(page(u, "반려", "<div class='card warn'>반려에는 사유가 필수입니다 — 사유는 다음 학습의 재료입니다. <a href='/inbox'>돌아가기</a></div>"), 400)
+    # P5-SEC1: 사유 코드는 서버에서 화이트리스트 강제 — 셀렉트는 클라이언트일 뿐
+    if not ok and reason not in inbox.REJECT_REASONS:
+        return HTMLResponse(page(u, "반려",
+            f"<div class='card warn'>사유는 목록에서 선택하세요: {', '.join(inbox.REJECT_REASONS)}</div>"), 400)
     inbox.decide(card_id, actor=u["display"], role="card_approver",
                  approve=ok, reason_code=reason[:20], reason_text=reason)
     if ok:
@@ -577,8 +604,9 @@ async def users_add(request: Request):
     role = str(form.get("role", "viewer"))
     display = str(form.get("display", "")).strip()
     import re as _re
-    if not _re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,30}", username) or role not in ROLES \
-            or not display:
+    # P5-SEC4: 순수 숫자 아이디 금지(토큰 형식과의 교차 해석 여지 제거)
+    if not _re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,30}", username) \
+            or username.isdigit() or role not in ROLES or not display:
         return HTMLResponse(page(u, "계정 관리", _users_page(u,
             "<div class='card warn'>아이디(영소문자·숫자 2~31자)·역할·표시 이름을 확인하세요.</div>"),
             "/users"), 400)

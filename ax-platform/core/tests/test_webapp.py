@@ -21,7 +21,7 @@ class _Client(TestClient):
     def post(self, url, data=None, files=None, **kw):
         if self._user and url != "/login" and not kw.pop("no_csrf", False):
             data = dict(data or {})
-            data.setdefault("_csrf", webapp._sign("csrf|" + self._user))
+            data.setdefault("_csrf", webapp._sign("csrf|" + self._user + "|form"))
         return super().post(url, data=data, files=files, **kw)
 
 
@@ -413,7 +413,10 @@ def test_must_change_redirects_until_password_set(tmp_db):
     assert c.get("/password").status_code == 200          # 변경 화면은 허용
     r = c.post("/password", data={"new_pw": "새로운비밀번호9!"})
     assert r.status_code in (200, 303)
-    assert c.get("/inbox").status_code == 200             # 변경 후 정상
+    # P5-SEC2: 변경 즉시 구세션 무효 — 새 비밀번호로 재로그인해야 정상
+    r = c.post("/login", data={"username": "admin", "password": "새로운비밀번호9!"})
+    assert r.status_code == 303
+    assert c.get("/inbox").status_code == 200
 
 
 def test_security_headers_present(tmp_db):
@@ -422,3 +425,69 @@ def test_security_headers_present(tmp_db):
     assert r.headers["X-Frame-Options"] == "SAMEORIGIN"
     assert r.headers["X-Content-Type-Options"] == "nosniff"
     assert "default-src 'self'" in r.headers["Content-Security-Policy"]
+
+
+def test_reject_reason_whitelisted(tmp_db):
+    """P5-SEC1: 반려 사유는 서버측 화이트리스트 — 임의 문자열(HTML 주입 시도) 거절."""
+    from axp.judge import cards as jcards
+    db.executescript(jcards.DDL)
+    db.execute(
+        "INSERT INTO judgment_cards (kind, agent, proposal, narrative, values_json, "
+        "range_json, evidence_json, alternatives_json, approver, status, created_at) "
+        "VALUES ('demand_forecast','a','t','n [근거: x]','[]','{}','[]','[]','카드 승인자','proposed','2026-09-11')")
+    cid = db.scalar("SELECT MAX(card_id) FROM judgment_cards")
+    from axp.agents import inbox as _inbox
+    db.executescript(_inbox.DDL)
+    c = _client()
+    _login(c, "approver")
+    r = c.post(f"/cards/{cid}/decide",
+               data={"approve": "0", "reason": "<form action=//evil>"})
+    assert r.status_code == 400 and "목록에서 선택" in r.text
+    assert c.post(f"/cards/{cid}/decide",
+                  data={"approve": "0", "reason": "현장 사정"}).status_code == 303
+
+
+def test_warroom_escapes_stored_values(tmp_db):
+    """P5-SEC1: War Room 렌더는 DB 유래 값을 이스케이프 — 저장 XSS 차단."""
+    from axp.agents import warroom, inbox as _inbox
+    db.executescript(_inbox.DDL)
+    from axp.judge import cards as jcards
+    db.executescript(jcards.DDL)
+    db.execute("INSERT INTO reject_feedback (card_id, reason_code, reason_text, by_whom, at) "
+               "VALUES (1, '<img src=x onerror=1>', 'x', 'w', '2026-09-11')")
+    out_path = warroom.render("2026-09-11")
+    html_out = open(out_path, encoding="utf-8").read()
+    assert "<img src=x" not in html_out
+    assert "&lt;img src=x" in html_out
+
+
+def test_password_change_invalidates_old_sessions(tmp_db):
+    """P5-SEC2: 비밀번호 변경 즉시 기존 세션(도난 쿠키) 무효."""
+    c = _client()
+    _login(c, "admin")
+    stolen = c.cookies.get("axp_session")
+    assert c.get("/inbox").status_code == 200
+    c.post("/password", data={"new_pw": "완전히새로운비번1!"})
+    c2 = _client()
+    c2.cookies.set("axp_session", stolen)
+    r = c2.get("/inbox")
+    assert r.status_code == 303 and r.headers["location"] == "/login"
+
+
+def test_numeric_username_rejected(tmp_db):
+    c = _client()
+    _login(c, "admin")
+    r = c.post("/users/add", data={"username": "9999999999", "role": "viewer",
+                                   "display": "숫자"})
+    assert r.status_code == 400
+
+
+def test_logout_requires_post(tmp_db):
+    c = _client()
+    _login(c, "admin")
+    r = c.get("/logout")                    # GET은 상태 변경 없음
+    assert r.status_code == 303 and r.headers["location"] == "/inbox"
+    assert c.get("/inbox").status_code == 200   # 여전히 로그인 상태
+    r = c.post("/logout")
+    assert r.status_code == 303 and r.headers["location"] == "/login"
+    assert c.get("/inbox").status_code == 303   # 로그아웃됨
