@@ -372,3 +372,14 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
 | 번호 | 문제 | 처리 |
 |---|---|---|
 | P5-I2 | 실 Odoo MO에 교대 없음 → fact_production NOT NULL 붕괴 | shift '미상' 표식 적재(장표 반입 시 재처리로 채움) (**해결**) |
+
+## P5-D2: 품목 마스터 복제 — 숫자 ID → 사람 코드 (2026-09-11 23:5x)
+
+- **문제**: prod 경로에서 품목이 숫자 id('1','7')로 흘러 브리핑·카드에 숫자가
+  노출될 상태였다(demo에선 P- 코드라 안 보이던 격차).
+- **해소**: product_product·product_template를 복제에 추가(16릴레이션) →
+  헬퍼 뷰 v_product_code(default_code → 번역 이름 → id 폴백) → 판매·구매·재고·
+  생산·스크랩 전 뷰가 코드로 투영. **전량 재동기화 후 dim_product =
+  [P-BREAD-T, P-CAKE-T, P-PIE-T], 로트 표식도 M-FLOUR-T 기반** 실측.
+- 파일 순서 결함(신규 DB에서 스키마 생성 전 DROP) 수정 — 스키마 삭제 후
+  단독 적용 재검증. prod 전 구간 사이클 '전 단계 정상' 유지.

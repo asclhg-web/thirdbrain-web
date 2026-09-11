@@ -11,6 +11,7 @@
 DO $$
 DECLARE
   candidates text[] := ARRAY[
+    'product_product', 'product_template',           -- P5-D2: 품목 코드 투영
     'sale_order', 'sale_order_line',
     'purchase_order', 'purchase_order_line',
     'stock_move', 'stock_move_line', 'stock_lot',   -- P5-D: 로트 추적
