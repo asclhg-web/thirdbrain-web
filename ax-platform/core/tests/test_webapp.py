@@ -324,3 +324,39 @@ def test_upload_shows_preview_summary(tmp_db):
     assert "반입 미리보기" in r.text
     assert "2025-09-01~2025-09-02" in r.text
     assert "매장 2곳" in r.text and "상품 2종" in r.text and "150" in r.text
+
+
+def test_runs_admin_only_and_lifecycle(tmp_db, monkeypatch):
+    """P4-12: 수동 배치 — admin 전용, 실행→완료 기록, 동시 실행 차단."""
+    import time as _time
+    from axp import scheduler as _sched
+    c = _client()
+    _login(c, "steward")
+    assert c.get("/runs").status_code == 403
+    a = _client()
+    _login(a, "admin")
+    monkeypatch.setattr(_sched, "run_cycle",
+                        lambda d, shadow=False: {"transform": "ok"})
+    r = a.post("/runs", data={"run_date": "2025-09-03"})
+    assert r.status_code == 200 and "시작" in r.text
+    for _ in range(50):                      # 백그라운드 완료 대기
+        row = db.one("SELECT * FROM batch_runs WHERE run_id=1")
+        if row["status"] != "running":
+            break
+        _time.sleep(0.1)
+    assert row["status"] == "done" and "전 단계 정상" in row["summary"]
+    # 실패 요약 기록
+    monkeypatch.setattr(_sched, "run_cycle",
+                        lambda d, shadow=False: {"transform": "error: X"})
+    a.post("/runs", data={"run_date": "2025-09-04"})
+    for _ in range(50):
+        row = db.one("SELECT * FROM batch_runs WHERE run_id=2")
+        if row["status"] != "running":
+            break
+        _time.sleep(0.1)
+    assert row["status"] == "failed" and "transform" in row["summary"]
+    # 동시 실행 차단 (running 행 수동 삽입)
+    db.execute("INSERT INTO batch_runs (run_date, requested_by, started_at, status) "
+               "VALUES ('2025-09-05','x','t','running')")
+    assert a.post("/runs", data={"run_date": "2025-09-05"}).status_code == 409
+    assert a.post("/runs", data={"run_date": "bad-date"}).status_code in (400, 409)

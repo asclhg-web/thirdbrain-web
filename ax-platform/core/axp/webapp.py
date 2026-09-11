@@ -346,6 +346,97 @@ def card_decide(card_id: int, request: Request,
 
 
 # ── 격리 큐 (스튜어드) ──────────────────────────────────
+# ── P4-12: 수동 배치 실행 — 업로드한 자료를 기다림 없이 반영 (admin) ──
+RUNS_DDL = """
+CREATE TABLE IF NOT EXISTS batch_runs (
+  run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_date TEXT NOT NULL, requested_by TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'running'
+         CHECK (status IN ('running','done','failed')),
+  summary TEXT DEFAULT '', started_at TEXT NOT NULL, finished_at TEXT
+);
+"""
+
+
+def _runs_page(u, msg: str = "") -> str:
+    db.executescript(RUNS_DDL)
+    rows = db.query("SELECT * FROM batch_runs ORDER BY run_id DESC LIMIT 10")
+    running = any(r["status"] == "running" for r in rows)
+    trs = "".join(
+        f"<tr><td>#{r['run_id']}</td><td>{html.escape(r['run_date'])}</td>"
+        f"<td>{ {'running': '실행 중…', 'done': '완료', 'failed': '실패'}[r['status']] }</td>"
+        f"<td>{html.escape(r['requested_by'])}</td>"
+        f"<td>{html.escape((r['summary'] or '')[:120])}</td>"
+        f"<td>{html.escape(r['started_at'][11:19])}~{html.escape((r['finished_at'] or '')[11:19])}</td></tr>"
+        for r in rows)
+    today = datetime.now(timezone.utc).date().isoformat()
+    btn = ("<div class='card warn'>이미 실행 중입니다 — 끝나면 아래 이력에 결과가 남습니다. "
+           "<a href='/runs'>새로고침</a></div>" if running else f"""
+<form method="post" class="card" style="max-width:460px">
+  <b>지금 실행</b><p class="sub">업로드한 자료를 야간 배치를 기다리지 않고 반영합니다
+  (표준화→품질→특징량→그래프→에이전트→브리핑 — 수 분 소요).</p>
+  <p><input name="run_date" value="{today}" style="width:160px"> 기준일</p>
+  <button class="btn ok">배치 실행</button>
+</form>""")
+    return f"""<h2>배치 실행 — 판단의 공장을 지금 돌립니다</h2>{msg}{btn}
+<div class="card"><b>최근 실행</b><table style="width:100%;margin-top:8px">
+<tr><th>#</th><th>기준일</th><th>상태</th><th>요청자</th><th>요약</th><th>시각(UTC)</th></tr>{trs}</table></div>"""
+
+
+def _run_cycle_bg(run_id: int, run_date: str) -> None:
+    """백그라운드 스레드 — 자체 예외 처리로 상태를 반드시 기록한다."""
+    try:
+        from . import scheduler
+        res = scheduler.run_cycle(run_date)
+        bad = {k: v for k, v in res.items() if v != "ok"}
+        db.execute("UPDATE batch_runs SET status=?, summary=?, finished_at=? WHERE run_id=?",
+                   ("done" if not bad else "failed",
+                    "전 단계 정상" if not bad else f"실패 단계: {', '.join(bad)}",
+                    common.now_iso(), run_id))
+    except Exception as e:  # noqa: BLE001
+        db.execute("UPDATE batch_runs SET status='failed', summary=?, finished_at=? WHERE run_id=?",
+                   (str(e)[:300], common.now_iso(), run_id))
+
+
+@app.get("/runs", response_class=HTMLResponse)
+def runs_page(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "배치 실행", _runs_page(u), "/runs"))
+
+
+@app.post("/runs", response_class=HTMLResponse)
+async def runs_start(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    db.executescript(RUNS_DDL)
+    if db.one("SELECT 1 FROM batch_runs WHERE status='running'"):
+        return HTMLResponse(page(u, "배치 실행", _runs_page(u,
+            "<div class='card warn'>이미 실행 중 — 동시 실행은 막습니다.</div>"), "/runs"), 409)
+    form = await request.form()
+    run_date = str(form.get("run_date", "")).strip() \
+        or datetime.now(timezone.utc).date().isoformat()
+    try:
+        datetime.fromisoformat(run_date)
+    except ValueError:
+        return HTMLResponse(page(u, "배치 실행", _runs_page(u,
+            "<div class='card warn'>기준일 형식은 YYYY-MM-DD 입니다.</div>"), "/runs"), 400)
+    with db.conn() as c:
+        cur = c.execute(
+            "INSERT INTO batch_runs (run_date, requested_by, started_at) VALUES (?,?,?)",
+            (run_date, u["username"], common.now_iso()))
+        run_id = cur.lastrowid
+    import threading
+    threading.Thread(target=_run_cycle_bg, args=(run_id, run_date),
+                     daemon=True).start()
+    common.alert("info", "webapp", f"수동 배치 실행 #{run_id}({run_date}) by {u['username']}")
+    return HTMLResponse(page(u, "배치 실행", _runs_page(u,
+        f"<div class='card ok'>실행 #{run_id} 시작 — 이력에서 진행을 확인하세요.</div>"),
+        "/runs"))
+
+
 # ── P4-10: 계정 관리 — 추가·임시 비밀번호 재발급·잠금 해제 (admin) ────
 ROLES = ("admin", "steward", "approver", "viewer")
 ROLE_LABEL = {"admin": "관리자", "steward": "데이터 스튜어드",
