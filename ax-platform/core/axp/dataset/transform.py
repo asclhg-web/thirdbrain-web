@@ -74,11 +74,22 @@ def build_dims() -> dict[str, int]:
     stores["channel"] = stores["store_id"].map(lambda s: schannels.get(s, "retail"))
     counts["dim_store"] = _rebuild("dim_store", stores)
 
-    workers = db.df("SELECT DISTINCT worker_id FROM staging_mrp")
+    workers = db.df(
+        "SELECT DISTINCT worker_id FROM staging_mrp WHERE worker_id IS NOT NULL")
     workers["worker_name"] = workers["worker_id"]
     counts["dim_worker"] = _rebuild("dim_worker", workers)
 
-    equip = db.df("SELECT DISTINCT equipment_id, line_id FROM staging_mrp")
+    # P5-I1(복구 드릴 적발): 실 Odoo 경로에선 설비가 생산(staging_mrp)이 아니라
+    # 정비(staging_maintenance)에서 온다 — mrp만 보면 정비 사실이 고아가 된다.
+    # 두 원천의 합집합으로 차원을 만들고 NULL 설비는 제외한다.
+    equip = db.df("""
+        SELECT equipment_id, MIN(line_id) AS line_id FROM (
+            SELECT equipment_id, line_id FROM staging_mrp
+             WHERE equipment_id IS NOT NULL
+            UNION ALL
+            SELECT equipment_id, NULL AS line_id FROM staging_maintenance
+             WHERE equipment_id IS NOT NULL
+        ) e GROUP BY equipment_id""")
     equip["equipment_type"] = "oven"
     counts["dim_equipment"] = _rebuild("dim_equipment", equip)
 

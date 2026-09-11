@@ -238,3 +238,19 @@ P4에서 웹앱에 화면 6종(업로드·온보딩·계정·배치·연결·상
   CSP(default-src 'self') 전 응답 부착.
 - 테스트 4종 추가 + 기존 전 테스트를 토큰 자동 주입 클라이언트로 이행 —
   **82+3skip(sqlite)·85(PG) green**.
+
+## P5-S5: 백업/복구 드릴 자동화 (2026-09-11, 2시간 루프 1)
+
+`deploy/backup-drill.sh` — SLA "월 1회 복구 리허설"의 원커맨드화:
+백업(--no-subscriptions)→임시 DB 복원→**전 테이블 건수 전수 대조**→정리,
+성공/실패 모두 플랫폼 경보로 기록(실패 crit 실측 확인).
+
+**드릴이 첫 실행에서 실버그 적발(P5-I1)**: prod 경로에서 dim_equipment가
+staging_mrp만 보는데, 실 Odoo에선 설비가 정비(staging_maintenance)에서 온다 —
+정비 사실 전부가 고아(FK 복원 실패로 발각). 두 원천 합집합 + NULL 제외로 수정,
+재변환 후 고아 0 확인, 드릴 재실행 **DRILL OK — 112테이블 일치·총 12초**.
+worker 차원의 NULL 방어도 함께. 테스트 82+3skip(sqlite)·85(PG) green.
+
+| 번호 | 문제 | 처리 |
+|---|---|---|
+| P5-I1 | 실 Odoo 경로에서 정비 사실의 설비가 차원에 없어 고아 — demo에선 mrp에 늘 설비가 있어 숨어 있던 결함. 복원 드릴의 FK 재검증이 발각 | dim_equipment를 mrp+maintenance 합집합으로, NULL 설비·작업자 제외 (**해결**) |
