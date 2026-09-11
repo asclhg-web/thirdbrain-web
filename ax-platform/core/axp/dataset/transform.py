@@ -41,7 +41,7 @@ def _rebuild(table: str, frame: pd.DataFrame) -> int:
         c.execute("PRAGMA foreign_keys=OFF")
         c.execute(f"DELETE FROM {table}")
         if len(frame):
-            frame.to_sql(table, c, if_exists="append", index=False)
+            db.load_frame(c, frame, table)
         c.execute("PRAGMA foreign_keys=ON")
     return len(frame)
 

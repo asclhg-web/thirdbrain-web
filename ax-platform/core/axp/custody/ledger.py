@@ -38,7 +38,7 @@ def register(asset_id: str, kind: str, location: str, owner: str,
         "INSERT OR REPLACE INTO asset_ledger "
         "(asset_id, version, kind, location, owner, note, updated_at) "
         "VALUES (:asset_id, :version, :kind, :location, :owner, :note, :updated_at)",
-        tuple(row.values()),
+        row,
     )
     return row
 

@@ -28,7 +28,7 @@ def run_checks(table: str) -> list[dict]:
     for rule in contracts.quality_rules(table):
         col, check = rule["column"], rule["check"]
         if check == "not_null":
-            n = db.scalar(f"SELECT COUNT(*) FROM {table} WHERE {col} IS NULL OR {col}=''")
+            n = db.scalar(f"SELECT COUNT(*) FROM {table} WHERE {col} IS NULL OR CAST({col} AS TEXT)=''")
         elif check == "range":
             conds = []
             if rule.get("min") is not None:
@@ -40,11 +40,11 @@ def run_checks(table: str) -> list[dict]:
             n = db.scalar(
                 f"SELECT COUNT(*) FROM {table} t LEFT JOIN {rule['ref_table']} r "
                 f"ON t.{col}=r.{rule['ref_column']} "
-                f"WHERE t.{col} IS NOT NULL AND t.{col}!='' AND r.{rule['ref_column']} IS NULL")
+                f"WHERE t.{col} IS NOT NULL AND CAST(t.{col} AS TEXT)!='' AND r.{rule['ref_column']} IS NULL")
         elif check == "unique":
             n = db.scalar(
                 f"SELECT COALESCE(SUM(c-1),0) FROM (SELECT COUNT(*) c FROM {table} "
-                f"GROUP BY {col} HAVING c>1)")
+                f"GROUP BY {col} HAVING COUNT(*)>1) d")
         else:
             continue
         results.append({"table": table, "column": col, "check": check,

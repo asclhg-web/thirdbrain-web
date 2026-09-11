@@ -28,7 +28,7 @@ def metrics(as_of: str) -> dict:
         "ORDER BY n DESC") if db.table_exists("reject_feedback") else []
     agent_runs = db.query(
         "SELECT agent, COUNT(*) runs, SUM(cards_created) cards, "
-        "SUM(status='error') errors FROM agent_runs GROUP BY agent") \
+        "SUM(CASE WHEN status='error' THEN 1 ELSE 0 END) errors FROM agent_runs GROUP BY agent") \
         if db.table_exists("agent_runs") else []
     risks = []
     if db.table_exists("risk_reports"):

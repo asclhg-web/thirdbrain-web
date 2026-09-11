@@ -125,26 +125,77 @@ class DeterministicBackend:
 
 
 class OllamaBackend:
-    """prod 어댑터 — 검색 사실만 컨텍스트로 넣고 인용 형식을 강제한다."""
+    """GPU 서버 어댑터 (P2-C5) — 검색 사실만 컨텍스트로 넣고 인용 형식을 강제.
 
-    def __init__(self, url: str = "http://localhost:11434", model: str = "llama3.1"):
-        self.url, self.model = url, model
+    접속: AXP_OLLAMA_URL(기본 http://localhost:11434) · AXP_OLLAMA_MODEL.
+    보안: 대상 호스트가 사설망(내부 GPU 서버)이 아니면 반출 게이트 허용
+    목록에 있어야 한다 — 판단 자료가 게이트 밖으로 나가지 않는다.
+    안전: 인용 검증 실패 시 1회 재생성, 그래도 실패·불통이면 호출측이
+    결정적 조립기로 폴백한다(파이프라인은 LLM 없이도 완주).
+    """
 
-    def answer(self, question: str, retrieved: dict) -> str:
+    RETRY_SUFFIX = ("\n\n주의: 직전 응답이 인용 규칙 위반으로 차단되었다. "
+                    "모든 문장을 '[근거: <참조>]'로 끝내고, 검색된 사실에 있는 "
+                    "숫자만 사용해 다시 답하라.")
+
+    def __init__(self, url: str | None = None, model: str | None = None):
+        import os
+        self.url = (url or os.environ.get("AXP_OLLAMA_URL", "http://localhost:11434")).rstrip("/")
+        self.model = model or os.environ.get("AXP_OLLAMA_MODEL", "qwen2.5:14b-instruct")
+        self._check_gate()
+
+    def _check_gate(self) -> None:
+        import ipaddress
+        import socket
+        import urllib.parse
+        from .. import config
+        host = urllib.parse.urlparse(self.url).hostname or "localhost"
+        if host in ("localhost",) or host in config.EXPORT_ALLOWED_HOSTS:
+            return
+        try:
+            ip = ipaddress.ip_address(socket.gethostbyname(host))
+            if ip.is_private or ip.is_loopback:
+                return
+        except OSError:
+            return  # 해석 불가 — 접속 시점에 실패로 드러난다
+        raise PermissionError(
+            f"반출 게이트: LLM 호스트 {host}는 사설망도 허용 목록도 아니다")
+
+    def _generate(self, prompt: str) -> str:
         import urllib.request
-        prompt = (
-            "다음 '검색된 사실'만으로 질문에 답하라. 사실 밖 내용·새 숫자 생성 금지. "
-            "모든 문장은 '[근거: <참조>]'로 끝나야 한다.\n"
-            f"질문: {question}\n검색된 사실: {json.dumps(retrieved, ensure_ascii=False)}")
         req = urllib.request.Request(
             f"{self.url}/api/generate",
-            json.dumps({"model": self.model, "prompt": prompt, "stream": False}).encode(),
+            json.dumps({"model": self.model, "prompt": prompt,
+                        "stream": False, "options": {"temperature": 0.1}}).encode(),
             {"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=120) as r:
             return json.loads(r.read())["response"]
 
+    def answer(self, question: str, retrieved: dict) -> str:
+        prompt = (
+            "다음 '검색된 사실'만으로 질문에 답하라. 사실 밖 내용·새 숫자 생성 금지. "
+            "모든 문장은 '[근거: <참조>]'로 끝나야 한다.\n"
+            f"질문: {question}\n검색된 사실: {json.dumps(retrieved, ensure_ascii=False)}")
+        text = self._generate(prompt)
+        try:
+            verify_citations(text, retrieved)
+            return text
+        except CitationError:
+            return self._generate(prompt + self.RETRY_SUFFIX)  # 1회 재생성
 
-_backend = DeterministicBackend()
+
+def make_backend():
+    """환경변수로 백엔드 선택 — AXP_LLM=ollama | deterministic(기본)."""
+    import os
+    if os.environ.get("AXP_LLM", "deterministic").lower() == "ollama":
+        try:
+            return OllamaBackend()
+        except Exception as e:  # noqa: BLE001 — LLM 불가여도 판단은 계속된다
+            print(f"[M6] Ollama 백엔드 사용 불가({e}) — 결정적 조립기로 폴백")
+    return DeterministicBackend()
+
+
+_backend = make_backend()
 
 
 def set_backend(b) -> None:
@@ -166,8 +217,14 @@ def verify_citations(text: str, retrieved: dict) -> None:
 
 
 def answer(question: str, retrieved: dict) -> str:
-    """조립 + 검증 — 검증 실패 시 '근거 부족' 응답(재생성은 백엔드 몫)."""
-    text = _backend.answer(question, retrieved)
+    """조립 + 검증 — LLM 장애 시 결정적 조립기로 폴백, 검증 실패 시 보류."""
+    try:
+        text = _backend.answer(question, retrieved)
+    except Exception as e:  # noqa: BLE001 — GPU 서버 불통 등: 판단은 멈추지 않는다
+        if isinstance(_backend, DeterministicBackend):
+            raise
+        print(f"[M6] LLM 백엔드 장애({e}) — 결정적 조립기 폴백")
+        text = DeterministicBackend().answer(question, retrieved)
     try:
         verify_citations(text, retrieved)
     except CitationError as e:

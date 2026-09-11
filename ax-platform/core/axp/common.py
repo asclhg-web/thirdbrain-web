@@ -31,6 +31,11 @@ def alert(level: str, module: str, message: str) -> None:
         (level, module, message, now_iso()),
     )
     print(f"[ALERT/{level}] {module}: {message}")
+    try:  # 실채널 발신(설정 없으면 dry-run 파일) — 실패해도 경보 저장은 이미 끝났다
+        from . import notify
+        notify.send(level, module, message)
+    except Exception:
+        pass
 
 
 def preserve_raw(src: Path, category: str) -> str:

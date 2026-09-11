@@ -70,6 +70,11 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
 
     from .agents import warroom
     stage("warroom", lambda: warroom.render(run_date))
+    try:
+        from . import notify
+        notify.cycle_summary(run_date, results)
+    except Exception:
+        pass
     return results
 
 

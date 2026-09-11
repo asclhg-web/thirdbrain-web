@@ -53,7 +53,7 @@ def test_memo_surge_needs_concentration(tmp_db):
                      "memo": "표면 미세균열 발생", "mo_ref": f"M{i}"})
     with db.conn() as c:                      # 차원 미시드 — FK 끄고 사실만 적재
         c.execute("PRAGMA foreign_keys=OFF")
-        pd.DataFrame(rows).to_sql("fact_defect", c, if_exists="append", index=False)
+        db.load_frame(c, pd.DataFrame(rows), "fact_defect")
     assert knowledge.surge_candidates("2026-01-20", weeks=2) == []
 
 

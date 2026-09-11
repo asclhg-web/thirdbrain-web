@@ -1,0 +1,44 @@
+name: ax-platform tests
+
+on:
+  push:
+    paths: ["ax-platform/**", ".github/workflows/ax-platform-tests.yml"]
+  pull_request:
+    paths: ["ax-platform/**"]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ax-platform
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: axp
+          POSTGRES_PASSWORD: axp
+          POSTGRES_DB: axp
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U axp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install deps
+        run: |
+          pip install -q pandas scikit-learn matplotlib pyarrow fastapi httpx \
+            openpyxl defusedxml lxml pytest "psycopg[binary]"
+      - name: Tests (SQLite backend)
+        run: python -m pytest -q
+      - name: Tests (PostgreSQL backend)
+        env:
+          AXP_DB: postgres
+          AXP_PG_DSN: host=127.0.0.1 port=5432 user=axp password=axp dbname=axp
+        run: python -m pytest -q
