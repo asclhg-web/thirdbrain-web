@@ -78,12 +78,32 @@ class ReconstructionDetector:
         return self._errors(self.scaler.transform(X))
 
 
+def normal_window_mask(equipment_id: str, pre_fail_days: int = 14,
+                       post_maint_days: int = 2) -> set[str]:
+    """P2-C3: 정상 구간에서 제외할 날짜 집합 — I-01 재발 방지의 정식화.
+
+    고장 수리일은 그 '이전 pre_fail_days'까지 제외한다(고장 전 드리프트가
+    정상으로 학습되는 것을 차단). 정비일은 직후 post_maint_days까지 제외
+    (부품 교체 직후의 과도 상태)."""
+    from datetime import date, timedelta
+    bad: set[str] = set()
+    for r in db.query(
+            "SELECT date_key, event_type FROM fact_equipment_event WHERE equipment_id=?",
+            (equipment_id,)):
+        d = date.fromisoformat(r["date_key"])
+        bad.add(r["date_key"])
+        if "고장" in (r["event_type"] or ""):
+            for k in range(1, pre_fail_days + 1):
+                bad.add((d - timedelta(days=k)).isoformat())
+        for k in range(1, post_maint_days + 1):
+            bad.add((d + timedelta(days=k)).isoformat())
+    return bad
+
+
 def train_and_register(equipment_id: str, train_start: str, train_end: str,
                        version: str = "v1") -> dict:
-    """정상 구간(train)으로 학습 — 정비·고장일은 정상 구간에서 제외."""
-    bad_days = {r["date_key"] for r in db.query(
-        "SELECT date_key FROM fact_equipment_event WHERE equipment_id=?",
-        (equipment_id,))}
+    """정상 구간(train)으로 학습 — 고장 전 드리프트·정비 직후까지 제외."""
+    bad_days = normal_window_mask(equipment_id)
     X = _daily_matrix(equipment_id, train_start, train_end)
     X = X[~X.index.isin(bad_days)]
     if len(X) < 30:
@@ -92,7 +112,7 @@ def train_and_register(equipment_id: str, train_start: str, train_end: str,
     card = {
         "model_id": f"anomaly_{equipment_id}",
         "problem": f"{equipment_id} 센서 이상탐지(재구성 오차)",
-        "data_range": f"{train_start}~{train_end} (정비일 제외 {len(X)}일)",
+        "data_range": f"{train_start}~{train_end} (정비·고장전14일 제외 {len(X)}일)",
         "features_ref": "fact_sensor_daily mean/std/p95/max × temp/current/vibration",
         "algorithm": "PCA 재구성 오차 (TF 오토인코더 훅 교체 가능)",
         "params": {"n_components": 4, "threshold_quantile": 0.995},

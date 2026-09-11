@@ -105,6 +105,11 @@ def _pg_sql(sql: str, raw_con=None) -> str | None:
         if len(keys) == 1:
             return f"({col}::jsonb ->> '{keys[0]}')"
         return f"({col}::jsonb #>> '{{{','.join(keys)}}}')"
+    # SQLite date(x,'-N days') → PostgreSQL (x::date - N)::text
+    sql = re.sub(
+        r"date\(\s*([^,()]+)\s*,\s*'([+-]?\d+)\s*days?'\s*\)",
+        lambda m: f"(({m.group(1).strip()})::date + ({int(m.group(2))}))::text",
+        sql)
     sql = re.sub(r"json_extract\(\s*([\w.]+)\s*,\s*'(\$\.[\w.]+)'\s*\)", _jx, sql)
     sql = sql.replace("?", "%s")
     # sqlite 명명 파라미터(:name) → psycopg %(name)s  ('::' 캐스트는 제외)

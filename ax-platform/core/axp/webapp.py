@@ -1,0 +1,378 @@
+"""P2-C1: 통합 웹앱 v1 — 로그인·역할·승인함·격리 큐(undo)·브리핑·War Room·감사.
+
+현장이 매일 쓰는 도구를 데모용 단일 페이지에서 정식 다중 사용자 앱으로.
+  실행:  uvicorn axp.webapp:app --host 0.0.0.0 --port 8900
+  계정:  axp_users 테이블 — 최초 기동 시 3계정 부트스트랩
+         (admin/steward/approver, 초기 비밀번호는 AXP_BOOTSTRAP_PW 또는 'change-me!')
+         ⚠ 운영 전 반드시 비밀번호 변경(/password) — 로그인 화면에도 경고 표시.
+  세션:  HMAC 서명 쿠키(AXP_SECRET). HTTPS는 Caddy(deploy)가 담당.
+  역할:  approver=카드 결정 · steward=격리 확정/취소 · admin=전부 · viewer=열람.
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import html
+import json
+import os
+import secrets
+from datetime import datetime, timezone
+
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+
+from . import common, config, db
+from .agents import inbox
+from .dataset import codemap
+from .judge import cards as jcards
+
+SECRET = os.environ.get("AXP_SECRET", "dev-secret-change-me")
+BOOTSTRAP_PW = os.environ.get("AXP_BOOTSTRAP_PW", "change-me!")
+
+app = FastAPI(title="AX Platform Web", docs_url=None, redoc_url=None)
+
+USERS_DDL = """
+CREATE TABLE IF NOT EXISTS axp_users (
+  username TEXT PRIMARY KEY,
+  pw_hash TEXT NOT NULL,
+  salt TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('admin','steward','approver','viewer')),
+  display TEXT NOT NULL,
+  must_change INTEGER NOT NULL DEFAULT 1
+);
+"""
+
+
+def _hash(pw: str, salt: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 60_000).hex()
+
+
+def ensure_users() -> None:
+    db.executescript(USERS_DDL)
+    if db.scalar("SELECT COUNT(*) FROM axp_users"):
+        return
+    for u, role, disp in (("admin", "admin", "관리자"),
+                          ("steward", "steward", "스튜어드"),
+                          ("approver", "approver", "카드 승인자")):
+        salt = secrets.token_hex(8)
+        db.execute(
+            "INSERT INTO axp_users VALUES (?,?,?,?,?,1)",
+            (u, _hash(BOOTSTRAP_PW, salt), salt, role, disp))
+
+
+def _sign(value: str) -> str:
+    return hmac.new(SECRET.encode(), value.encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def current_user(request: Request) -> dict | None:
+    tok = request.cookies.get("axp_session", "")
+    if "|" not in tok:
+        return None
+    name, sig = tok.rsplit("|", 1)
+    if not hmac.compare_digest(_sign(name), sig):
+        return None
+    ensure_users()
+    return db.one("SELECT * FROM axp_users WHERE username=?", (name,))
+
+
+def _require(request: Request, roles: tuple[str, ...] = ()) -> dict | Response:
+    u = current_user(request)
+    if u is None:
+        return RedirectResponse("/login", status_code=303)
+    if roles and u["role"] not in roles + ("admin",):
+        return HTMLResponse(page(u, "권한 없음",
+            f"<div class='card warn'>이 작업은 {' 또는 '.join(roles)} 역할이 필요합니다.</div>"), 403)
+    return u
+
+
+# ── 레이아웃 ─────────────────────────────────────────────
+STYLE = """<style>
+*{box-sizing:border-box}body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+margin:0;background:#F8F2EA;color:#2E241C;line-height:1.6}
+a{color:inherit;text-decoration:none}
+header{background:#2B1D12;color:#EDE3D5;padding:10px 0;position:sticky;top:0;z-index:9}
+.wrap{max-width:1060px;margin:0 auto;padding:0 18px}
+header .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mark{background:#6E3A1C;color:#E8A33D;border-radius:7px;padding:3px 9px;font-weight:900}
+header nav a{margin-right:14px;font-size:14px;color:#C9B8A2}
+header nav a.on{color:#E8A33D;font-weight:700}
+header .who{margin-left:auto;font-size:13px;color:#B9A78F}
+main{padding:26px 0 60px}
+h2{color:#6E3A1C;margin:0 0 6px}
+p.sub{color:#76675A;font-size:14px;margin:0 0 18px}
+.card{background:#fff;border:1px solid #DCCDBB;border-left:7px solid #9C5227;
+border-radius:12px;padding:16px 20px;margin-bottom:14px}
+.card.ok{border-left-color:#0E8F86}.card.warn{border-left-color:#A8493B}
+.chip{display:inline-block;color:#fff;border-radius:11px;padding:1px 10px;
+font-size:12px;font-weight:700;margin-right:8px;background:#C07F1E}
+.ln{font-size:13.5px;margin:3px 0}.ln small{color:#76675A;font-size:11.5px}
+.btn{border:none;border-radius:7px;padding:7px 16px;font-size:13px;font-weight:700;
+cursor:pointer;font-family:inherit}
+.btn.ok{background:#0E8F86;color:#fff}.btn.no{background:#A8493B;color:#fff}
+.btn.why{background:#E8A33D;color:#2B1D12}.btn.plain{background:#EFE5D8;color:#6E3A1C}
+input,select{border:1px solid #DCCDBB;border-radius:7px;padding:7px 10px;
+font-family:inherit;font-size:13px}
+table{border-collapse:collapse;width:100%;background:#fff;font-size:13px;margin-bottom:16px}
+td,th{border:1px solid #DCCDBB;padding:7px 10px;text-align:left}
+th{background:#6E3A1C;color:#fff;font-size:12.5px}
+.note{background:#FDF3E0;border:1px solid #DCCDBB;border-radius:9px;
+padding:10px 14px;font-size:13px;margin-bottom:16px}
+form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+@media(max-width:640px){header nav a{margin-right:9px;font-size:13px}}
+</style>"""
+
+NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
+       ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
+       ("/briefing", "브리핑", ("viewer", "steward", "approver")),
+       ("/warroom", "War Room", ("viewer", "steward", "approver")),
+       ("/audit", "감사 로그", ("viewer", "steward", "approver"))]
+
+
+def page(user: dict | None, title: str, body: str, active: str = "") -> str:
+    nav = "".join(
+        f"<a href='{p}' class='{'on' if p == active else ''}'>{t}</a>"
+        for p, t, _ in NAV)
+    who = (f"<span class='who'>{html.escape(user['display'])} ({user['role']}) · "
+           f"<a href='/password' style='color:#B9A78F'>비밀번호</a> · "
+           f"<a href='/logout' style='color:#B9A78F'>로그아웃</a></span>") if user else ""
+    warn = ("<div class='note'>⚠ 초기 비밀번호 사용 중 — <a href='/password'><b>지금 변경</b></a>하세요.</div>"
+            if user and user.get("must_change") else "")
+    return f"""<!doctype html><meta charset='utf-8'>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{html.escape(title)} — AX 플랫폼</title>{STYLE}
+<header><div class="wrap bar"><span class="mark">AX</span><b>AX 플랫폼</b>
+<nav>{nav}</nav>{who}</div></header>
+<main><div class="wrap">{warn}{body}</div></main>"""
+
+
+# ── 인증 ────────────────────────────────────────────────
+@app.get("/login", response_class=HTMLResponse)
+def login_form():
+    return page(None, "로그인", """
+<h2>로그인</h2><p class="sub">판단의 공장 — 결정은 언제나 사람이 합니다</p>
+<form method="post" class="card" style="max-width:360px">
+  <p><input name="username" placeholder="아이디" style="width:100%"></p>
+  <p><input name="password" type="password" placeholder="비밀번호" style="width:100%"></p>
+  <button class="btn ok" style="width:100%">들어가기</button>
+</form>""")
+
+
+@app.post("/login")
+def login(username: str = Form(...), password: str = Form(...)):
+    ensure_users()
+    u = db.one("SELECT * FROM axp_users WHERE username=?", (username,))
+    if not u or not hmac.compare_digest(u["pw_hash"], _hash(password, u["salt"])):
+        return HTMLResponse(page(None, "로그인", "<div class='card warn'>아이디 또는 비밀번호가 다릅니다. <a href='/login'>다시</a></div>"), 401)
+    r = RedirectResponse("/inbox", status_code=303)
+    r.set_cookie("axp_session", f"{username}|{_sign(username)}",
+                 httponly=True, samesite="lax")
+    return r
+
+
+@app.get("/logout")
+def logout():
+    r = RedirectResponse("/login", status_code=303)
+    r.delete_cookie("axp_session")
+    return r
+
+
+@app.get("/password", response_class=HTMLResponse)
+def password_form(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "비밀번호 변경", """
+<h2>비밀번호 변경</h2>
+<form method="post" class="card" style="max-width:360px">
+  <p><input name="new_pw" type="password" placeholder="새 비밀번호(8자 이상)" style="width:100%"></p>
+  <button class="btn ok" style="width:100%">변경</button>
+</form>"""))
+
+
+@app.post("/password")
+def password_change(request: Request, new_pw: str = Form(...)):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    if len(new_pw) < 8:
+        return HTMLResponse(page(u, "비밀번호", "<div class='card warn'>8자 이상이어야 합니다.</div>"), 400)
+    salt = secrets.token_hex(8)
+    db.execute("UPDATE axp_users SET pw_hash=?, salt=?, must_change=0 WHERE username=?",
+               (_hash(new_pw, salt), salt, u["username"]))
+    return RedirectResponse("/inbox", status_code=303)
+
+
+# ── 승인함 ───────────────────────────────────────────────
+def _fmt_narr(text: str) -> str:
+    import re as _re
+    out = []
+    for l in (text or "").splitlines():
+        if not l.strip():
+            continue
+        e = html.escape(l)
+        e = _re.sub(r"\[근거: ([^\]]+)\]", r"<small>〔근거: \1〕</small>", e)
+        out.append(f"<div class='ln'>{e}</div>")
+    return "".join(out[:4])
+
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/inbox", response_class=HTMLResponse)
+def inbox_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    rows = jcards.listing(status="proposed")
+    can = u["role"] in ("approver", "admin")
+    body = [f"<h2>판단 카드 승인함</h2><p class='sub'>대기 {len(rows)}건 — 수치·구간·근거·대안, 결정은 사람이</p>"]
+    reasons = ["현장 사정(행사·날씨)", "시점 부적절", "수치 의문 — 재검토", "기타"]
+    for c in rows:
+        rng = json.loads(c.get("range_json") or "{}")
+        rtxt = (f"구간 P10 {rng.get('p10')} · P50 {rng.get('p50')} · P90 {rng.get('p90')}"
+                if rng.get("p50") else "")
+        act = ""
+        if can:
+            opts = "".join(f"<option>{r}</option>" for r in reasons)
+            act = f"""<div style="margin-top:8px">
+<form class="inline" method="post" action="/cards/{c['card_id']}/decide">
+  <button class="btn ok" name="approve" value="1">승인 → 환류</button>
+  <select name="reason"><option value="">반려 사유…</option>{opts}</select>
+  <button class="btn no" name="approve" value="0">반려</button>
+</form></div>"""
+        body.append(f"""<div class="card">
+<b><span class="chip">{html.escape(c['kind'])}</span>#{c['card_id']}</b> {html.escape(c.get('proposal',''))}
+<div style="color:#0E8F86;font-size:12.5px;font-weight:700">{rtxt}</div>
+{_fmt_narr(c.get('narrative',''))}{act}</div>""")
+    if not rows:
+        body.append("<div class='card ok'>대기 카드가 없습니다 — 시스템은 정상 순환 중.</div>")
+    return HTMLResponse(page(u, "승인함", "".join(body), "/inbox"))
+
+
+@app.post("/cards/{card_id}/decide")
+def card_decide(card_id: int, request: Request,
+                approve: str = Form(...), reason: str = Form("")):
+    u = _require(request, roles=("approver",))
+    if isinstance(u, Response):
+        return u
+    ok = approve == "1"
+    if not ok and not reason:
+        return HTMLResponse(page(u, "반려", "<div class='card warn'>반려에는 사유가 필수입니다 — 사유는 다음 학습의 재료입니다. <a href='/inbox'>돌아가기</a></div>"), 400)
+    inbox.decide(card_id, actor=u["display"], role="card_approver",
+                 approve=ok, reason_code=reason[:20], reason_text=reason)
+    if ok:
+        inbox.apply_feedback(card_id, actor=u["display"])
+    return RedirectResponse("/inbox", status_code=303)
+
+
+# ── 격리 큐 (스튜어드) ──────────────────────────────────
+@app.get("/quarantine", response_class=HTMLResponse)
+def quarantine_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    can = u["role"] in ("steward", "admin")
+    pend = codemap.pending()
+    recent = db.query(
+        "SELECT * FROM quarantine_queue WHERE status='confirmed' "
+        "ORDER BY decided_at DESC LIMIT 10") if db.table_exists("quarantine_queue") else []
+    rows = "".join(f"""<tr><td>{q['q_id']}</td><td>{html.escape(q['domain'])}</td>
+<td><b>{html.escape(q['alias'])}</b></td><td>{q['n_rows']}</td><td>
+{f'''<form class="inline" method="post" action="/quarantine/{q['q_id']}/confirm">
+<input name="code" placeholder="표준 코드" size="12">
+<button class="btn ok">확정</button></form>''' if can else '-'}</td></tr>"""
+        for q in pend)
+    undo = "".join(f"""<tr><td>{q['q_id']}</td><td>{html.escape(q['alias'])}</td>
+<td>{html.escape(q.get('proposed_code') or '')}</td><td>{html.escape(q.get('decided_by') or '')}</td><td>
+{f'''<form class="inline" method="post" action="/quarantine/{q['q_id']}/undo">
+<button class="btn no">확정 취소</button></form>''' if can else '-'}</td></tr>"""
+        for q in recent)
+    body = f"""<h2>격리 큐</h2>
+<p class="sub">처음 보는 현장 어휘 — 확신 없으면 추측하지 말고 현장에 물어보세요 (I-09 교훈)</p>
+<table><tr><th>#</th><th>영역</th><th>별칭</th><th>행수</th><th>확정</th></tr>{rows or '<tr><td colspan=5>대기 없음 ✔</td></tr>'}</table>
+<h2 style="font-size:17px">최근 확정 — 잘못 확정했다면 취소하세요</h2>
+<p class="sub">취소하면 다음 야간 배치의 전량 재구축이 소급 반영합니다</p>
+<table><tr><th>#</th><th>별칭</th><th>확정 코드</th><th>확정자</th><th>취소</th></tr>{undo or '<tr><td colspan=5>기록 없음</td></tr>'}</table>"""
+    return HTMLResponse(page(u, "격리 큐", body, "/quarantine"))
+
+
+@app.post("/quarantine/{q_id}/confirm")
+def quarantine_confirm(q_id: int, request: Request, code: str = Form(...)):
+    u = _require(request, roles=("steward",))
+    if isinstance(u, Response):
+        return u
+    codemap.confirm(q_id, code.strip(), by=u["display"])
+    return RedirectResponse("/quarantine", status_code=303)
+
+
+@app.post("/quarantine/{q_id}/undo")
+def quarantine_undo(q_id: int, request: Request):
+    u = _require(request, roles=("steward",))
+    if isinstance(u, Response):
+        return u
+    codemap.unconfirm(q_id, by=u["display"])
+    return RedirectResponse("/quarantine", status_code=303)
+
+
+# ── 브리핑 · War Room · 감사 ────────────────────────────
+@app.get("/briefing", response_class=HTMLResponse)
+def briefing_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    bdir = config.ARTIFACTS / "briefings"
+    files = sorted(bdir.glob("briefing_*.md")) if bdir.exists() else []
+    if not files:
+        return HTMLResponse(page(u, "브리핑", "<div class='card'>발행된 브리핑이 없습니다.</div>", "/briefing"))
+    md = files[-1].read_text(encoding="utf-8")
+    out, in_ul = [], False
+    for l in md.splitlines():
+        if l.startswith("# "):
+            out.append(f"<h2>{html.escape(l[2:])}</h2>")
+        elif l.startswith("## "):
+            if in_ul: out.append("</ul>"); in_ul = False
+            out.append(f"<h3 style='color:#6E3A1C'>{html.escape(l[3:])}</h3>")
+        elif l.startswith("- "):
+            if not in_ul: out.append("<ul>"); in_ul = True
+            out.append(f"<li style='font-size:14px'>{html.escape(l[2:])}</li>")
+        elif l.strip():
+            if in_ul: out.append("</ul>"); in_ul = False
+            out.append(f"<p style='font-size:14px'>{html.escape(l)}</p>")
+    if in_ul:
+        out.append("</ul>")
+    return HTMLResponse(page(u, "브리핑", f"<div class='card'>{''.join(out)}</div>", "/briefing"))
+
+
+@app.get("/warroom", response_class=HTMLResponse)
+def warroom_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    f = config.ARTIFACTS / "boards" / "war_room.html"
+    if not f.exists():
+        return HTMLResponse(page(u, "War Room", "<div class='card'>War Room 보드가 아직 생성되지 않았습니다.</div>", "/warroom"))
+    return HTMLResponse(page(u, "War Room",
+        f"<iframe src='/warroom/raw' style='width:100%;height:78vh;border:1px solid #DCCDBB;border-radius:12px;background:#fff'></iframe>",
+        "/warroom"))
+
+
+@app.get("/warroom/raw", response_class=HTMLResponse)
+def warroom_raw(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse((config.ARTIFACTS / "boards" / "war_room.html").read_text(encoding="utf-8"))
+
+
+@app.get("/audit", response_class=HTMLResponse)
+def audit_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    rows = inbox.audit()[:60]
+    body = "".join(
+        f"<tr><td>{html.escape(str(r.get('at',''))[:16])}</td><td>{html.escape(r.get('action',''))}</td>"
+        f"<td>{html.escape(r.get('actor',''))}</td><td>#{r.get('card_id')}</td>"
+        f"<td>{html.escape((r.get('note') or '')[:80])}</td></tr>" for r in rows)
+    return HTMLResponse(page(u, "감사 로그",
+        f"<h2>감사 로그</h2><p class='sub'>누가 · 언제 · 무엇을 — 수정 불가 기록</p>"
+        f"<table><tr><th>시각</th><th>행위</th><th>담당</th><th>카드</th><th>비고</th></tr>{body}</table>",
+        "/audit"))

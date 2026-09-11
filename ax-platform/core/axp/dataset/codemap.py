@@ -112,6 +112,25 @@ def confirm(q_id: int, standard_code: str, by: str) -> None:
         (row["domain"], row["alias"], standard_code, by, common.now_iso()))
 
 
+def unconfirm(q_id: int, by: str) -> None:
+    """확정 취소(undo) — I-09 교훈: 스튜어드 확정 실수는 반드시 일어난다.
+
+    사전 항목을 제거하고 격리 건을 pending으로 되돌린다. 다음 야간 배치의
+    전량 재구축(멱등)이 소급 반영하므로 하류 오염도 함께 청소된다."""
+    init()
+    row = db.one("SELECT * FROM quarantine_queue WHERE q_id=?", (q_id,))
+    if row is None or row["status"] != "confirmed":
+        raise ValueError(f"격리 건 {q_id}는 확정 상태가 아니다")
+    db.execute("DELETE FROM code_dictionary WHERE domain=? AND alias=?",
+               (row["domain"], row["alias"]))
+    db.execute(
+        "UPDATE quarantine_queue SET status='pending', proposed_code=NULL, "
+        "decided_by=?, decided_at=? WHERE q_id=?",
+        (f"undo({by})", common.now_iso(), q_id))
+    common.alert("warn", "codemap",
+                 f"확정 취소: {row['domain']}/{row['alias']} (by {by}) — 다음 배치에서 소급 반영")
+
+
 def drain_self_matches(by: str = "auto(표준 코드 일치)") -> int:
     """대기 큐 정리 — 표준 코드와 완전 일치하는 별칭을 일괄 자기 매핑으로 확정."""
     init()
