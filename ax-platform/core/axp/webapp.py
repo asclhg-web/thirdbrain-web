@@ -147,7 +147,9 @@ NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/ask", "질문", ("viewer", "steward", "approver")),
        ("/rules", "규칙", ("viewer", "steward", "approver")),
        ("/warroom", "War Room", ("viewer", "steward", "approver")),
-       ("/audit", "감사 로그", ("viewer", "steward", "approver"))]
+       ("/audit", "감사 로그", ("viewer", "steward", "approver")),
+       ("/promotions", "자동실행", ("approver", "viewer")),
+       ("/assets", "자산 대장", ("steward", "viewer"))]
 
 
 def page(user: dict | None, title: str, body: str, active: str = "") -> str:
@@ -432,6 +434,129 @@ def _fmt_narr_line(l: str) -> str:
     e = _re.sub(r"\[근거: Rule:(RULE-\d+)\]",
                 r"<small>〔근거: <a href='/why/\1' style='text-decoration:underline'>Rule:\1</a>〕</small>", e)
     return _re.sub(r"\[근거: ([^\]]+)\]", r"<small>〔근거: \1〕</small>", e)
+
+
+# ── 자동 실행 승급 관리 (M7-3 정책 화면) ─────────────────
+@app.get("/promotions", response_class=HTMLResponse)
+def promotions_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    from .agents import promotion
+    db.executescript(promotion.DDL)
+    rows = db.query("SELECT * FROM promotions ORDER BY promo_id DESC LIMIT 30")
+    can = u["role"] in ("approver", "admin")
+    body = [f"""<h2>자동 실행 승급 관리</h2>
+<p class="sub">저위험 카드의 자동 실행 — 상한과 승인율 조건 안에서만, 위반 시 자동 강등</p>"""]
+    if can:
+        body.append("""<form method="post" action="/promotions/request" class="card">
+<b>새 승급 신청</b>
+<div class="inline" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+<select name="kind"><option>demand_forecast</option><option>replenish</option>
+<option>allocation</option><option>production_plan</option></select>
+<input name="amount_cap" placeholder="수량/금액 상한 (예: 2000)" size="18">
+<input name="min_rate" placeholder="최소 승인율 (예: 0.8)" size="14">
+<button class="btn ok">신청 (조건 자동 검사)</button></div></form>""")
+    trows = []
+    for r in rows:
+        act = ""
+        if can and r["status"] == "requested":
+            act = (f"<form class='inline' method='post' action='/promotions/{r['promo_id']}/decide'>"
+                   f"<button class='btn ok' name='ok' value='1'>승인</button>"
+                   f"<button class='btn no' name='ok' value='0'>반려</button></form>")
+        elif can and r["status"] == "active":
+            act = (f"<form class='inline' method='post' action='/promotions/{r['promo_id']}/demote'>"
+                   f"<button class='btn no'>수동 강등</button></form>")
+        trows.append(f"<tr><td>{r['promo_id']}</td><td>{html.escape(r['kind'])}</td>"
+                     f"<td>{r['amount_cap']}</td><td>{round(r['min_approval_rate']*100)}%</td>"
+                     f"<td><b>{html.escape(r['status'])}</b></td>"
+                     f"<td>{html.escape(r.get('demote_reason') or '')}</td><td>{act}</td></tr>")
+    body.append("<table><tr><th>#</th><th>유형</th><th>상한</th><th>최소 승인율</th>"
+                "<th>상태</th><th>강등 사유</th><th>조치</th></tr>"
+                + ("".join(trows) or "<tr><td colspan=7>승급 이력 없음</td></tr>") + "</table>")
+    body.append("<div class='note'>승급 조건을 어기면(상한 초과·승인율 하락) 야간 감시가 자동 강등합니다 — 최종 결정은 War Room에서 사람.</div>")
+    return HTMLResponse(page(u, "자동실행", "".join(body), "/promotions"))
+
+
+@app.post("/promotions/request")
+def promotions_request(request: Request, kind: str = Form(...),
+                       amount_cap: str = Form(...), min_rate: str = Form(...)):
+    u = _require(request, roles=("approver",))
+    if isinstance(u, Response):
+        return u
+    from .agents import promotion
+    try:
+        promotion.request(kind, float(amount_cap), float(min_rate), by=u["display"])
+    except ValueError:
+        return HTMLResponse(page(u, "자동실행", "<div class='card warn'>상한·승인율은 숫자로 입력하세요. <a href='/promotions'>돌아가기</a></div>"), 400)
+    return RedirectResponse("/promotions", status_code=303)
+
+
+@app.post("/promotions/{promo_id}/decide")
+def promotions_decide(promo_id: int, request: Request, ok: str = Form(...)):
+    u = _require(request, roles=("approver",))
+    if isinstance(u, Response):
+        return u
+    from .agents import promotion
+    promotion.decide(promo_id, approver=u["display"], approve=ok == "1")
+    return RedirectResponse("/promotions", status_code=303)
+
+
+@app.post("/promotions/{promo_id}/demote")
+def promotions_demote(promo_id: int, request: Request):
+    u = _require(request, roles=("approver",))
+    if isinstance(u, Response):
+        return u
+    from .agents import promotion
+    db.executescript(promotion.DDL)
+    db.execute("UPDATE promotions SET status='demoted', demoted_at=?, demote_reason=? "
+               "WHERE promo_id=? AND status='active'",
+               (datetime.now(timezone.utc).isoformat(timespec='seconds'),
+                f"수동 강등({u['display']})", promo_id))
+    common.alert("warn", "promotion", f"승급 #{promo_id} 수동 강등 by {u['display']}")
+    return RedirectResponse("/promotions", status_code=303)
+
+
+# ── 자산 대장 (M0 커스터디) ──────────────────────────────
+@app.get("/assets", response_class=HTMLResponse)
+def assets_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    from .custody import ledger
+    rows = ledger.listing()
+    can = u["role"] in ("steward", "admin")
+    form = ""
+    if can:
+        form = """<form method="post" action="/assets/register" class="card">
+<b>자산 등록</b> <span style="font-size:12px;color:#76675A">— 반입된 모든 자료는 여기 등록되어야 반출 게이트의 보호를 받습니다</span>
+<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+<input name="asset_id" placeholder="자산 ID (예: pos-2026-09)" size="16">
+<select name="kind"><option>dataset</option><option>document</option><option>model</option><option>script</option></select>
+<input name="location" placeholder="위치/경로" size="22">
+<input name="note" placeholder="비고" size="18">
+<button class="btn ok">등록</button></div></form>"""
+    trows = "".join(
+        f"<tr><td>{html.escape(r['asset_id'])}</td><td>{html.escape(r['version'])}</td>"
+        f"<td>{html.escape(r['kind'])}</td><td>{html.escape(r['location'])}</td>"
+        f"<td>{html.escape(r['owner'])}</td><td>{html.escape(str(r['updated_at'])[:16])}</td></tr>"
+        for r in rows)
+    body = (f"<h2>자산 대장</h2><p class='sub'>고객 자료의 등기부 — 등록 {len(rows)}건, 전 자료 태성당 자산 귀속 원칙</p>"
+            + form + "<table><tr><th>자산</th><th>버전</th><th>종류</th><th>위치</th>"
+            "<th>담당</th><th>갱신</th></tr>"
+            + (trows or "<tr><td colspan=6>등록 자산 없음</td></tr>") + "</table>")
+    return HTMLResponse(page(u, "자산 대장", body, "/assets"))
+
+
+@app.post("/assets/register")
+def assets_register(request: Request, asset_id: str = Form(...), kind: str = Form(...),
+                    location: str = Form(...), note: str = Form("")):
+    u = _require(request, roles=("steward",))
+    if isinstance(u, Response):
+        return u
+    from .custody import ledger
+    ledger.register(asset_id.strip(), kind, location.strip(), owner=u["display"], note=note)
+    return RedirectResponse("/assets", status_code=303)
 
 
 # ── 브리핑 · War Room · 감사 ────────────────────────────

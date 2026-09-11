@@ -53,3 +53,7 @@
 | 앱 서버 원커맨드 설치 | **완료** | deploy/install-app-server.sh — PG16+논리복제 설정·의존성·/opt 배치·무작위 비밀 env·systemd 2유닛·양쪽 테스트 후 기동 |
 | GPU 서버 원커맨드 설치 | **완료** | deploy/install-gpu-server.sh — Ollama+내부망 바인딩·ufw 11434 앱서버 한정·한국어 후보 3모델 pull |
 | 모델 선정 하네스 | **완료** | deploy/llm_bench.py — 후보 모델별 회귀 30선 통과율·재생성률·p50/p95 비교표. 모의 서버 검증: 일반 답변 13/30으로 판별력 확인 |
+| 웹앱 관리 화면 | **완료** | /promotions(승급 신청·승인·수동 강등 — M7-3 정책 화면), /assets(자산 대장 조회·등록, 스튜어드 전용) — 테스트 2건 |
+| 환경 이슈 | 기록 | [P2-I10] 개발 컨테이너가 PG를 2회 강제 종료(정상 종료 로그 없음, 체크포인트 269s I/O 병목 동반) — 복제 워커 정리 + shared_buffers 64MB·max_wal_size 256MB 축소로 안정화. 실서버 사양(32GB+)에서는 해당 없음. 교훈: DB 프로세스 감시(systemd Restart=)가 운영 필수인 이유의 실증 |
+
+현재 테스트: **50/50** (SQLite·PostgreSQL 양쪽) — webapp 8·ollama 4 포함.

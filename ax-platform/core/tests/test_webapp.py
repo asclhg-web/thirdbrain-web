@@ -88,3 +88,38 @@ def test_ask_routes_and_answers(tmp_db):
     r = c.post("/ask", data={"q": "승격된 규칙 목록"})
     assert r.status_code == 200
     assert "RULE-0001" in r.text and "근거" in r.text
+
+
+def test_promotion_request_and_decide(tmp_db):
+    from axp.judge import cards as jcards
+    db.executescript(jcards.DDL)
+    for _ in range(10):   # 승인율 100% 이력
+        db.execute(
+            "INSERT INTO judgment_cards (kind, agent, proposal, narrative, values_json, "
+            "range_json, evidence_json, alternatives_json, approver, status, created_at) "
+            "VALUES ('replenish','a','t','n','[]','{}','[]','[]','x','executed','2026-09-01')")
+    c = _client()
+    _login(c, "approver")
+    r = c.post("/promotions/request",
+               data={"kind": "replenish", "amount_cap": "1500", "min_rate": "0.8"})
+    assert r.status_code == 303
+    row = db.one("SELECT * FROM promotions ORDER BY promo_id DESC LIMIT 1")
+    assert row["status"] == "requested"
+    r = c.post(f"/promotions/{row['promo_id']}/decide", data={"ok": "1"})
+    assert db.one("SELECT status FROM promotions WHERE promo_id=?",
+                  (row["promo_id"],))["status"] == "active"
+
+
+def test_asset_register_requires_steward(tmp_db):
+    c = _client()
+    _login(c, "approver")
+    r = c.post("/assets/register", data={"asset_id": "x", "kind": "dataset",
+                                         "location": "/tmp", "note": ""})
+    assert r.status_code == 403
+    c2 = _client()
+    _login(c2, "steward")
+    r = c2.post("/assets/register", data={"asset_id": "pos-2026", "kind": "dataset",
+                                          "location": "inbox/pos.xlsx", "note": "테스트"})
+    assert r.status_code == 303
+    from axp.custody import ledger
+    assert ledger.latest("pos-2026")["location"] == "inbox/pos.xlsx"
