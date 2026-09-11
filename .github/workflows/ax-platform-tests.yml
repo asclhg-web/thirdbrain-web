@@ -34,7 +34,7 @@ jobs:
       - name: Install deps
         run: |
           pip install -q pandas scikit-learn matplotlib pyarrow fastapi httpx \
-            openpyxl defusedxml lxml pytest "psycopg[binary]"
+            python-multipart openpyxl defusedxml lxml pytest "psycopg[binary]"
       - name: Tests (SQLite backend)
         run: python -m pytest -q
       - name: Tests (PostgreSQL backend)
