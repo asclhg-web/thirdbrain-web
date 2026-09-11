@@ -40,6 +40,10 @@ def main() -> None:
     s = sub.add_parser("backfill",
                        help="자료 정정 후 재처리 — 표준화 재구축→품질→특징량→그래프 소급")
     s.add_argument("start"); s.add_argument("end")
+    s = sub.add_parser("pos", help="POS 판매 자료 반입 (P3-5) — 정산/영수증 파일")
+    s.add_argument("adapter", choices=["daily", "receipt"],
+                   help="daily: 일별 정산 집계 / receipt: 영수증 단위 거래 로그")
+    s.add_argument("file"); s.add_argument("--by", required=True)
     a = ap.parse_args()
 
     if a.cmd == "cards":
@@ -116,6 +120,22 @@ def main() -> None:
         print(" 5/5 그래프 사실 소급:", loader.backfill_defects(a.start, a.end))
         common.alert("info", "backfill",
                      f"재처리 완료 {a.start}~{a.end} — 하류 전 구간 소급 일치")
+    elif a.cmd == "pos":
+        from pathlib import Path as _P
+        from .ingest import pos as _pos
+        fn = _pos.ingest_daily if a.adapter == "daily" else _pos.ingest_receipt
+        res = fn(_P(a.file), by=a.by)
+        if res["status"] == "needs_mapping":
+            print("양식을 해석하지 못했습니다 —", res["message"])
+            print("발견한 열:", ", ".join(res["columns"]))
+        elif res["status"] == "duplicate":
+            print(res["message"])
+        else:
+            print(f"반입 완료: {res['rows_ok']}행 (거절 {res['rows_rejected']}행)")
+            for e in res["errors"][:10]:
+                print("  거절:", e)
+            for w in res["double_count_warnings"]:
+                print("  경고:", w)
 
 
 if __name__ == "__main__":
