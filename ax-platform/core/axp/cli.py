@@ -37,6 +37,9 @@ def main() -> None:
     sub.add_parser("quality")
     s = sub.add_parser("ask"); s.add_argument("question")
     s.add_argument("--entity", default=None)
+    s = sub.add_parser("backfill",
+                       help="자료 정정 후 재처리 — 표준화 재구축→품질→특징량→그래프 소급")
+    s.add_argument("start"); s.add_argument("end")
     a = ap.parse_args()
 
     if a.cmd == "cards":
@@ -97,6 +100,22 @@ def main() -> None:
             print(assembler.answer(q, assembler.search_rules()))
         else:
             print("힌트: --entity <설비/공급사> 로 원인 질의, '규칙'/'기록' 포함 질문 지원")
+    elif a.cmd == "backfill":
+        # P2: 재처리 정식화 — 격리 확정 취소·원천 정정 뒤 하류를 소급 일치시킨다.
+        # 전량 재구축(멱등)이므로 어떤 정정도 이 한 명령으로 반영된다.
+        from . import common
+        from .dataset import transform, quality, features, validation
+        from .graph import loader
+        print(f"재처리 {a.start} ~ {a.end}")
+        print(" 1/5 표준화 전량 재구축:", transform.run_all())
+        quality.daily_report(a.end)
+        print(" 2/5 품질 리포트: 발행 완료")
+        print(" 3/5 교차 원천 검증:", validation.excel_vs_ledger())
+        print(" 4/5 특징량 재계산:", features.materialize(a.end, horizon=7), "행")
+        loader.load_dimensions()
+        print(" 5/5 그래프 사실 소급:", loader.backfill_defects(a.start, a.end))
+        common.alert("info", "backfill",
+                     f"재처리 완료 {a.start}~{a.end} — 하류 전 구간 소급 일치")
 
 
 if __name__ == "__main__":
