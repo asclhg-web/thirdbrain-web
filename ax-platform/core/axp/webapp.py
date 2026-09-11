@@ -28,7 +28,7 @@ from .graph import confidence, evidence
 from .judge import cards as jcards
 
 SECRET = os.environ.get("AXP_SECRET", "dev-secret-change-me")
-BOOTSTRAP_PW = os.environ.get("AXP_BOOTSTRAP_PW", "change-me!")
+BOOTSTRAP_PW = os.environ.get("AXP_BOOTSTRAP_PW", "")  # 비우면 무작위 생성
 
 app = FastAPI(title="AX Platform Web", docs_url=None, redoc_url=None)
 
@@ -49,16 +49,35 @@ def _hash(pw: str, salt: str) -> str:
 
 
 def ensure_users() -> None:
+    """최초 기동 부트스트랩 — 초기 비밀번호는 계정별 무작위 생성이 기본.
+
+    생성된 비밀번호는 데이터 루트의 initial-credentials.txt(0600)에 딱 한 번
+    기록된다 — 관리자가 봉투처럼 전달하고 파일은 삭제한다. AXP_BOOTSTRAP_PW를
+    지정하면(개발·테스트용) 세 계정이 그 값을 공유한다."""
     db.executescript(USERS_DDL)
     if db.scalar("SELECT COUNT(*) FROM axp_users"):
         return
+    config.ensure_dirs()
+    lines = []
     for u, role, disp in (("admin", "admin", "관리자"),
                           ("steward", "steward", "스튜어드"),
                           ("approver", "approver", "카드 승인자")):
+        pw = BOOTSTRAP_PW or secrets.token_urlsafe(9)
         salt = secrets.token_hex(8)
         db.execute(
             "INSERT INTO axp_users VALUES (?,?,?,?,?,1)",
-            (u, _hash(BOOTSTRAP_PW, salt), salt, role, disp))
+            (u, _hash(pw, salt), salt, role, disp))
+        lines.append(f"{u} ({disp}): {pw}")
+    if not BOOTSTRAP_PW:
+        cred = config.DATA / "initial-credentials.txt"
+        cred.write_text(
+            "AX 플랫폼 초기 계정 — 첫 로그인 후 비밀번호를 변경하고 이 파일을 삭제하세요.\n"
+            + "\n".join(lines) + "\n", encoding="utf-8")
+        try:
+            cred.chmod(0o600)
+        except OSError:
+            pass
+        print(f"[webapp] 초기 계정 비밀번호를 {cred}에 기록했습니다 (0600).")
 
 
 def _sign(value: str) -> str:
@@ -125,6 +144,7 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
        ("/briefing", "브리핑", ("viewer", "steward", "approver")),
+       ("/ask", "질문", ("viewer", "steward", "approver")),
        ("/rules", "규칙", ("viewer", "steward", "approver")),
        ("/warroom", "War Room", ("viewer", "steward", "approver")),
        ("/audit", "감사 로그", ("viewer", "steward", "approver"))]
@@ -348,6 +368,70 @@ def rules_page(request: Request):
         f"<a class='btn why' style='float:right' href='/why/{html.escape(r['rule_id'])}'>왜? (근거)</a></div>"
         for r in rows) or "<div class='card'>승격된 규칙이 없습니다.</div>"
     return HTMLResponse(page(u, "규칙", f"<h2>승격 규칙</h2><p class='sub'>확신도 70%×3회 재현을 통과한 지식</p>{body}", "/inbox"))
+
+
+# ── 질문(ask) — 그래프 검색 + 인용 강제 답변 ─────────────
+ASK_EXAMPLES = ["OVEN-2 불량의 원인은?", "승격된 규칙 목록", "OVEN-2 정비 이력",
+                "현장 기록에서 야간 관련", "V2 공급사 원인 후보"]
+
+
+def _route_question(q: str):
+    """질문 → 검색 라우팅. 반환 (retrieved, 설명) — 근거 없는 답은 없다."""
+    import re as _re
+    from .studio import knowledge
+    from .judge import assembler as asm
+    ent = _re.search(r"\b(OVEN-\d+|[VW]-?\d+|V\d+|[PS]-[A-Z]+(?:-[A-Z]+)?)\b", q.upper())
+    if "이력" in q and ent:
+        return asm.search_history(ent.group(1)), f"정비 이력 검색: {ent.group(1)}"
+    if "규칙" in q:
+        return asm.search_rules(), "승격 규칙 검색"
+    if "기록" in q or "메모" in q:
+        return knowledge.search_memos(q), "현장 기록 검색"
+    if ent:
+        return asm.search_cause(ent.group(1)), f"원인 검색: {ent.group(1)}"
+    return None, None
+
+
+@app.get("/ask", response_class=HTMLResponse)
+@app.post("/ask", response_class=HTMLResponse)
+async def ask_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    q, answer_html = "", ""
+    if request.method == "POST":
+        form = await request.form()
+        q = str(form.get("q", "")).strip()
+        if q:
+            from .judge import assembler as asm
+            retrieved, desc = _route_question(q)
+            if retrieved is None:
+                answer_html = ("<div class='card warn'>질문을 해석하지 못했습니다 — "
+                               "설비/제품 코드(OVEN-2, P-PIE…)를 포함하거나 '규칙'/'이력'/'기록'을 넣어 보세요.</div>")
+            else:
+                text = asm.answer(q, retrieved)
+                lines = "".join(f"<div class='ln'>{_fmt_narr_line(l)}</div>"
+                                for l in text.splitlines() if l.strip())
+                answer_html = (f"<div class='card ok'><div style='font-size:12px;color:#76675A'>{html.escape(desc)}"
+                               f" · 모든 문장에 근거 강제</div>{lines}</div>")
+    ex = "".join(f"<button class='btn plain' name='q' value='{html.escape(e)}'>{html.escape(e)}</button> "
+                 for e in ASK_EXAMPLES)
+    body = f"""<h2>질문 — '왜?'에 끝까지 답합니다</h2>
+<p class="sub">답변의 모든 문장은 그래프 검색 결과에서만 조립되고 〔근거〕 표기가 강제됩니다</p>
+<form method="post" class="card">
+  <div style="display:flex;gap:8px"><input name="q" value="{html.escape(q)}"
+    placeholder="예: OVEN-2 불량의 원인은?" style="flex:1"><button class="btn why">질문</button></div>
+  <div style="margin-top:10px">{ex}</div>
+</form>{answer_html}"""
+    return HTMLResponse(page(u, "질문", body, "/ask"))
+
+
+def _fmt_narr_line(l: str) -> str:
+    import re as _re
+    e = html.escape(l)
+    e = _re.sub(r"\[근거: Rule:(RULE-\d+)\]",
+                r"<small>〔근거: <a href='/why/\1' style='text-decoration:underline'>Rule:\1</a>〕</small>", e)
+    return _re.sub(r"\[근거: ([^\]]+)\]", r"<small>〔근거: \1〕</small>", e)
 
 
 # ── 브리핑 · War Room · 감사 ────────────────────────────

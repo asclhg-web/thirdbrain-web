@@ -17,7 +17,10 @@
 	handle_path /mlflow/* {
 		reverse_proxy mlflow:5000
 	}
+	handle_path /api/* {
+		reverse_proxy axp-api:8000   # 근거 API (기계용)
+	}
 	handle {
-		reverse_proxy axp-api:8000   # 근거 API·판단 카드·승인함·War Room
+		reverse_proxy axp-web:8900   # 통합 웹앱 — 승인함·격리 큐·브리핑·War Room
 	}
 }

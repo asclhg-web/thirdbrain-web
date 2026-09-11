@@ -1,0 +1,30 @@
+# 통합 웹앱 systemd 유닛 — 온프레미스(컨테이너 없이) 배치용
+# 설치: cp deploy/systemd/axp-web.service /etc/systemd/system/
+#       systemctl daemon-reload && systemctl enable --now axp-web
+[Unit]
+Description=AX Platform Web (승인함·격리 큐·브리핑·War Room)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=axp
+Group=axp
+WorkingDirectory=/opt/ax-platform/core
+EnvironmentFile=/etc/axp/env
+# /etc/axp/env 필수 항목:
+#   AXP_DB=postgres
+#   AXP_PG_DSN=host=127.0.0.1 user=axp password=*** dbname=axp
+#   AXP_DATA=/var/lib/axp/data
+#   AXP_SECRET=<무작위 64자>
+#   (선택) AXP_LLM=ollama  AXP_OLLAMA_URL=http://<GPU서버>:11434
+ExecStart=/usr/bin/python3 -m uvicorn axp.webapp:app --host 127.0.0.1 --port 8900 --workers 2
+Restart=on-failure
+RestartSec=3
+# 보안 강화
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/axp
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -123,6 +123,20 @@ services:
     volumes: ["keycloak_data:/opt/keycloak/data"]
     depends_on: { postgres: { condition: service_healthy } }
 
+  axp-web:      # 통합 웹앱(P2-C1) — 승인함·격리 큐·브리핑·War Room·감사
+    build: { context: ../core }
+    command: python -m uvicorn axp.webapp:app --host 0.0.0.0 --port 8900 --workers 2
+    restart: unless-stopped
+    networks: [core]
+    environment:
+      AXP_DB: postgres
+      AXP_PG_DSN: host=postgres port=5432 user=axp dbname=axp
+      AXP_SECRET: ${AXP_SECRET:?웹 세션 서명 키 필요}
+      AXP_LLM: ${AXP_LLM:-deterministic}
+      AXP_OLLAMA_URL: ${AXP_OLLAMA_URL:-http://ollama:11434}
+    depends_on:
+      postgres: { condition: service_healthy }
+
   axp-api:      # 코어 서비스 — 근거 API(M5-3)·카드 API(M6)·승인함 백엔드(M7)
     build: { context: ../core }
     restart: unless-stopped

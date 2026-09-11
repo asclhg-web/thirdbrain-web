@@ -8,7 +8,10 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from axp import db  # noqa: E402
 from axp.dataset import codemap  # noqa: E402
+import os
+os.environ["AXP_BOOTSTRAP_PW"] = "change-me!"   # 테스트는 고정 비밀번호
 from axp import webapp  # noqa: E402
+webapp.BOOTSTRAP_PW = "change-me!"
 
 
 def _client():
@@ -69,3 +72,19 @@ def test_reject_requires_reason(tmp_db):
     _login(c, "approver")
     r = c.post(f"/cards/{cid}/decide", data={"approve": "0", "reason": ""})
     assert r.status_code == 400
+
+
+def test_ask_routes_and_answers(tmp_db):
+    import json as _json
+    from axp.graph import confidence, store
+    store.init()
+    db.executescript(confidence.DDL)
+    db.execute(
+        "INSERT INTO causal_candidates (dims, confidence, confirmations, status, rule_id, updated_at) "
+        "VALUES (?,?,?,?,?,?)",
+        (_json.dumps({"equipment_id": "OVEN-2"}), 0.88, "[]", "promoted", "RULE-0001", "2026-09-01"))
+    c = _client()
+    _login(c, "approver")
+    r = c.post("/ask", data={"q": "승격된 규칙 목록"})
+    assert r.status_code == 200
+    assert "RULE-0001" in r.text and "근거" in r.text
