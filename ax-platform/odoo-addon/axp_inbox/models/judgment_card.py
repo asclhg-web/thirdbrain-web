@@ -23,7 +23,8 @@ class AxpJudgmentCard(models.Model):
     platform_id = fields.Integer("플랫폼 카드 ID", required=True, index=True)
     kind = fields.Selection([
         ("demand_forecast", "수요예측"), ("replenish", "보충 정책"),
-        ("allocation", "배분"), ("equip_alert", "설비경보"), ("knowledge", "지식 승격"), ("sop_revision", "SOP 개정")],
+        ("allocation", "배분"), ("production_plan", "생산계획"),
+        ("equip_alert", "설비경보"), ("knowledge", "지식 승격"), ("sop_revision", "SOP 개정")],
         string="유형", required=True)
     agent = fields.Char("에이전트")
     proposal = fields.Text("제안", required=True)
@@ -55,18 +56,29 @@ class AxpJudgmentCard(models.Model):
         except requests.RequestException as e:
             _logger.warning("axp-api 접속 실패: %s", e)
             return
+        n_ok = n_fail = 0
         for r in rows:
-            rec = self.search([("platform_id", "=", r["card_id"])], limit=1)
-            vals = {
-                "platform_id": r["card_id"], "kind": r["kind"], "agent": r["agent"],
-                "proposal": r["proposal"], "narrative": r.get("narrative"),
-                "values_json": r.get("values_json"), "range_json": r.get("range_json"),
-                "alternatives_json": r.get("alternatives_json"), "state": r["status"],
-            }
-            if rec:
-                rec.write({"state": r["status"]})
-            else:
-                self.create(vals)
+            # P3-I4: 한 카드의 값 오류(예: 미등록 kind)가 전체 동기화를 죽이면
+            # 안 된다 — 행 단위 savepoint 로 격리하고 나머지는 계속 간다.
+            try:
+                with self.env.cr.savepoint():
+                    rec = self.search([("platform_id", "=", r["card_id"])], limit=1)
+                    vals = {
+                        "platform_id": r["card_id"], "kind": r["kind"], "agent": r["agent"],
+                        "proposal": r["proposal"], "narrative": r.get("narrative"),
+                        "values_json": r.get("values_json"), "range_json": r.get("range_json"),
+                        "alternatives_json": r.get("alternatives_json"), "state": r["status"],
+                    }
+                    if rec:
+                        rec.write({"state": r["status"]})
+                    else:
+                        self.create(vals)
+                    n_ok += 1
+            except Exception as e:  # noqa: BLE001
+                n_fail += 1
+                _logger.warning("카드 #%s 동기화 실패(건너뜀): %s", r.get("card_id"), e)
+        if n_fail:
+            _logger.warning("판단 카드 동기화: 성공 %s · 실패 %s", n_ok, n_fail)
 
     # ── '왜?' — 근거 경로 (M5-3) ─────────────────────────────────
     def action_why(self):

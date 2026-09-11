@@ -1,7 +1,7 @@
 # AX 판단 카드 승인함 — Odoo 화면 내장 (M7-1, P-06)
 {
     "name": "AX 판단 카드 승인함",
-    "version": "17.0.0.1",
+    "version": "17.0.0.2",
     "category": "Productivity",
     "summary": "AX 플랫폼 판단 카드의 검토·승인/반려 — 담당자가 쓰던 Odoo 화면에서",
     "description": """
