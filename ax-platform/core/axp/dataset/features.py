@@ -29,6 +29,7 @@ DEFINITIONS: dict[str, dict] = {
     "seasonal_idx":     {"desc": "요일×월 계절지수(과거 판매/전체 평균)", "inputs": ["fact_sales"], "pit": "past"},
     "is_holiday_week":  {"desc": "명절 주간(사전 인지)", "inputs": ["dim_calendar"], "pit": "planned"},
     "promo_flag":       {"desc": "프로모션 여부(사전 인지 — 행사 계획)", "inputs": ["dim_promo"], "pit": "planned"},
+    "days_to_holiday":  {"desc": "다가오는 명절 주간까지 남은 일수(30 상한, 사전 인지) — 명절 전 수요 상승 램프", "inputs": ["dim_calendar"], "pit": "planned"},
     "days_since_start": {"desc": "데이터 시작 후 경과일(추세)", "inputs": ["dim_calendar"], "pit": "known"},
     "scrap_rate_7":     {"desc": "직전 7일 폐기율(공급 과잉 신호)", "inputs": ["fact_inventory_move"], "pit": "past"},
     "unit_price":       {"desc": "단가", "inputs": ["dim_product"], "pit": "known"},
@@ -116,6 +117,19 @@ def build(as_of: str, horizon: int = 0) -> pd.DataFrame:
     g["month"] = g["month"].fillna(dt.dt.month)
     g["is_weekend"] = g["is_weekend"].fillna((dt.dt.dayofweek >= 5).astype(int))
     g["is_holiday_week"] = g["is_holiday_week"].fillna(0)
+    # P2-C3 명절 보강: 다음 명절 주간 시작까지 남은 일수(상한 30) —
+    # 명절 '전' 급증 램프를 모델이 학습할 수 있게 한다(사전 인지 계획 특징)
+    holi_dates = sorted(pd.to_datetime(
+        cal.loc[cal["is_holiday_week"] == 1, "date_key"]).tolist()) if len(cal) else []
+    if holi_dates:
+        hseries = pd.Series(holi_dates)
+        def _d2h(x):
+            nxt = hseries[hseries >= x]
+            return min(int((nxt.iloc[0] - x).days), 30) if len(nxt) else 30
+        uniq = {x: _d2h(x) for x in dt.unique()}
+        g["days_to_holiday"] = dt.map(uniq)
+    else:
+        g["days_to_holiday"] = 30
     g["days_since_start"] = (dt - dt.min()).dt.days
 
     # 계절지수 — as_of 이전 데이터만으로 (dow, month)별 평균/전체 평균

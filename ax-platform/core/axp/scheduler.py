@@ -66,6 +66,9 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
     stage("agents", lambda: runtime.run_all({"run_date": run_date}, shadow=shadow))
     stage("promotion_monitor", lambda: promotion.monitor_and_demote())
 
+    from .ingest import odoo_writeback
+    stage("odoo_writeback", lambda: odoo_writeback.run())
+
     stage("briefing", lambda: briefing.build(run_date))
     stage("boards", lambda: (boards.field_board(run_date), boards.exec_board(run_date)))
 

@@ -24,6 +24,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from . import common, config, db
 from .agents import inbox
 from .dataset import codemap
+from .graph import confidence, evidence
 from .judge import cards as jcards
 
 SECRET = os.environ.get("AXP_SECRET", "dev-secret-change-me")
@@ -124,6 +125,7 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
        ("/briefing", "브리핑", ("viewer", "steward", "approver")),
+       ("/rules", "규칙", ("viewer", "steward", "approver")),
        ("/warroom", "War Room", ("viewer", "steward", "approver")),
        ("/audit", "감사 로그", ("viewer", "steward", "approver"))]
 
@@ -210,6 +212,8 @@ def _fmt_narr(text: str) -> str:
         if not l.strip():
             continue
         e = html.escape(l)
+        e = _re.sub(r"\[근거: Rule:(RULE-\d+)\]",
+                    r"<small>〔근거: <a href='/why/\1' style='text-decoration:underline'>Rule:\1</a>〕</small>", e)
         e = _re.sub(r"\[근거: ([^\]]+)\]", r"<small>〔근거: \1〕</small>", e)
         out.append(f"<div class='ln'>{e}</div>")
     return "".join(out[:4])
@@ -310,6 +314,40 @@ def quarantine_undo(q_id: int, request: Request):
         return u
     codemap.unconfirm(q_id, by=u["display"])
     return RedirectResponse("/quarantine", status_code=303)
+
+
+# ── 근거 사다리 ('왜?') ──────────────────────────────────
+@app.get("/why/{rule_id}", response_class=HTMLResponse)
+def why_page(rule_id: str, request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    try:
+        res = evidence.evidence_for_rule(rule_id)
+    except Exception as e:  # noqa: BLE001
+        return HTMLResponse(page(u, "왜?", f"<div class='card warn'>근거 조회 실패: {html.escape(str(e))}</div>"), 404)
+    text = evidence.render_path_text(res)
+    steps = "".join(
+        f"<div class='card' style='margin-bottom:6px'><div class='ln'>{html.escape(l)}</div></div>"
+        for l in text.splitlines() if l.strip())
+    return HTMLResponse(page(u, "근거 역추적",
+        f"<h2>왜? — {html.escape(rule_id)} 근거 역추적</h2>"
+        f"<p class='sub'>규칙 → 조합 → 사실 → 원장 원본까지 — 경로에 없는 주장은 없다</p>{steps}",
+        "/inbox"))
+
+
+@app.get("/rules", response_class=HTMLResponse)
+def rules_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    rows = confidence.rules("promoted")
+    body = "".join(
+        f"<div class='card'><b>{html.escape(r['rule_id'])}</b> — {html.escape(r.get('text') or '')} "
+        f"(확신도 {round((r.get('confidence') or 0)*100)}%) "
+        f"<a class='btn why' style='float:right' href='/why/{html.escape(r['rule_id'])}'>왜? (근거)</a></div>"
+        for r in rows) or "<div class='card'>승격된 규칙이 없습니다.</div>"
+    return HTMLResponse(page(u, "규칙", f"<h2>승격 규칙</h2><p class='sub'>확신도 70%×3회 재현을 통과한 지식</p>{body}", "/inbox"))
 
 
 # ── 브리핑 · War Room · 감사 ────────────────────────────

@@ -202,7 +202,11 @@ class _PgConn:
     def rollback(self):
         self.raw.rollback()
 
+    pooled = False
+
     def close(self):
+        if self.pooled:      # 풀 연결은 닫지 않고 재사용
+            return
         self.raw.close()
 
     def cursor(self, *a, **k):
@@ -217,16 +221,41 @@ class _NullCursor:
         return None
 
 
+import threading
+
+_tls = threading.local()   # 스레드별 PG 연결 캐시 — 호출별 재접속 제거(P2 성능)
+
+
+def _pg_cached(schema: str):
+    import psycopg
+    cache = getattr(_tls, "pg", None)
+    if cache is None:
+        cache = _tls.pg = {}
+    raw = cache.get(schema)
+    if raw is not None and not raw.closed:
+        try:
+            raw.execute("SELECT 1")
+            return raw
+        except Exception:
+            try:
+                raw.close()
+            except Exception:
+                pass
+    raw = psycopg.connect(PG_DSN, row_factory=_axrow)
+    raw.execute(f'CREATE SCHEMA IF NOT EXISTS {schema}')
+    raw.execute(f'SET search_path = {schema}')
+    raw.commit()
+    cache[schema] = raw
+    return raw
+
+
 def _connect():
     if BACKEND == "postgres":
         import hashlib
-        import psycopg
-        raw = psycopg.connect(PG_DSN, row_factory=_axrow)
         schema = "ax_" + hashlib.md5(str(config.DATA).encode()).hexdigest()[:12]
-        raw.execute(f'CREATE SCHEMA IF NOT EXISTS {schema}')
-        raw.execute(f'SET search_path = {schema}')
-        raw.commit()
-        return _PgConn(raw)
+        c = _PgConn(_pg_cached(schema))
+        c.pooled = True
+        return c
     config.ensure_dirs()
     con = sqlite3.connect(config.DB_PATH)
     con.row_factory = sqlite3.Row
