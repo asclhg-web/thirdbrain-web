@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AX 플랫폼 — Odoo AI ERP | 판단의 공장</title>
+<meta name="description" content="데이터가 모이고, AI가 근거와 함께 제안하고, 사람이 승인하고, 시스템이 기록합니다. 중소 제조·유통을 위한 지능형 ERP — AX 플랫폼 by 에이에스씨(ASC).">
+<meta property="og:title" content="AX 플랫폼 — Odoo AI ERP">
+<meta property="og:description" content="제안은 AI가, 결정은 사람이. 근거 없는 문장은 만들지 못하는 지능형 운영 체계.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://odooaierp.com">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236E3A1C'/%3E%3Ctext x='32' y='43' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23E8A33D' text-anchor='middle'%3EAX%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#9C5227; --dark:#6E3A1C; --gold:#E8A33D; --goldD:#C07F1E;
+  --teal:#0E8F86; --ink:#2E241C; --sub:#76675A; --tint:#F8F2EA;
+  --line:#DCCDBB; --red:#A8493B; --deep:#2B1D12; --cream:#FDF3E0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--tint);color:var(--ink);line-height:1.7}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+section{padding:88px 0}
+h2.sec{font-size:clamp(26px,4vw,38px);color:var(--dark);font-weight:900;margin-bottom:10px}
+p.sec-sub{color:var(--sub);font-size:17px;margin-bottom:44px}
+.kicker{color:var(--goldD);font-weight:700;letter-spacing:4px;font-size:13px;text-transform:uppercase;margin-bottom:10px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:rgba(248,242,234,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .bar{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:19px;color:var(--dark)}
+.logo .mark{width:34px;height:34px;border-radius:9px;background:var(--dark);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900}
+nav ul{display:flex;gap:26px;list-style:none;font-size:15px;font-weight:500}
+nav ul a:hover{color:var(--goldD)}
+.cta-mini{background:var(--dark);color:#fff!important;padding:9px 20px;border-radius:22px;font-weight:700;font-size:14px}
+.cta-mini:hover{background:var(--primary);color:#fff}
+@media(max-width:820px){nav ul{display:none}}
+
+/* hero */
+.hero{background:var(--deep);color:#F8F2EA;padding:110px 0 96px}
+.hero .kicker{color:var(--goldD)}
+.hero h1{font-size:clamp(34px,6vw,60px);font-weight:900;color:var(--gold);line-height:1.25;margin-bottom:18px}
+.hero h1 small{display:block;font-size:.55em;color:#F8F2EA;font-weight:700;margin-top:8px}
+.hero p.lead{font-size:clamp(16px,2.2vw,20px);color:#EDE3D5;max-width:760px;margin-bottom:34px}
+.hero .btns{display:flex;gap:14px;flex-wrap:wrap}
+.btn{display:inline-block;padding:14px 30px;border-radius:28px;font-weight:700;font-size:16px}
+.btn.gold{background:var(--gold);color:var(--deep)}
+.btn.gold:hover{background:var(--goldD)}
+.btn.ghost{border:2px solid #8A7A66;color:#EDE3D5}
+.btn.ghost:hover{border-color:var(--gold);color:var(--gold)}
+.hero .note{margin-top:30px;font-size:14px;color:#B9A78F}
+.hero .note b{color:var(--gold)}
+
+/* flow strip */
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:40px}
+.flow .step{background:#3A2A1B;border:1px solid #55402A;color:#EDE3D5;border-radius:10px;padding:10px 18px;font-size:15px;font-weight:700}
+.flow .step.hl{background:var(--teal);border-color:var(--teal);color:#fff}
+.flow .ar{color:var(--goldD);font-weight:900}
+
+/* cards */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+@media(max-width:820px){.grid3{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px}
+.card .ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.card h3{font-size:19px;color:var(--dark);margin-bottom:10px}
+.card p{font-size:15px;color:var(--ink)}
+.card.accent{border-left:8px solid var(--primary)}
+
+/* layers */
+.layer{display:flex;gap:14px;margin-bottom:12px;align-items:stretch}
+.layer .tag{flex:0 0 190px;border-radius:12px;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;padding:14px;font-size:15px;text-align:center}
+.layer .desc{flex:1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 20px;font-size:15px;display:flex;align-items:center}
+@media(max-width:640px){.layer{flex-direction:column}.layer .tag{flex:none}}
+
+/* gallery */
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:820px){.shots{grid-template-columns:1fr}}
+.shot{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(46,36,28,.08)}
+.shot img{width:100%}
+.shot .cap{padding:16px 20px;border-top:1px solid var(--line)}
+.shot .cap b{color:var(--dark);font-size:16px}
+.shot .cap span{display:block;color:var(--sub);font-size:14px;margin-top:2px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+@media(max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--deep);border-radius:16px;padding:26px 24px;text-align:center}
+.stat .v{font-size:clamp(28px,4vw,40px);font-weight:900;color:var(--gold)}
+.stat .k{color:#B9A78F;font-size:14px;margin-top:6px}
+.honest{margin-top:26px;background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:18px 24px;font-size:14.5px}
+.honest b{color:var(--goldD)}
+
+/* roadmap */
+.road{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+@media(max-width:820px){.road{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.road{grid-template-columns:1fr}}
+.ph{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px}
+.ph .w{font-size:13px;font-weight:700;color:#fff;background:var(--primary);display:inline-block;border-radius:14px;padding:3px 14px;margin-bottom:12px}
+.ph h4{font-size:17px;color:var(--dark);margin-bottom:8px}
+.ph p{font-size:14px;color:var(--sub)}
+
+/* about */
+.about{display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap}
+.about .who{flex:1;min-width:280px}
+.about .book{flex:0 0 300px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px}
+.about .book h4{color:var(--dark);font-size:17px;margin-bottom:8px}
+.about .book p{font-size:14px;color:var(--sub)}
+
+/* contact */
+.contact{background:var(--deep);color:#EDE3D5;text-align:center}
+.contact h2{color:var(--gold);font-size:clamp(26px,4vw,38px);font-weight:900;margin-bottom:14px}
+.contact p{max-width:640px;margin:0 auto 30px;color:#D8C6B2}
+footer{background:#211508;color:#8A7A66;font-size:13px;padding:26px 0;text-align:center}
+footer a{color:#B9A78F}
+.badge-sample{display:inline-block;background:var(--red);color:#fff;border-radius:16px;padding:4px 14px;font-size:13px;font-weight:700;vertical-align:middle;margin-left:8px}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap bar">
+  <a class="logo" href="#top"><span class="mark">AX</span>AX 플랫폼 <span style="color:var(--sub);font-weight:500;font-size:14px">· odooaierp.com</span></a>
+  <ul>
+    <li><a href="#why">왜 필요한가</a></li>
+    <li><a href="#how">작동 원리</a></li>
+    <li><a href="#screens">실제 화면</a></li>
+    <li><a href="#proof">검증 성과</a></li>
+    <li><a href="#road">도입 절차</a></li>
+    <li><a href="#about">회사</a></li>
+    <li><a class="cta-mini" href="#contact">데모 문의</a></li>
+  </ul>
+</div></nav>
+
+<header class="hero" id="top"><div class="wrap">
+  <div class="kicker">ODOO AI ERP — AX PLATFORM</div>
+  <h1>판단의 공장<small>내일 무엇을 얼마나 만들고 발주할지, AI가 근거와 함께 제안합니다</small></h1>
+  <p class="lead">판매·생산·재고 데이터를 하나의 표준 체계로 모으고, AI가 <b style="color:var(--gold)">수치·구간·근거·대안</b>이 담긴 판단 카드를 올리면, <b style="color:var(--gold)">최종 결정은 언제나 사람</b>이 합니다. 승인 순간에만 시스템 값이 바뀌고, 전 과정이 감사 기록으로 남습니다.</p>
+  <div class="btns">
+    <a class="btn gold" href="#contact">데모 신청하기</a>
+    <a class="btn ghost" href="#screens">실제 화면 보기</a>
+  </div>
+  <div class="flow">
+    <span class="step">엑셀 · 장부 · Odoo</span><span class="ar">→</span>
+    <span class="step">표준 데이터셋</span><span class="ar">→</span>
+    <span class="step">분석 · 예측</span><span class="ar">→</span>
+    <span class="step">지식그래프</span><span class="ar">→</span>
+    <span class="step">판단 카드</span><span class="ar">→</span>
+    <span class="step hl">사람의 승인</span>
+  </div>
+  <p class="note">본 사이트의 화면은 전부 <b>실제 구동 화면</b>입니다 — 거래 수치는 고객사 구조로 만든 합성 샘플이며, 실데이터 연결 즉시 같은 화면이 실제로 돕니다.</p>
+</div></header>
+
+<section id="why"><div class="wrap">
+  <div class="kicker">WHY</div>
+  <h2 class="sec">중소 제조·유통의 아침은 왜 늘 급한가</h2>
+  <p class="sec-sub">엑셀과 감(感)으로 돌아가는 발주·생산의 비용은 결품과 폐기로 동시에 청구됩니다.</p>
+  <div class="grid3">
+    <div class="card accent"><div class="ic" style="background:var(--cream)">📊</div><h3>데이터는 있는데 흩어져 있다</h3><p>POS·엑셀·수기 장부·ERP가 제각각. "본점 만쥬"와 "초량점 파이만쥬"가 다른 상품으로 집계되는 순간 분석은 무너집니다.</p></div>
+    <div class="card accent"><div class="ic" style="background:var(--cream)">🤖</div><h3>AI는 있는데 믿을 수가 없다</h3><p>근거 없는 예측 숫자는 결재할 수 없습니다. 현장이 묻는 것은 하나 — "왜 이 숫자인가?" 답 못 하는 시스템은 쓰이지 않습니다.</p></div>
+    <div class="card accent"><div class="ic" style="background:var(--cream)">🔁</div><h3>도입은 했는데 남는 게 없다</h3><p>컨설팅이 끝나면 시스템도 끝나는 경험. 운영 절차와 인수인계 없는 도입은 비용이지 자산이 아닙니다.</p></div>
+  </div>
+</div></section>
+
+<section id="how" style="background:#fff"><div class="wrap">
+  <div class="kicker">HOW IT WORKS</div>
+  <h2 class="sec">여섯 층의 시스템, 세 가지 원칙</h2>
+  <p class="sec-sub">Odoo(오픈소스 ERP)를 정본으로, 수집부터 승인·환류까지 한 몸으로 움직입니다.</p>
+  <div class="layer"><div class="tag" style="background:var(--primary)">M1 수집</div><div class="desc">Odoo 정합 동기화 · 엑셀 업로더 · 현장 장표 폼(생산일지·점검표·폐기) · 설비 신호</div></div>
+  <div class="layer"><div class="tag" style="background:var(--primary)">M2 표준 데이터셋</div><div class="desc">코드 사전(현장 어휘→표준 코드) · 격리 큐 · 품질 게이트 — 처음 보는 말은 시스템이 손을 들고 물어봅니다</div></div>
+  <div class="layer"><div class="tag" style="background:var(--goldD)">M3·M4 분석·학습</div><div class="desc">층별 분석 · 야간 4M 마이닝 · 구간(P10~P90) 딸린 수요예측 · 설비 이상탐지 · 재고 Twin</div></div>
+  <div class="layer"><div class="tag" style="background:var(--goldD)">M5 지식그래프</div><div class="desc">원인 후보의 확신도 관리 — 70% 이상, 3회 재현된 원인만 규칙으로 승격됩니다</div></div>
+  <div class="layer"><div class="tag" style="background:var(--teal)">M6 판단 카드</div><div class="desc">수치 + 구간 + 근거 + 대안이 한 장에 — 근거 없는 문장은 생성 자체가 불가능합니다</div></div>
+  <div class="layer"><div class="tag" style="background:var(--teal)">M7 승인·환류</div><div class="desc">승인함(사람의 결재) · 감사 로그 · 파라미터 환류 · War Room 경영 대시보드</div></div>
+  <div class="grid3" style="margin-top:36px">
+    <div class="card"><h3 style="color:var(--primary)">① 제안은 AI가, 결정은 사람이</h3><p>시스템 값은 승인 순간에만 바뀝니다. 급해도 승인함을 건너뛰는 지름길은 없습니다 — 그것이 안전장치입니다.</p></div>
+    <div class="card"><h3 style="color:var(--goldD)">② 모든 수치에 근거가 붙는다</h3><p>모든 문장에 〔근거〕 표기, '왜?' 버튼 한 번이면 원본 데이터까지 역추적됩니다.</p></div>
+    <div class="card"><h3 style="color:var(--red)">③ 막히면 우회 말고 고친다</h3><p>격리 큐 우회 · 무승인 파라미터 변경 · 무게이트 외부 전송은 코드가 막습니다. 자료는 자산 대장에 등록되고 반출이 통제됩니다.</p></div>
+  </div>
+</div></section>
+
+<section id="screens"><div class="wrap">
+  <div class="kicker">SCREENS</div>
+  <h2 class="sec">실제 구동 화면 <span class="badge-sample">샘플 데이터 시연</span></h2>
+  <p class="sec-sub">목업이 아닙니다 — 아래 화면은 전 구간이 실제로 돌아간 결과입니다. 거래 수치만 합성 샘플입니다.</p>
+  <div class="shots">
+    <div class="shot"><img src="assets/inbox.jpg" alt="판단 카드 승인함" loading="lazy"><div class="cap"><b>판단 카드 승인함</b><span>생산계획·수요예측·재고 정책 제안이 수치·구간·근거·대안과 함께 결재를 기다립니다</span></div></div>
+    <div class="shot"><img src="assets/evidence.jpg" alt="근거 역추적" loading="lazy"><div class="cap"><b>근거 역추적 — "왜?"</b><span>규칙 → 조합 → 사실 → 원장의 원본 기록까지 네 단계, 응답 7.6ms</span></div></div>
+    <div class="shot"><img src="assets/studio.jpg" alt="분석 스튜디오" loading="lazy"><div class="cap"><b>분석 스튜디오</b><span>층별 불량률과 관리도 — '어디가, 언제부터'가 여기서 특정됩니다</span></div></div>
+    <div class="shot"><img src="assets/warroom.jpg" alt="War Room" loading="lazy"><div class="cap"><b>War Room</b><span>경영이 보는 한 화면 — 주간 회의가 이 순서대로 15분이면 끝납니다</span></div></div>
+  </div>
+</div></section>
+
+<section id="proof" style="background:#fff"><div class="wrap">
+  <div class="kicker">PROOF</div>
+  <h2 class="sec">전 구간 검증을 마쳤습니다</h2>
+  <p class="sec-sub">제빵업체 구조의 합성 데이터(24개월 판매 2만여 건·생산 7천여 건)로 수집→표준화→학습→판단→환류 전체를 완주한 결과입니다.</p>
+  <div class="stats">
+    <div class="stat"><div class="v">7.1%</div><div class="k">수요예측 오차(WAPE)<br>수기 근사 19.4% 대비</div></div>
+    <div class="stat"><div class="v">13일</div><div class="k">설비 고장 선행 감지<br>정상 설비 오경보 2.8%</div></div>
+    <div class="stat"><div class="v">64초</div><div class="k">수집→승인까지<br>전 구간 완주 시간</div></div>
+    <div class="stat"><div class="v">100%</div><div class="k">판단 카드 근거 부착<br>회귀 검증 10/10 통과</div></div>
+  </div>
+  <div class="honest"><b>정직 고지</b> — 위 수치는 합성 샘플 기준 성능입니다. 실데이터 연결 후 4주 검증으로 현행 발주 대비 성적표를 먼저 확인시켜 드린 뒤 확대합니다. 저희는 샘플 성능을 실적처럼 말하지 않습니다.</div>
+</div></section>
+
+<section id="road"><div class="wrap">
+  <div class="kicker">ROADMAP</div>
+  <h2 class="sec">1단계 12주 — 한 품목의 완주부터</h2>
+  <p class="sec-sub">전 품목 빅뱅이 아니라, 주력 품목 하나의 수요예측·발주를 끝까지 완주하고 넓힙니다.</p>
+  <div class="road">
+    <div class="ph"><span class="w">준비 ~2주</span><h4>자료 연결 · 어휘 워크숍</h4><p>Odoo/엑셀 연결, 현장 어휘 30분 워크숍, 데이터 헌장(귀속·통제·약정·반환) 서명</p></div>
+    <div class="ph"><span class="w">1~6주</span><h4>표준화 · 장표 디지털화</h4><p>데이터 표준화와 품질 게이트, 현장 장부의 태블릿 전환(1개 라인)</p></div>
+    <div class="ph"><span class="w">7~10주</span><h4>학습 · 성적표 검증</h4><p>수요예측 학습, 현행 발주 대비 정확도 비교 보고 — 여기서 계속 여부를 판단하셔도 됩니다</p></div>
+    <div class="ph"><span class="w">11~12주</span><h4>승인 운영 · 완주 판정</h4><p>발주 제안 카드 시범 운영, 첫 실제 승인·환류, 운영 매뉴얼 인수인계</p></div>
+  </div>
+</div></section>
+
+<section id="about" style="background:#fff"><div class="wrap">
+  <div class="kicker">ABOUT</div>
+  <h2 class="sec">에이에스씨(ASC)</h2>
+  <p class="sec-sub">Odoo 기반 지능형 ERP 구축 전문 — 도입으로 끝나지 않고 인수인계로 끝냅니다.</p>
+  <div class="about">
+    <div class="who">
+      <p style="margin-bottom:14px">에이에스씨는 오픈소스 ERP <b>Odoo</b>와 AI를 결합한 지능형 운영 체계를 설계·구축합니다. 저희의 원칙은 단순합니다 — <b>고객 자료는 고객 자산</b>(전 산출물 귀속·반출 통제·종료 시 반환), <b>근거 없는 숫자는 내놓지 않으며</b>, 프로젝트의 완료 기준은 납품이 아니라 <b>고객이 스스로 운영하는 것</b>입니다.</p>
+      <p>도입 후에는 스튜어드 하루 30분 + 승인자 하루 20분으로 운영되도록 운영 매뉴얼과 검수 절차(재학습·승인·백업 복구의 단독 수행)까지 함께 넘겨 드립니다.</p>
+    </div>
+    <div class="book">
+      <h4>📕 『AI ERP 혁명 — Odoo와 지능형 ERP』</h4>
+      <p>대표 이형근의 저서. 이 사이트의 플랫폼은 책에서 제시한 방법론(판단의 공장, 근거 강제, 사람의 승인)을 실제 코드로 구현한 것입니다.</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="contact" id="contact"><div class="wrap">
+  <h2>데모를 보시면 10분 안에 이해됩니다</h2>
+  <p>귀사의 매장·제품 구조에 맞춘 샘플 데모를 준비해 드립니다. 지금 쓰시는 엑셀 그대로 두 가지만 주시면 4주 안에 실데이터 검증 성적표를 보실 수 있습니다.</p>
+  <a class="btn gold" href="mailto:asclhg@gmail.com?subject=[AX 플랫폼] 데모 문의">asclhg@gmail.com 으로 문의하기</a>
+</div></section>
+
+<footer><div class="wrap">
+  © 2026 에이에스씨(ASC) · 이형근 · <a href="mailto:asclhg@gmail.com">asclhg@gmail.com</a> · odooaierp.com<br>
+  본 사이트의 모든 화면은 실제 구동 화면이며, 거래 수치는 합성 샘플입니다.
+</div></footer>
+
+</body>
+</html>
