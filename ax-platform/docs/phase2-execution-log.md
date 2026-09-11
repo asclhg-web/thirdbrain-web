@@ -31,4 +31,16 @@
 | C1 통합 웹앱 v1 | **완료** | core/axp/webapp.py — 로그인(PBKDF2·서명 쿠키)·역할 강제(admin/steward/approver/viewer)·승인함 결정·격리 큐 확정+**확정 취소(undo, I-09 교훈)**·브리핑·War Room·감사 로그·비밀번호 변경. 테스트 5건 양쪽 백엔드 통과 |
 | C2 Odoo 쓰기 커넥터 | **완료** | ingest/odoo_writeback.py — 승인 카드→구매발주 '초안'(확정은 사람이 Odoo에서), demo sqlite 실동작 + prod XML-RPC(ORM 경유, SQL 직삽 금지), 멱등 로그·감사 기록. 테스트 2건 |
 | C3 정상 창 정식화 | **완료** | anomaly.normal_window_mask — 고장 전 14일·정비 후 2일 자동 제외(I-01 재발 방지의 코드화) |
-| C3 콜드스타트 | 진행 | learn/coldstart.py — 유사 품목 전이(라인/상관 공여 선택, 규모 배율, 광폭 구간·근거 명시) — 검증 테스트 작성 중 |
+| C3 콜드스타트 | **완료** | learn/coldstart.py — 유사 품목 전이(공여 자동 선택·배율·광폭 구간·근거), 테스트 3건 |
+| C3 명절 거리 특징 | **완료** | days_to_holiday(사전 인지) — TSD WAPE 7.06%→6.99% |
+| C4 규칙 반증 강등 | **완료** | review_promoted — 2회 연속 반증→강등+그래프 표시+SOP 재검토 경보, 야간 편입, 테스트 2건 |
+| C4 회귀 30선 | **완료** | 10→30선(환각 차단기 자체 검사 포함) — 태성당 30/30 |
+| C4 PII 차단 | **완료** | 엑셀 업로더 개인정보 의심 컬럼 반입 차단(값 비기록) |
+| 성능: PG 접속 풀링 | **완료** | 스레드별 연결 캐시 — E2E 206.6s→**72.0s**, pytest 9.2s→3.8s |
+| 야간 배치 통합(PG) | **완료** | run_cycle 17/17 단계 성공 — 신설 odoo_writeback이 발주 초안 2건 실생성 |
+| 웹앱 확장 | **완료** | /why 근거 사다리·/rules·카드 내 Rule 링크, Playwright 클릭 검증(승인→감사 기록 확인 후 데모 상태 원복) |
+
+- [P2-I8] date(x,'-N days')는 SQLite 관용구 → (x::date-N)::text 자동 변환
+
+최종 산출: 테스트 27→43(양쪽 green), 신규 모듈 5·핵심 개조 6, +1,950줄/28파일.
+종합 보고: docs/presentations/AX_P2_Execution_Report.docx
