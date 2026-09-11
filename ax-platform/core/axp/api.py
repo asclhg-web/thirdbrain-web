@@ -5,7 +5,10 @@ prod에서는 Keycloak 미들웨어가 역할 헤더를 채운다(demo: X-Role �
 """
 from __future__ import annotations
 
-from fastapi import FastAPI, Header, HTTPException
+import hmac as _hmac
+import os
+
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from .agents import inbox, warroom
@@ -13,6 +16,18 @@ from .graph import evidence
 from .judge import cards as jcards
 
 app = FastAPI(title="AX Platform", version="0.1.0")
+
+
+# P5-S6: 내부 API 공유 키(심층 방어) — AXP_API_KEY 설정 시 모든 요청에
+# X-API-Key 헤더 요구(/health 제외). 미설정이면 기존 동작(사내망 신뢰) 유지.
+@app.middleware("http")
+async def api_key_guard(request: Request, call_next):
+    key = os.environ.get("AXP_API_KEY", "")
+    if key and request.url.path != "/health":
+        if not _hmac.compare_digest(request.headers.get("X-API-Key", ""), key):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({"detail": "API 키가 필요합니다(X-API-Key)"}, 401)
+    return await call_next(request)
 
 
 @app.get("/health")

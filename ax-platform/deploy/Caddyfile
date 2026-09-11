@@ -1,4 +1,7 @@
 # 리버스 프록시 — 사내 TLS, 경로 라우팅 (M0-1)
+# 주의(P5-S6): 이 파일은 '사내망' 구성이다. 공개(Cloudflare Tunnel)는
+#   install-tunnel.sh 가 webapp(8900)만 노출한다 — /api(axp-api:8000)를
+#   공개 경로에 올리지 말 것. 사내에서도 AXP_API_KEY 설정을 권장.
 {$AXP_DOMAIN} {
 	tls /certs/axp.crt /certs/axp.key
 

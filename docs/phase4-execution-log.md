@@ -254,3 +254,12 @@ worker 차원의 NULL 방어도 함께. 테스트 82+3skip(sqlite)·85(PG) green
 | 번호 | 문제 | 처리 |
 |---|---|---|
 | P5-I1 | 실 Odoo 경로에서 정비 사실의 설비가 차원에 없어 고아 — demo에선 mrp에 늘 설비가 있어 숨어 있던 결함. 복원 드릴의 FK 재검증이 발각 | dim_equipment를 mrp+maintenance 합집합으로, NULL 설비·작업자 제외 (**해결**) |
+
+## P5-S6: 내부 API 공유 키 (2026-09-11, 2시간 루프 1)
+
+- axp-api에 AXP_API_KEY 옵션 — 설정 시 전 요청 X-API-Key 요구(/health 제외),
+  미설정이면 기존 사내망 신뢰 유지. 테스트 2종(강제/개방).
+- Odoo 애드온이 파라미터(axp_inbox.api_key)로 키를 전송하도록 3개 호출 갱신.
+- Caddyfile에 신뢰 경계 주석(공개 Tunnel엔 /api 금지 — 실제로 install-tunnel.sh는
+  webapp만 노출), crontab.example에 월 1회 복구 드릴 추가.
+- 전체 84+3skip(sqlite)·87(PG) green. 소크 9사이클 무경보 지속.

@@ -15,6 +15,15 @@ def _api_base(env):
         "axp_inbox.api_base", "http://axp-api:8000")
 
 
+def _api_headers(env, extra=None):
+    """P5-S6: 플랫폼 API 공유 키(설정 시) — axp_inbox.api_key 파라미터."""
+    h = dict(extra or {})
+    key = env["ir.config_parameter"].sudo().get_param("axp_inbox.api_key", "")
+    if key:
+        h["X-API-Key"] = key
+    return h
+
+
 class AxpJudgmentCard(models.Model):
     _name = "axp.judgment.card"
     _description = "AX 판단 카드"
@@ -52,7 +61,7 @@ class AxpJudgmentCard(models.Model):
     def cron_sync(self):
         base = _api_base(self.env)
         try:
-            rows = requests.get(f"{base}/cards", timeout=10).json()
+            rows = requests.get(f"{base}/cards", headers=_api_headers(self.env), timeout=10).json()
         except requests.RequestException as e:
             _logger.warning("axp-api 접속 실패: %s", e)
             return
@@ -84,7 +93,7 @@ class AxpJudgmentCard(models.Model):
     def action_why(self):
         self.ensure_one()
         base = _api_base(self.env)
-        res = requests.get(f"{base}/cards/{self.platform_id}/why", timeout=10).json()
+        res = requests.get(f"{base}/cards/{self.platform_id}/why", headers=_api_headers(self.env), timeout=10).json()
         self.evidence_text = res.get("text") or json.dumps(
             res, ensure_ascii=False, indent=2)
 
@@ -98,7 +107,7 @@ class AxpJudgmentCard(models.Model):
                   "reason_code": self.reject_reason or "",
                   "reason_text": self.reject_note or ""}
         resp = requests.post(f"{base}/cards/{self.platform_id}/decide",
-                             params=params, headers={"X-Role": "card_approver"},
+                             params=params, headers=_api_headers(self.env, {"X-Role": "card_approver"}),
                              timeout=15)
         if resp.status_code != 200:
             raise UserError(f"플랫폼 응답 오류: {resp.status_code} {resp.text[:200]}")

@@ -12,3 +12,6 @@
 
 # 하트비트는 crontab이 아니라 systemd 타이머로:
 #   systemctl enable --now axp-heartbeat.timer
+
+# 월 1회 복구 드릴 (SLA 4장 — 매월 1일 새벽, KST 04시 = UTC 19시 전일... 단순화: UTC 19시)
+0 19 1 * * sudo bash /opt/ax-platform/deploy/backup-drill.sh axp >> /var/log/axp/drill.log 2>&1
