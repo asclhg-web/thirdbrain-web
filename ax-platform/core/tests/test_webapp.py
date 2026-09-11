@@ -123,3 +123,39 @@ def test_asset_register_requires_steward(tmp_db):
     assert r.status_code == 303
     from axp.custody import ledger
     assert ledger.latest("pos-2026")["location"] == "inbox/pos.xlsx"
+
+
+def test_login_lockout_after_failures(tmp_db):
+    """P4-2: 실패 5회 → 15분 잠금(423), 존재하지 않는 계정도 동일 동작."""
+    c = _client()
+    for _ in range(5):
+        assert c.post("/login", data={"username": "admin", "password": "bad"}).status_code == 401
+    r = c.post("/login", data={"username": "admin", "password": "change-me!"})
+    assert r.status_code == 423                     # 올바른 비밀번호도 잠금 중엔 거절
+    for _ in range(5):
+        c.post("/login", data={"username": "ghost", "password": "bad"})
+    assert c.post("/login", data={"username": "ghost", "password": "bad"}).status_code == 423
+
+
+def test_login_success_resets_counter(tmp_db):
+    c = _client()
+    for _ in range(3):
+        c.post("/login", data={"username": "admin", "password": "bad"})
+    assert c.post("/login", data={"username": "admin", "password": "change-me!"}).status_code == 303
+    row = db.one("SELECT * FROM axp_login_attempts WHERE username='admin'")
+    assert row is None                              # 성공 시 카운터 소거
+
+
+def test_trial_watermark_shown(tmp_db):
+    """P4-2: profile.trial=True면 모든 화면에 '체험판 · 합성 데이터' 고지."""
+    import json as _json
+    from axp import config as _config
+    (_config.DATA / "profile.json").write_text(_json.dumps(
+        {"profile": "trial-x", "company": "체험 고객사", "trial": True},
+        ensure_ascii=False), encoding="utf-8")
+    c = _client()
+    _login(c, "admin")
+    body = c.get("/inbox").text
+    assert "체험판 · 합성 데이터" in body and "체험 고객사" in body
+    login_page = c.get("/login").text               # 로그인 화면에도 고지
+    assert "체험판 · 합성 데이터" in login_page

@@ -16,7 +16,7 @@ import html
 import json
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -41,7 +41,44 @@ CREATE TABLE IF NOT EXISTS axp_users (
   display TEXT NOT NULL,
   must_change INTEGER NOT NULL DEFAULT 1
 );
+CREATE TABLE IF NOT EXISTS axp_login_attempts (
+  username TEXT PRIMARY KEY,
+  fails INTEGER NOT NULL DEFAULT 0,
+  locked_until TEXT NOT NULL DEFAULT ''
+);
 """
+
+# P4-2: 공개 인터넷 대비 — 실패 5회면 15분 잠금(존재하지 않는 계정도 동일
+# 동작으로 계정 존재 여부를 흘리지 않는다). 잠금 발생은 경보로 남긴다.
+LOCK_THRESHOLD = int(os.environ.get("AXP_LOCK_THRESHOLD", "5"))
+LOCK_MINUTES = int(os.environ.get("AXP_LOCK_MINUTES", "15"))
+
+
+def _login_locked(username: str) -> bool:
+    row = db.one("SELECT locked_until FROM axp_login_attempts WHERE username=?",
+                 (username,))
+    return bool(row and row["locked_until"] and
+                row["locked_until"] > datetime.now(timezone.utc).isoformat())
+
+
+def _login_fail(username: str) -> None:
+    row = db.one("SELECT fails FROM axp_login_attempts WHERE username=?", (username,))
+    fails = (row["fails"] if row else 0) + 1
+    locked = ""
+    if fails >= LOCK_THRESHOLD:
+        locked = (datetime.now(timezone.utc)
+                  + timedelta(minutes=LOCK_MINUTES)).isoformat()
+        common.alert("warn", "webapp",
+                     f"로그인 {fails}회 실패로 계정 잠금({LOCK_MINUTES}분): {username}")
+        fails = 0
+    db.execute(
+        "INSERT INTO axp_login_attempts (username, fails, locked_until) VALUES (?,?,?) "
+        "ON CONFLICT(username) DO UPDATE SET fails=excluded.fails, "
+        "locked_until=excluded.locked_until", (username, fails, locked))
+
+
+def _login_ok(username: str) -> None:
+    db.execute("DELETE FROM axp_login_attempts WHERE username=?", (username,))
 
 
 def _hash(pw: str, salt: str) -> str:
@@ -161,10 +198,19 @@ def page(user: dict | None, title: str, body: str, active: str = "") -> str:
            f"<a href='/logout' style='color:#B9A78F'>로그아웃</a></span>") if user else ""
     warn = ("<div class='note'>⚠ 초기 비밀번호 사용 중 — <a href='/password'><b>지금 변경</b></a>하세요.</div>"
             if user and user.get("must_change") else "")
+    # P4-2: 회사명 표시 + 체험판 워터마크 — 합성 데이터임을 화면에 상시 고지
+    from . import profile_rt
+    prof = profile_rt.load()
+    brand = html.escape(prof.get("company", "") or "")
+    trial_badge = ("<span style='background:#A8493B;color:#fff;border-radius:4px;"
+                   "padding:2px 8px;font-size:12px;margin-left:8px'>체험판 · 합성 데이터</span>"
+                   if prof.get("trial") else "")
+    brand_html = (f"<span style='color:#B9A78F;margin-left:10px'>{brand}</span>"
+                  if brand else "") + trial_badge
     return f"""<!doctype html><meta charset='utf-8'>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)} — AX 플랫폼</title>{STYLE}
-<header><div class="wrap bar"><span class="mark">AX</span><b>AX 플랫폼</b>
+<header><div class="wrap bar"><span class="mark">AX</span><b>AX 플랫폼</b>{brand_html}
 <nav>{nav}</nav>{who}</div></header>
 <main><div class="wrap">{warn}{body}</div></main>"""
 
@@ -184,9 +230,15 @@ def login_form():
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     ensure_users()
+    if _login_locked(username):
+        return HTMLResponse(page(None, "로그인",
+            f"<div class='card warn'>로그인이 잠시 잠겼습니다({LOCK_MINUTES}분) — "
+            f"연속 실패가 많았습니다. 잠시 후 다시 시도하세요.</div>"), 423)
     u = db.one("SELECT * FROM axp_users WHERE username=?", (username,))
     if not u or not hmac.compare_digest(u["pw_hash"], _hash(password, u["salt"])):
+        _login_fail(username)
         return HTMLResponse(page(None, "로그인", "<div class='card warn'>아이디 또는 비밀번호가 다릅니다. <a href='/login'>다시</a></div>"), 401)
+    _login_ok(username)
     r = RedirectResponse("/inbox", status_code=303)
     r.set_cookie("axp_session", f"{username}|{_sign(username)}",
                  httponly=True, samesite="lax")
