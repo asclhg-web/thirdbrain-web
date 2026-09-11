@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AX 플랫폼 라이브 데모 — 판단 카드 승인함</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236E3A1C'/%3E%3Ctext x='32' y='43' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23E8A33D' text-anchor='middle'%3EAX%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#9C5227;--dark:#6E3A1C;--gold:#E8A33D;--goldD:#C07F1E;--teal:#0E8F86;
+--ink:#2E241C;--sub:#76675A;--tint:#F8F2EA;--line:#DCCDBB;--red:#A8493B;--deep:#2B1D12;--cream:#FDF3E0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--tint);color:var(--ink);line-height:1.65}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header{background:var(--deep);color:#EDE3D5;padding:14px 0;position:sticky;top:0;z-index:40}
+header .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--dark);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px}
+header b{color:var(--gold)}
+.live{background:var(--red);color:#fff;border-radius:14px;padding:3px 12px;font-size:12.5px;font-weight:700}
+header .sp{flex:1}
+header input{background:#3A2A1B;border:1px solid #55402A;color:#EDE3D5;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:14px;width:110px}
+header button{background:transparent;border:1px solid #55402A;color:#B9A78F;border-radius:8px;padding:6px 14px;font-family:inherit;font-size:13px;cursor:pointer}
+header button:hover{border-color:var(--gold);color:var(--gold)}
+.tabs{display:flex;gap:6px;margin:18px 0 22px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:#fff;border-radius:22px;padding:9px 20px;font-size:14.5px;font-weight:700;color:var(--sub);cursor:pointer;font-family:inherit}
+.tab.on{background:var(--dark);border-color:var(--dark);color:#fff}
+.tab .n{display:inline-block;background:var(--gold);color:var(--deep);border-radius:10px;font-size:12px;padding:0 8px;margin-left:6px}
+main{padding-bottom:70px}
+h2.t{font-size:22px;color:var(--dark);margin-bottom:4px}
+p.d{color:var(--sub);font-size:14px;margin-bottom:18px}
+.jcard{background:#fff;border:1px solid var(--line);border-left:8px solid var(--primary);border-radius:14px;padding:20px 24px;margin-bottom:16px}
+.jcard.done{opacity:.55;border-left-color:var(--teal)}
+.jcard.rej{opacity:.55;border-left-color:var(--red)}
+.jhead{font-size:16.5px;font-weight:700;margin-bottom:8px}
+.chip{display:inline-block;color:#fff;border-radius:12px;padding:2px 12px;font-size:12.5px;font-weight:700;margin-right:8px;vertical-align:1px}
+.ln{font-size:14.5px;margin:4px 0}
+.ln small{color:var(--sub);font-size:12px}
+.range{font-size:13px;color:var(--teal);font-weight:700;margin:6px 0}
+.btns{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.b{border:none;border-radius:8px;padding:8px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.b.why{background:var(--gold);color:var(--deep)}
+.b.ok{background:var(--teal);color:#fff}
+.b.no{background:var(--red);color:#fff}
+.b:hover{filter:brightness(1.08)}
+select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:13px;background:#fff}
+.stamp{font-size:13px;font-weight:700;margin-top:10px}
+.stamp.ok{color:var(--teal)} .stamp.rej{color:var(--red)}
+table{border-collapse:collapse;width:100%;background:#fff;font-size:13.5px;margin-bottom:22px}
+td,th{border:1px solid var(--line);padding:8px 12px;text-align:left}
+th{background:var(--dark);color:#fff;font-size:13px}
+tr.new td{background:var(--cream);font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:22px}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:520px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--deep);border-radius:12px;padding:14px 16px}
+.kpi .k{color:#B9A78F;font-size:12px}
+.kpi .v{color:var(--gold);font-size:24px;font-weight:900}
+.brief{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px 30px}
+.brief h3{color:var(--dark);font-size:17px;margin:16px 0 8px}
+.brief h3:first-child{margin-top:0}
+.brief li{margin:6px 0 6px 20px;font-size:14.5px}
+.imgbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+.imgbox img{width:100%;display:block;border-radius:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.note{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:12px 18px;font-size:13.5px;margin-bottom:18px}
+.note b{color:var(--goldD)}
+/* modal */
+.mback{position:fixed;inset:0;background:rgba(33,21,8,.55);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:60;overflow-y:auto}
+.mback.on{display:flex}
+.modal{background:var(--tint);border-radius:16px;max-width:720px;width:100%;padding:28px 30px}
+.modal h3{color:var(--dark);font-size:19px;margin-bottom:4px}
+.modal .sub{color:var(--sub);font-size:13px;margin-bottom:16px}
+.stepbox{background:#fff;border:1px solid var(--line);border-left:8px solid var(--primary);border-radius:10px;padding:12px 18px;margin-bottom:4px}
+.stepbox .h{font-size:12.5px;font-weight:700;letter-spacing:1px}
+.stepbox .b2{font-size:14.5px;margin-top:2px}
+.stepbox .s{font-size:12px;color:var(--sub);margin-top:2px}
+.dar{color:var(--goldD);font-weight:700;font-size:14px;margin:2px 0 6px 20px}
+.mclose{margin-top:16px;text-align:right}
+/* toast */
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--deep);color:#F8F2EA;border-radius:12px;padding:13px 24px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none;z-index:70;max-width:92vw}
+#toast b{color:var(--gold)}
+footer{border-top:1px solid var(--line);color:var(--sub);font-size:12.5px;padding:18px 0;text-align:center}
+</style>
+</head>
+<body>
+<header><div class="wrap bar">
+  <span class="mark">AX</span><b>AX 플랫폼</b> <span class="live">라이브 데모 — 합성 샘플</span>
+  <span class="sp"></span>
+  <label style="font-size:13px;color:#B9A78F">승인자</label>
+  <input id="approver" value="김승인">
+  <button onclick="resetDemo()">시연 초기화</button>
+  <a href="../" style="font-size:13px;color:#B9A78F">← 소개 페이지</a>
+</div></header>
+
+<main class="wrap">
+  <div class="tabs">
+    <button class="tab on" data-t="inbox" onclick="tab('inbox')">판단 카드 승인함 <span class="n" id="nPending"></span></button>
+    <button class="tab" data-t="brief" onclick="tab('brief')">아침 브리핑</button>
+    <button class="tab" data-t="audit" onclick="tab('audit')">감사 로그 · 환류</button>
+    <button class="tab" data-t="studio" onclick="tab('studio')">분석 스튜디오</button>
+    <button class="tab" data-t="war" onclick="tab('war')">War Room</button>
+  </div>
+
+  <div class="note"><b>이 화면은 실제 플랫폼의 산출물로 동작합니다.</b> 카드·근거·수치 전부 실제 파이프라인이 만든 것이며(거래 수치는 합성 샘플), 지금 승인 버튼을 누르면 감사 로그와 파라미터에 그대로 기록됩니다.</div>
+
+  <section id="v-inbox">
+    <h2 class="t">판단 카드 승인함</h2>
+    <p class="d">오늘의 제안 — 카드마다 수치 + 구간 + 근거 + 대안 · 결정은 언제나 사람이 합니다</p>
+    <div id="cards"></div>
+  </section>
+
+  <section id="v-brief" hidden>
+    <h2 class="t">아침 브리핑 — 2026-08-06</h2>
+    <p class="d">매일 07:00 자동 발행 — 전부가 아니라 '어제의 유의 변화만' 보고합니다</p>
+    <div class="brief" id="briefBody"></div>
+  </section>
+
+  <section id="v-audit" hidden>
+    <h2 class="t">감사 로그 · 파라미터 환류</h2>
+    <p class="d">승인함에서 방금 내린 결정이 여기에 실시간으로 기록됩니다 — 노란 행이 이번 시연의 기록입니다</p>
+    <h3 style="color:var(--dark);font-size:16px;margin-bottom:8px">감사 로그 — 누가 · 언제 · 무엇을</h3>
+    <table><thead><tr><th>시각</th><th>행위</th><th>담당</th><th>내용</th></tr></thead><tbody id="auditBody"></tbody></table>
+    <h3 style="color:var(--dark);font-size:16px;margin-bottom:8px">시스템 파라미터 — 승인된 값만 기록 (이전 값 보존)</h3>
+    <table><thead><tr><th>파라미터</th><th>값</th><th>이전</th><th>승인</th></tr></thead><tbody id="paramBody"></tbody></table>
+  </section>
+
+  <section id="v-studio" hidden>
+    <h2 class="t">분석 스튜디오 — 어디가, 언제부터</h2>
+    <p class="d">층별 불량률과 관리도 — 붉은 점이 '언제부터'를 말합니다. 이탈 구간은 야간 마이닝이 자동 분석합니다</p>
+    <div class="imgbox"><img src="../assets/studio.jpg" alt="층별·관리도"></div>
+  </section>
+
+  <section id="v-war" hidden>
+    <h2 class="t">War Room — 경영이 보는 한 화면</h2>
+    <p class="d">승인함에서 결정을 내리면 아래 숫자가 실시간으로 바뀝니다</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <div>
+        <table><thead><tr><th>카드 상태</th><th>건수</th></tr></thead><tbody id="stateBody"></tbody></table>
+        <table><thead><tr><th>반려 사유</th><th>건수</th></tr></thead><tbody id="rejBody"></tbody></table>
+      </div>
+      <div>
+        <table><thead><tr><th>에이전트</th><th>실행</th><th>카드</th><th>오류</th></tr></thead><tbody>
+          <tr><td>수요예측 (demand)</td><td>7</td><td>21</td><td>0</td></tr>
+          <tr><td>재고 정책 (replenish)</td><td>7</td><td>7</td><td>0</td></tr>
+          <tr><td>배분 (allocation)</td><td>7</td><td>7</td><td>0</td></tr>
+          <tr><td>생산계획 (production_plan)</td><td>7</td><td>7</td><td>0</td></tr>
+          <tr><td>설비 경보 (equip_alert)</td><td>8</td><td>1</td><td>0</td></tr>
+          <tr><td>지식 (knowledge)</td><td>8</td><td>4</td><td>0</td></tr>
+        </tbody></table>
+        <div class="note" style="margin:0"><b>주간 회의 순서</b> — ① KPI ② 반려 사유 ③ 에이전트 오류 ④ 드리프트 → 재학습 판정 ⑤ 자동실행 승급/강등 결정</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="mback" id="mback" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBody"></div>
+</div>
+<div id="toast"></div>
+
+<footer><div class="wrap">AX 플랫폼 라이브 데모 · 에이에스씨(ASC) · 화면과 데이터는 실제 파이프라인 산출물이며 거래 수치는 합성 샘플입니다 · <a href="../" style="text-decoration:underline">odooaierp.com</a></div></footer>
+
+<script>
+const DATA = {"cards": [{"card_id": 42, "kind": "production_plan", "agent": "production_plan_agent", "proposal": "2026-08-07 생산계획 — 6개 품목, 총 2,611개", "narrative": ["P-BAG 55개(L1) — 예측 P50+여유 3%. [근거: demand_forecast 예측 2026-08-07]", "P-CAKE 145개(L1) — 예측 P50+여유 3%. [근거: demand_forecast 예측 2026-08-07]", "P-CREAM 341개(L1) — 예측 P50+여유 3%. [근거: demand_forecast 예측 2026-08-07]", "P-PIE 1117개(L2) — 예측 P50+여유 3%. [근거: demand_forecast 예측 2026-08-07]", "P-RED 366개(L1) — 예측 P50+여유 3%. [근거: demand_forecast 예측 2026-08-07]", "P-SAND 587개(L2) — 예측 P50+여유 3%. [근거: demand_forecast 예측 2026-08-07]"], "approver": "카드 승인자", "status": "proposed", "decision_note": "", "created_at": "2026-09-10T22:00:26+00:00", "decided_at": null, "decided_by": null, "values": [{"name": "생산 P-BAG", "value": 55, "unit": "EA", "source": "demand_forecast P50×1.03 (2026-08-07)"}, {"name": "생산 P-CAKE", "value": 145, "unit": "EA", "source": "demand_forecast P50×1.03 (2026-08-07)"}, {"name": "생산 P-CREAM", "value": 341, "unit": "EA", "source": "demand_forecast P50×1.03 (2026-08-07)"}, {"name": "생산 P-PIE", "value": 1117, "unit": "EA", "source": "demand_forecast P50×1.03 (2026-08-07)"}, {"name": "생산 P-RED", "value": 366, "unit": "EA", "source": "demand_forecast P50×1.03 (2026-08-07)"}, {"name": "생산 P-SAND", "value": 587, "unit": "EA", "source": "demand_forecast P50×1.03 (2026-08-07)"}], "range": {"total_p50": 2611, "total_p90": 2739}, "evidence": {"kind": "forecast", "store_id": "ALL", "product_id": "ALL", "plan_date": "2026-08-07", "plan": [{"product_id": "P-BAG", "line_id": "L1", "qty": 55, "p90": 60}, {"product_id": "P-CAKE", "line_id": "L1", "qty": 145, "p90": 166}, {"product_id": "P-CREAM", "line_id": "L1", "qty": 341, "p90": 372}, {"product_id": "P-PIE", "line_id": "L2", "qty": 1117, "p90": 1127}, {"product_id": "P-RED", "line_id": "L1", "qty": 366, "p90": 399}, {"product_id": "P-SAND", "line_id": "L2", "qty": 587, "p90": 615}], "capacity_warnings": [], "daily": [{"date_key": "2026-08-07", "store_id": "B2B-GIFT", "product_id": "P-CAKE", "p10": 66.5, "p50": 76.7, "p90": 93.9}, {"date_key": "2026-08-07", "store_id": "B2B-GIFT", "product_id": "P-CREAM", "p10": 112.1, "p50": 126.8, "p90": 141.4}, {"date_key": "2026-08-07", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 386.5, "p50": 406.9, "p90": 406.9}, {"date_key": "2026-08-07", "store_id": "B2B-GIFT", "product_id": "P-RED", "p10": 118.5, "p50": 131.8, "p90": 147.1}, {"date_key": "2026-08-07", "store_id": "B2B-GIFT", "product_id": "P-SAND", "p10": 185.3, "p50": 202.6, "p90": 219.6}, {"date_key": "2026-08-07", "store_id": "S-CHORYANG", "product_id": "P-BAG", "p10": 44.9, "p50": 53.0, "p90": 60.0}, {"date_key": "2026-08-07", "store_id": "S-CHORYANG", "product_id": "P-CAKE", "p10": 57.2, "p50": 64.4, "p90": 72.6}, {"date_key": "2026-08-07", "store_id": "S-CHORYANG", "product_id": "P-CREAM", "p10": 74.0, "p50": 87.8, "p90": 98.4}, {"date_key": "2026-08-07", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 252.7, "p50": 288.5, "p90": 305.1}, {"date_key": "2026-08-07", "store_id": "S-CHORYANG", "product_id": "P-RED", "p10": 79.8, "p50": 97.4, "p90": 111.6}]}, "alternatives": [{"name": "P90 기준 생산", "why_not": "신선 폐기 급증 — 유통기한 1일"}, {"name": "전일 실적 반복", "why_not": "요일·행사 변동 무시"}]}, {"card_id": 43, "kind": "demand_forecast", "agent": "demand_agent", "proposal": "파이만쥬(P-PIE) S-CHORYANG — 2026-08-07~2026-08-13 7일 발주 기준수량을 2015개로 제안", "narrative": ["다음 7일 예측 합계는 2015개(P10 1824~P90 2094)입니다. [근거: demand_forecast v1 모델 카드]", "직전 7일 실적은 2132개였습니다. [근거: fact_sales ~2026-08-06]", "참고 규칙: 설비 OVEN-2 × 공급사 V2 조합에서 불량률이 유의하게 높다 — 해당 조합 투입 시 사전 점검 [근거: Rule:RULE-0001]", "참고 규칙: 설비 OVEN-2 조합에서 불량률이 유의하게 높다 — 해당 조합 투입 시 사전 점검 [근거: Rule:RULE-0002]"], "approver": "카드 승인자", "status": "proposed", "decision_note": "", "created_at": "2026-09-10T22:00:26+00:00", "decided_at": null, "decided_by": null, "values": [{"name": "7일 예측 합계", "value": 2015, "unit": "EA", "source": "demand_forecast v1 (WAPE 0.0708)"}, {"name": "직전 7일 실적", "value": 2132, "unit": "EA", "source": "fact_sales ~2026-08-06"}], "range": {"p10": 1824, "p50": 2015, "p90": 2094}, "evidence": {"kind": "forecast", "store_id": "S-CHORYANG", "product_id": "P-PIE", "model": "demand_forecast v1", "daily": [{"date_key": "2026-08-07", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 252.7, "p50": 288.5, "p90": 305.1}, {"date_key": "2026-08-08", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 336.8, "p50": 390.0, "p90": 390.0}, {"date_key": "2026-08-09", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 322.2, "p50": 348.9, "p90": 366.9}, {"date_key": "2026-08-10", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 212.6, "p50": 228.9, "p90": 247.9}, {"date_key": "2026-08-11", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 218.3, "p50": 250.6, "p90": 256.4}, {"date_key": "2026-08-12", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 233.1, "p50": 252.6, "p90": 263.2}, {"date_key": "2026-08-13", "store_id": "S-CHORYANG", "product_id": "P-PIE", "p10": 248.0, "p50": 255.4, "p90": 264.1}], "rules": ["RULE-0001", "RULE-0002"]}, "alternatives": [{"name": "보수 발주(P10)", "value": 1824, "why_not": "결품 위험 증가 — 서비스 수준 저하"}, {"name": "공격 발주(P90)", "value": 2094, "why_not": "폐기 위험 증가 — 신선 제품 유통기한 1일"}]}, {"card_id": 44, "kind": "demand_forecast", "agent": "demand_agent", "proposal": "파이만쥬(P-PIE) B2B-GIFT — 2026-08-07~2026-08-13 7일 발주 기준수량을 2560개로 제안", "narrative": ["다음 7일 예측 합계는 2560개(P10 2475~P90 2667)입니다. [근거: demand_forecast v1 모델 카드]", "직전 7일 실적은 2831개였습니다. [근거: fact_sales ~2026-08-06]", "참고 규칙: 설비 OVEN-2 × 공급사 V2 조합에서 불량률이 유의하게 높다 — 해당 조합 투입 시 사전 점검 [근거: Rule:RULE-0001]", "참고 규칙: 설비 OVEN-2 조합에서 불량률이 유의하게 높다 — 해당 조합 투입 시 사전 점검 [근거: Rule:RULE-0002]"], "approver": "카드 승인자", "status": "proposed", "decision_note": "", "created_at": "2026-09-10T22:00:26+00:00", "decided_at": null, "decided_by": null, "values": [{"name": "7일 예측 합계", "value": 2560, "unit": "EA", "source": "demand_forecast v1 (WAPE 0.0708)"}, {"name": "직전 7일 실적", "value": 2831, "unit": "EA", "source": "fact_sales ~2026-08-06"}], "range": {"p10": 2475, "p50": 2560, "p90": 2667}, "evidence": {"kind": "forecast", "store_id": "B2B-GIFT", "product_id": "P-PIE", "model": "demand_forecast v1", "daily": [{"date_key": "2026-08-07", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 386.5, "p50": 406.9, "p90": 406.9}, {"date_key": "2026-08-08", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 460.7, "p50": 460.7, "p90": 505.0}, {"date_key": "2026-08-09", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 430.4, "p50": 430.4, "p90": 452.2}, {"date_key": "2026-08-10", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 319.5, "p50": 331.6, "p90": 360.5}, {"date_key": "2026-08-11", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 292.3, "p50": 299.2, "p90": 299.2}, {"date_key": "2026-08-12", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 291.6, "p50": 304.9, "p90": 316.6}, {"date_key": "2026-08-13", "store_id": "B2B-GIFT", "product_id": "P-PIE", "p10": 293.6, "p50": 326.8, "p90": 326.8}], "rules": ["RULE-0001", "RULE-0002"]}, "alternatives": [{"name": "보수 발주(P10)", "value": 2475, "why_not": "결품 위험 증가 — 서비스 수준 저하"}, {"name": "공격 발주(P90)", "value": 2667, "why_not": "폐기 위험 증가 — 신선 제품 유통기한 1일"}]}, {"card_id": 46, "kind": "replenish", "agent": "replenish_agent", "proposal": "P-PIE S-CHORYANG 발주 정책을 배율 0.92, 안전 0.077일로 변경 제안", "narrative": ["Twin 91일 검증에서 제안 정책의 일 비용은 26669원으로 기준선(current_like) 35776원 대비 25.5% 낮았습니다. [근거: InventoryTwin cross-entropy 12 iter × 40 pop (Twin 내부만)]", "서비스 수준 96%, 폐기율 4%였습니다. [근거: Twin 성적표]"], "approver": "카드 승인자", "status": "proposed", "decision_note": "", "created_at": "2026-09-10T22:00:27+00:00", "decided_at": null, "decided_by": null, "values": [{"name": "일 비용(제안)", "value": 26669.46, "unit": "KRW/일", "source": "InventoryTwin 검증"}, {"name": "일 비용(기준선)", "value": 35776.07, "unit": "KRW/일", "source": "InventoryTwin current_like"}], "range": {"saving_pct": 25.5}, "evidence": {"kind": "twin", "detail": {"twin_days": 91, "search": "cross-entropy 12 iter × 40 pop (Twin 내부만)"}, "policy": {"demand_factor": 0.92, "safety_days": 0.077}}, "alternatives": [{"name": "현행 유지", "why_not": "일 9107원 초과 비용 지속"}]}, {"card_id": 47, "kind": "allocation", "agent": "allocation_agent", "proposal": "P-PIE 금일 생산 1081개를 최근 4주 판매 비중대로 배분 제안", "narrative": ["B2B-GIFT에 399개 — 최근 4주 판매 비중 기준. [근거: fact_sales 4주]", "S-CHORYANG에 300개 — 최근 4주 판매 비중 기준. [근거: fact_sales 4주]", "S-STAR-BS에 212개 — 최근 4주 판매 비중 기준. [근거: fact_sales 4주]", "S-STAR-DG에 170개 — 최근 4주 판매 비중 기준. [근거: fact_sales 4주]"], "approver": "카드 승인자", "status": "proposed", "decision_note": "", "created_at": "2026-09-10T22:00:27+00:00", "decided_at": null, "decided_by": null, "values": [{"name": "배분 B2B-GIFT", "value": 399, "unit": "EA", "source": "fact_production 금일 + fact_sales 4주 비중"}, {"name": "배분 S-CHORYANG", "value": 300, "unit": "EA", "source": "fact_production 금일 + fact_sales 4주 비중"}, {"name": "배분 S-STAR-BS", "value": 212, "unit": "EA", "source": "fact_production 금일 + fact_sales 4주 비중"}, {"name": "배분 S-STAR-DG", "value": 170, "unit": "EA", "source": "fact_production 금일 + fact_sales 4주 비중"}], "range": {}, "evidence": {"kind": "dims", "dims": {"product_id": "P-PIE"}, "product_id": "P-PIE", "allocations": [{"store_id": "B2B-GIFT", "qty": 399}, {"store_id": "S-CHORYANG", "qty": 300}, {"store_id": "S-STAR-BS", "qty": 212}, {"store_id": "S-STAR-DG", "qty": 170}], "produced": 1081.0}, "alternatives": [{"name": "균등 배분", "why_not": "매장별 수요 차이 무시 — 결품·폐기 동시 증가"}]}], "audit": [{"log_id": 78, "card_id": 45, "action": "feedback", "actor": "system(승급)", "note": "", "at": "2026-09-10T22:00:27+00:00", "after_json": "{\"written\": [{\"param\": \"forecast_qty:S-STAR-BS:P-SAND:2026-08-07..13\", \"value\": 730.0, \"old\": null}]}"}, {"log_id": 77, "card_id": 45, "action": "approve", "actor": "system(승급)", "note": "자동 실행(승급 #1: 상한 2000.0, 승인율 기준 30%) ", "at": "2026-09-10T22:00:27+00:00", "after_json": "{}"}, {"log_id": 76, "card_id": 41, "action": "feedback", "actor": "김승인", "note": "", "at": "2026-09-10T22:00:21+00:00", "after_json": "{\"written\": [{\"param\": \"alloc_qty:B2B-GIFT:P-PIE\", \"value\": 399.0, \"old\": 401.0}, {\"param\": \"alloc_qty:S-CHORYANG:P-PIE\", \"value\": 300.0, \"old\": 301.0}, {\"param\": \"alloc_qty:S-STAR-BS:P-PIE\", \"value\": 212.0, \"old\": 214.0}, {\"param\": \"alloc_qty:S-STAR-DG:P-PIE\", \"value\": 169.0, \"old\": 169.0}]}"}, {"log_id": 75, "card_id": 41, "action": "approve", "actor": "김승인", "note": "", "at": "2026-09-10T22:00:21+00:00", "after_json": "{}"}, {"log_id": 74, "card_id": 40, "action": "feedback", "actor": "김승인", "note": "", "at": "2026-09-10T22:00:21+00:00", "after_json": "{\"written\": [{\"param\": \"replenish_policy:demand_factor\", \"value\": 0.928, \"old\": 0.93}, {\"param\": \"replenish_policy:safety_days\", \"value\": 0.071, \"old\": 0.069}]}"}], "params": [{"param_key": "forecast_qty:S-STAR-BS:P-SAND:2026-08-07..13", "value": 730.0, "old_value": null, "set_by": "system(승급)", "set_at": "2026-09-10T22:00:27+00:00"}, {"param_key": "replenish_policy:demand_factor", "value": 0.928, "old_value": 0.93, "set_by": "김승인", "set_at": "2026-09-10T22:00:21+00:00"}, {"param_key": "replenish_policy:safety_days", "value": 0.071, "old_value": 0.069, "set_by": "김승인", "set_at": "2026-09-10T22:00:21+00:00"}, {"param_key": "alloc_qty:B2B-GIFT:P-PIE", "value": 399.0, "old_value": 401.0, "set_by": "김승인", "set_at": "2026-09-10T22:00:21+00:00"}, {"param_key": "alloc_qty:S-CHORYANG:P-PIE", "value": 300.0, "old_value": 301.0, "set_by": "김승인", "set_at": "2026-09-10T22:00:21+00:00"}], "briefing": "# 아침 브리핑 — 2026-08-06\n\n## 어제의 변화 Top 0\n- 보고할 유의 변화 없음 (기준: ±25% 이상)\n\n## 야간 마이닝 — 함께 나타난 조합(원인 아님, 후보)\n- product_id=P-RED: 불량률 1.7% (기준 1.4%, ×1.2, z=3.6) — 지식그래프 후보로 전달됨 (원천: mining_candidates)\n- equipment_id=OVEN-1 × product_id=P-RED: 불량률 1.7% (기준 1.4%, ×1.2, z=3.6) — 지식그래프 후보로 전달됨 (원천: mining_candidates)\n\n## 현장의 말 — 이번 주 급증 키워드\n- \"야간\" 1→4회 — 현장 기록 원문은 검색으로 (원천: 메모 말뭉치)\n- \"성형\" 1→4회 — 현장 기록 원문은 검색으로 (원천: 메모 말뭉치)\n- \"속도\" 1→4회 — 현장 기록 원문은 검색으로 (원천: 메모 말뭉치)\n- \"문제로\" 1→4회 — 현장 기록 원문은 검색으로 (원천: 메모 말뭉치)\n\n## 대기 중 판단 카드\n- 카드 승인자: 5건 승인 대기 (원천: judgment_cards)\n\n_이 브리핑은 야간 마이닝 배치가 자동 생성했습니다 — 변화만 담고, 원인은 단정하지 않습니다._"};
+const KIND = {production_plan:["생산계획","#9C5227"], demand_forecast:["수요예측","#C07F1E"],
+  replenish:["재고 정책","#0E8F86"], allocation:["배분","#6E3A1C"], equip_alert:["설비 경보","#A8493B"],
+  knowledge:["지식","#55402A"], sop_revision:["SOP 개정","#55402A"]};
+const REJ_REASONS = ["현장 사정(행사·날씨)","시점 부적절","수치 의문 — 재검토 요청","기타(메모)"];
+const LADDER = [
+ ["① 규칙","설비 <b>OVEN-2</b> × 공급사 <b>V2</b> 조합에서 불량률이 유의하게 높다 — 투입 시 사전 점검","확신도 88% · Rule:RULE-0001","#9C5227"],
+ ["② 조합","equipment_id = OVEN-2 × vendor = V2","이 규칙이 가리키는 4M 조합","#C07F1E"],
+ ["③ 사실","불량 이벤트 1,470건 · 불량 12,992개","집계 구간 2024-09-01 ~ 2026-08-31","#0E8F86"],
+ ["④ 원장","불량ID #2898 · 제조오더 MO-003295 · 2025-08-03 · 탄화 · 64개 외 표본","원본 기록까지 응답 7.6ms — 경로에 없는 주장 없음","#6E3A1C"]];
+
+let S;
+function load(){
+  try{ const s = localStorage.getItem("axdemo"); if(s){ S = JSON.parse(s); return; } }catch(e){}
+  S = { decided:{}, audit:[], params:[], rejReasons:{"현장 사정":6,"시점 부적절":1},
+        counts:{executed:35, proposed:DATA.cards.length, rejected:7} };
+}
+function save(){ try{ localStorage.setItem("axdemo", JSON.stringify(S)); }catch(e){} }
+function resetDemo(){ try{ localStorage.removeItem("axdemo"); }catch(e){} location.reload(); }
+function esc(t){ return (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+function fmtLn(l){ return esc(l).replace(/\[근거: ([^\]]+)\]/g, '<small>〔근거: $1〕</small>'); }
+function now(){ return new Date().toISOString().slice(0,16).replace("T"," "); }
+function toast(html){ const t=document.getElementById("toast"); t.innerHTML=html; t.style.display="block";
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 4200); }
+
+function tab(name){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.t===name));
+  ["inbox","brief","audit","studio","war"].forEach(v=>document.getElementById("v-"+v).hidden = v!==name);
+  render();
+}
+
+function mainValue(c){
+  if(c.range && c.range.p50) return {key:"forecast_qty", val:c.range.p50};
+  if(c.range && c.range.total_p50) return {key:"prod_plan_total", val:c.range.total_p50};
+  if(c.values && c.values.length) return {key:c.kind, val:c.values[0].value};
+  return {key:c.kind, val:null};
+}
+
+function approve(id){
+  const c = DATA.cards.find(x=>x.card_id===id);
+  const who = document.getElementById("approver").value || "승인자";
+  const t = now();
+  S.decided[id] = {st:"ok", who, t};
+  S.counts.executed++; S.counts.proposed--;
+  S.audit.unshift({at:t, action:"승인", actor:who, note:`#${id} ${c.proposal}`});
+  const mv = mainValue(c);
+  if(mv.val!==null){
+    const key = `${mv.key}:#${id}`;
+    S.audit.unshift({at:t, action:"환류", actor:"system", note:`${key} = ${mv.val} 기록`});
+    S.params.unshift({param_key:key, value:mv.val, old_value:null, set_by:who, set_at:t});
+  }
+  save(); render();
+  toast(`<b>승인 → 환류 완료.</b> 세 가지가 동시에 일어났습니다 — 감사 로그 기록 · 파라미터 반영 · 이전 값 보존. <u onclick="tab('audit')" style="cursor:pointer">기록 보러 가기</u>`);
+}
+function reject(id){
+  const sel = document.getElementById("rej"+id);
+  const reason = sel.value;
+  if(!reason){ sel.style.borderColor="#A8493B"; toast("<b>반려에는 사유가 필수입니다</b> — 사유는 벌점이 아니라 다음 학습의 재료입니다."); return; }
+  const who = document.getElementById("approver").value || "승인자";
+  const t = now();
+  S.decided[id]={st:"rej", who, t, reason};
+  S.counts.rejected++; S.counts.proposed--;
+  const short = reason.split("(")[0].split(" —")[0];
+  S.rejReasons[short]=(S.rejReasons[short]||0)+1;
+  S.audit.unshift({at:t, action:"반려", actor:who, note:`#${id} — 사유: ${reason}`});
+  save(); render();
+  toast(`<b>반려 기록 완료.</b> 사유가 구조화되어 저장되었습니다 — 다음 학습과 War Room 리뷰의 재료가 됩니다.`);
+}
+function why(id){
+  const c = DATA.cards.find(x=>x.card_id===id);
+  let h = `<h3>왜? — #${id} 근거 역추적</h3><div class="sub">이 카드의 모든 문장에는 출처가 있고, 규칙은 원장까지 내려갑니다</div>`;
+  h += c.narrative.map(l=>`<div class="ln" style="font-size:14px">${fmtLn(l)}</div>`).join("");
+  if(c.alternatives && c.alternatives.length){
+    h += `<h3 style="font-size:15px;margin-top:14px">기각된 대안</h3>` +
+      c.alternatives.map(a=>`<div class="ln" style="font-size:13.5px">· <b>${esc(a.name)}</b>${a.value?` (${a.value})`:""} — <span style="color:var(--sub)">${esc(a.why_not)}</span></div>`).join("");
+  }
+  h += `<h3 style="font-size:15px;margin:16px 0 8px">참고 규칙의 근거 사다리 (RULE-0001)</h3>`;
+  LADDER.forEach((s,i)=>{
+    h += `<div class="stepbox" style="border-left-color:${s[3]}"><div class="h" style="color:${s[3]}">${s[0]}</div><div class="b2">${s[1]}</div><div class="s">${s[2]}</div></div>`;
+    if(i<3) h += `<div class="dar">↓ 어디서 왔나</div>`;
+  });
+  h += `<div class="mclose"><button class="b why" onclick="closeModal()">닫기</button></div>`;
+  document.getElementById("modalBody").innerHTML = h;
+  document.getElementById("mback").classList.add("on");
+}
+function closeModal(){ document.getElementById("mback").classList.remove("on"); }
+
+function render(){
+  document.getElementById("nPending").textContent = S.counts.proposed;
+  /* inbox */
+  document.getElementById("cards").innerHTML = DATA.cards.map(c=>{
+    const d = S.decided[c.card_id];
+    const [kn,kc] = KIND[c.kind]||[c.kind,"#76675A"];
+    const rangeTxt = c.range && c.range.p10 ? `구간 P10 ${c.range.p10} · P50 ${c.range.p50} · P90 ${c.range.p90}` :
+      (c.range && c.range.total_p50 ? `합계 P50 ${c.range.total_p50} · P90 ${c.range.total_p90}` :
+      (c.range && c.range.saving_pct ? `절감 ${c.range.saving_pct}%` : ""));
+    let tail;
+    if(!d){
+      tail = `<div class="btns">
+        <button class="b why" onclick="why(${c.card_id})">왜? (근거)</button>
+        <button class="b ok" onclick="approve(${c.card_id})">승인 → 환류</button>
+        <button class="b no" onclick="reject(${c.card_id})">반려</button>
+        <select id="rej${c.card_id}"><option value="">반려 사유 선택…</option>${REJ_REASONS.map(r=>`<option>${r}</option>`).join("")}</select>
+      </div>`;
+    } else if(d.st==="ok"){
+      tail = `<div class="stamp ok">✔ ${d.t} ${esc(d.who)} 승인 — 감사 로그·파라미터 기록됨</div>`;
+    } else {
+      tail = `<div class="stamp rej">✖ ${d.t} ${esc(d.who)} 반려 — ${esc(d.reason)}</div>`;
+    }
+    return `<div class="jcard ${d ? (d.st==="ok"?"done":"rej"):""}">
+      <div class="jhead"><span class="chip" style="background:${kc}">${kn}</span><b>#${c.card_id}</b> ${esc(c.proposal)}</div>
+      ${rangeTxt?`<div class="range">${rangeTxt} · 에이전트 ${esc(c.agent)}</div>`:""}
+      ${c.narrative.slice(0,3).map(l=>`<div class="ln">${fmtLn(l)}</div>`).join("")}
+      ${tail}</div>`;
+  }).join("");
+  /* audit */
+  const baseA = DATA.audit.map(a=>{
+    const act = {approve:"승인", feedback:"환류", reject:"반려"}[a.action]||a.action;
+    return {at:(a.at||"").slice(0,16).replace("T"," "), action:act, actor:a.actor, note:a.note || ("카드 #"+a.card_id), old:true};
+  });
+  document.getElementById("auditBody").innerHTML = [...S.audit, ...baseA].map(a=>
+    `<tr class="${a.old?"":"new"}"><td>${esc(a.at)}</td><td>${esc(a.action)}</td><td>${esc(a.actor)}</td><td>${esc(a.note)}</td></tr>`).join("");
+  const baseP = DATA.params.map(p=>({...p, old:true}));
+  document.getElementById("paramBody").innerHTML = [...S.params, ...baseP].map(p=>
+    `<tr class="${p.old?"":"new"}"><td style="font-family:monospace;font-size:12px">${esc(p.param_key)}</td><td><b>${p.value}</b></td><td>${p.old_value??"—"}</td><td>${esc(p.set_by)}</td></tr>`).join("");
+  /* war */
+  const c = S.counts, total = c.executed + c.proposed + c.rejected;
+  const proc = Math.round((total - c.proposed)/total*100);
+  const appr = Math.round(c.executed/(c.executed+c.rejected)*100);
+  document.getElementById("kpis").innerHTML = [
+    ["카드 총수", total],["처리율", proc+"%"],["승인율", appr+"%"],
+    ["28일 폐기","2,389 EA"],["28일 불량","1,228 EA"],["드리프트 경보","1"]
+  ].map(([k,v])=>`<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  document.getElementById("stateBody").innerHTML =
+    `<tr><td>실행됨 (executed)</td><td><b>${c.executed}</b></td></tr>
+     <tr><td>대기 (proposed)</td><td><b>${c.proposed}</b></td></tr>
+     <tr><td>반려 (rejected)</td><td><b>${c.rejected}</b></td></tr>`;
+  document.getElementById("rejBody").innerHTML = Object.entries(S.rejReasons).map(([k,v])=>
+    `<tr><td>${esc(k)}</td><td><b>${v}</b></td></tr>`).join("");
+}
+
+/* briefing md → html */
+function renderBrief(){
+  const md = DATA.briefing;
+  let h = "", inUl = false;
+  md.split("\n").forEach(l=>{
+    if(l.startsWith("# ")) return;
+    if(l.startsWith("## ")){ if(inUl){h+="</ul>";inUl=false;} h += `<h3>${esc(l.slice(3))}</h3>`; }
+    else if(l.startsWith("- ")){ if(!inUl){h+="<ul>";inUl=true;} h += `<li>${esc(l.slice(2))}</li>`; }
+    else if(l.trim()){ if(inUl){h+="</ul>";inUl=false;} h += `<p style="font-size:14px;margin:6px 0">${esc(l)}</p>`; }
+  });
+  if(inUl) h+="</ul>";
+  document.getElementById("briefBody").innerHTML = h;
+}
+
+load(); renderBrief(); render();
+</script>
+</body>
+</html>
