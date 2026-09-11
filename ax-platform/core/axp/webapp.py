@@ -343,6 +343,48 @@ def card_decide(card_id: int, request: Request,
 
 
 # ── 격리 큐 (스튜어드) ──────────────────────────────────
+# ── P4-4: 공개 상태 — 하트비트·status 페이지 (인증 없음, 최소 정보) ──
+@app.get("/health")
+def health():
+    """하트비트 표적 — DB까지 왕복해야 ok. 민감 정보 없음."""
+    try:
+        db.scalar("SELECT 1")
+        return {"ok": True, "ts": common.now_iso()}
+    except Exception:  # noqa: BLE001
+        return Response(json.dumps({"ok": False}), status_code=503,
+                        media_type="application/json")
+
+
+@app.get("/status", response_class=HTMLResponse)
+def status_page():
+    """공개 상태 페이지 — 가용성 신호만 보여준다(수치·데이터 노출 없음)."""
+    try:
+        db.scalar("SELECT 1")
+        db_ok = True
+    except Exception:  # noqa: BLE001
+        db_ok = False
+    crit_24h = 0
+    if db_ok:
+        try:
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+            crit_24h = db.scalar(
+                "SELECT COUNT(*) FROM alerts WHERE level='crit' AND created_at>?",
+                (cutoff,)) or 0
+        except Exception:  # noqa: BLE001
+            pass
+    dot = lambda ok: ("<span style='color:#0E8F86'>●</span>" if ok
+                      else "<span style='color:#A8493B'>●</span>")
+    body = f"""<h2>서비스 상태</h2>
+<div class="card">
+  <div class="ln">{dot(True)} 웹 애플리케이션 — 정상</div>
+  <div class="ln">{dot(db_ok)} 데이터베이스 — {'정상' if db_ok else '점검 중'}</div>
+  <div class="ln">{dot(crit_24h == 0)} 야간 파이프라인 — {'최근 24시간 심각 경보 없음' if crit_24h == 0 else f'점검 중(심각 경보 {crit_24h}건)'}</div>
+  <div class="sub" style="margin-top:8px">기준 시각: {common.now_iso()} (UTC)</div>
+</div>"""
+    return HTMLResponse(page(None, "서비스 상태", body),
+                        200 if db_ok else 503)
+
+
 # ── P4-3: 자료 반입 — 엑셀·POS 파일을 화면에서 올린다 ─────────
 UPLOAD_KINDS = {
     "excel": ("엑셀 (판매집계·행사달력·단가표)", None),

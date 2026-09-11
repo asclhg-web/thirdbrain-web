@@ -190,3 +190,15 @@ def test_upload_unknown_format_asks_mapping(tmp_db):
     r = c.post("/upload", data={"kind": "pos_daily"},
                files={"file": ("mystery.csv", "colA,colB\n1,2\n".encode(), "text/csv")})
     assert "처음 보는 양식" in r.text
+
+
+def test_health_and_status_public(tmp_db):
+    """P4-4: /health·/status 는 로그인 없이 — 하트비트·상태 공개."""
+    c = _client()
+    r = c.get("/health")
+    assert r.status_code == 200 and r.json()["ok"] is True
+    r = c.get("/status")
+    assert r.status_code == 200
+    assert "서비스 상태" in r.text and "정상" in r.text
+    # 민감 정보(계정·수치·회사 데이터) 미노출 — 최소 신호만
+    assert "admin" not in r.text and "카드" not in r.text

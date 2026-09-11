@@ -1,0 +1,10 @@
+[Unit]
+Description=AX Platform heartbeat every 5 minutes (P4-4)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

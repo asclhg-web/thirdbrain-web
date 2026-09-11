@@ -1,0 +1,12 @@
+[Unit]
+Description=AX Platform heartbeat (P4-4)
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=AXP_HEALTH_URL=http://127.0.0.1:8900/health
+Environment=AXP_HEARTBEAT_STATE=/var/lib/axp/heartbeat.state
+# 데이터 루트·알림 채널은 운영 환경 파일에서 (EnvironmentFile 권장)
+EnvironmentFile=-/etc/axp/axp.env
+WorkingDirectory=/opt/ax-platform
+ExecStart=/usr/bin/python3 deploy/heartbeat.py
