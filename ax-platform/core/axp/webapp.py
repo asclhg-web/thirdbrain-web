@@ -788,11 +788,29 @@ async def upload_post(request: Request):
         errs = "".join(f"<div class='ln'>· {html.escape(e)}</div>" for e in res.get("errors", [])[:10])
         warns = "".join(f"<div class='ln'>⚠ {html.escape(w)}</div>"
                         for w in res.get("double_count_warnings", [])[:5])
+        # P4-11: 반입 직후 미리보기 — 무엇이 들어왔는지 바로 보여준다
+        preview = ""
+        if kind != "excel" and res.get("rows_ok"):
+            try:
+                pv = db.one(
+                    "SELECT MIN(order_date) AS d0, MAX(order_date) AS d1, "
+                    "COUNT(DISTINCT store_id) AS stores, "
+                    "COUNT(DISTINCT product_id) AS prods, "
+                    "COALESCE(SUM(qty),0) AS qty "
+                    "FROM staging_sales WHERE _source LIKE 'pos%'")
+                if pv and pv["d0"]:
+                    preview = (f"<div style='margin-top:6px' class='sub'>반입 미리보기 — "
+                               f"기간 {html.escape(str(pv['d0']))}~{html.escape(str(pv['d1']))} · "
+                               f"매장 {pv['stores']}곳 · 상품 {pv['prods']}종 · "
+                               f"수량 합계 {pv['qty']:,.0f}</div>")
+            except Exception:  # noqa: BLE001 — 미리보기는 반입 성공을 가리지 않는다
+                pass
         body = (f"<div class='card ok'><b>반입 완료</b> — {res.get('rows_ok', 0)}행"
-                f" (거절 {res.get('rows_rejected', 0)}행)"
+                f" (거절 {res.get('rows_rejected', 0)}행)" + preview
                 + (f"<div style='margin-top:6px'>{errs}</div>" if errs else "")
                 + (f"<div style='margin-top:6px'>{warns}</div>" if warns else "")
-                + "<div class='sub' style='margin-top:6px'>미확인 코드는 <a href='/quarantine'>격리 큐</a>에서 확정하세요.</div></div>")
+                + "<div class='sub' style='margin-top:6px'>미확인 코드는 <a href='/quarantine'>격리 큐</a>에서 확정하세요. "
+                  "브리핑 반영은 다음 야간 배치(또는 관리자 수동 실행) 후입니다.</div></div>")
     return HTMLResponse(page(u, "자료 반입", _upload_form() + body, "/upload"))
 
 

@@ -310,3 +310,17 @@ def test_users_add_validates(tmp_db):
                                       "display": "x"}).status_code == 400
     assert c.post("/users/add", data={"username": "admin", "role": "viewer",
                                       "display": "중복"}).status_code == 400
+
+
+def test_upload_shows_preview_summary(tmp_db):
+    """P4-11: 반입 성공 시 기간·매장·상품·수량 미리보기."""
+    c = _client()
+    _login(c, "steward")
+    csv = ("영업일자,매장명,상품코드,판매수량,판매금액\n"
+           "2025-09-01,S-A,P-1,100,120000\n"
+           "2025-09-02,S-B,P-2,50,60000\n").encode("cp949")
+    r = c.post("/upload", data={"kind": "pos_daily"},
+               files={"file": ("정산2.csv", csv, "text/csv")})
+    assert "반입 미리보기" in r.text
+    assert "2025-09-01~2025-09-02" in r.text
+    assert "매장 2곳" in r.text and "상품 2종" in r.text and "150" in r.text
