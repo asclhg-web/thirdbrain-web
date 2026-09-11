@@ -24,7 +24,7 @@
 | P4-4 업타임 하트비트·경보 + status | W2·W11 | **완료** | 다운 crit 1회·복구 info 1회 실측, /health·/status 공개, systemd 타이머 |
 | P4-5 랜딩 개편 (체험 신청) | W3 | 대기 | — |
 | P4-6 Odoo 연결 마법사 1차 | W8~9 | 대기 | — |
-| P4-7 Tunnel 결선 스크립트·가이드 | W1 | 대기 | — |
+| P4-7 Tunnel 결선 스크립트·가이드 | W1 | **완료(준비물)** | install-tunnel.sh(문법 검증)+deploy-odooaierp.md — 서버 실행만 남음 |
 | P4-8 약관·개인정보 처리방침 초안 | W10~11 | 대기 | — |
 
 ## P4-1: 체험 테넌트 도구 (2026-09-11)
@@ -79,3 +79,15 @@
 - SLA 3장 "P1은 플랫폼이 먼저 감지·경보"의 구현체. status.odooaierp.com은
   Tunnel 결선 시 이 /status를 그대로 노출하면 된다(P4-7 가이드에 포함).
 - 테스트 1종(공개 접근·최소 정보) — 전체 69+2skip(sqlite)·71(PG) green.
+
+## P4-7: Cloudflare Tunnel 결선 준비물 (2026-09-11)
+
+이 환경에는 Cloudflare 계정·보유 서버 접근이 없으므로 **실결선이 아니라
+사용자 실행 준비물**이다(정직 표기). 사용자 결정 '보유 서버' 반영.
+
+- `deploy/install-tunnel.sh`: cloudflared 설치→로그인→터널 생성→
+  try/app/status.odooaierp.com DNS 라우트→systemd 상시 기동을 한 번에.
+  인바운드 개방 불필요(아웃바운드 터널). bash -n 문법 검증.
+- `docs/deploy-odooaierp.md`: 반나절 실행 순서 — 스택 설치→체험 테넌트→
+  Tunnel→운영 크론 3종(0시 리셋·24h 파기·하트비트)→승인제 신청 흐름→장애 대응.
+  KST/UTC 크론 시각 명시, 롤백 절차 포함(기존 Workers 정적 사이트 무영향).
