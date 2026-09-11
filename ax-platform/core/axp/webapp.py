@@ -1328,16 +1328,49 @@ def warroom_raw(request: Request):
 
 
 @app.get("/audit", response_class=HTMLResponse)
-def audit_page(request: Request):
+def audit_page(request: Request, card: str = "", action: str = "", days: str = ""):
+    """P5-U1: 검색·필터 — '왜 이 발주가 나갔나'를 카드 번호로 바로 찾는다."""
     u = _require(request)
     if isinstance(u, Response):
         return u
-    rows = inbox.audit()[:60]
+    inbox_ = inbox
+    db.executescript(inbox_.DDL)
+    sql = "SELECT * FROM audit_log WHERE 1=1"
+    params: list = []
+    card_n = int(card) if card.strip().lstrip("#").isdigit() else None
+    if card.strip() and card_n is not None:
+        sql += " AND card_id=?"
+        params.append(int(card.strip().lstrip("#")))
+    if action:
+        sql += " AND action=?"
+        params.append(action)
+    if days.strip().isdigit():
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=int(days))).isoformat()
+        sql += " AND at>=?"
+        params.append(cutoff)
+    rows = db.query(sql + " ORDER BY log_id DESC LIMIT 200", tuple(params))
+    actions = [r["action"] for r in db.query(
+        "SELECT DISTINCT action FROM audit_log ORDER BY action")]
+    opts = "<option value=''>전체 행위</option>" + "".join(
+        f"<option value='{html.escape(a)}' {'selected' if a == action else ''}>{html.escape(a)}</option>"
+        for a in actions)
     body = "".join(
         f"<tr><td>{html.escape(str(r.get('at',''))[:16])}</td><td>{html.escape(r.get('action',''))}</td>"
-        f"<td>{html.escape(r.get('actor',''))}</td><td>#{r.get('card_id')}</td>"
+        f"<td>{html.escape(r.get('actor',''))}</td>"
+        f"<td><a href='/audit?card={r.get('card_id')}'>#{r.get('card_id')}</a></td>"
         f"<td>{html.escape((r.get('note') or '')[:80])}</td></tr>" for r in rows)
+    filt = f"""<form method="get" class="card" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <input name="card" value="{html.escape(card)}" placeholder="카드 번호" style="width:110px">
+  <select name="action">{opts}</select>
+  <select name="days">
+    <option value=''>전체 기간</option>
+    <option value='7' {'selected' if days == '7' else ''}>최근 7일</option>
+    <option value='30' {'selected' if days == '30' else ''}>최근 30일</option>
+  </select>
+  <button class="btn plain">검색</button>
+  <span class="sub">{len(rows)}건 (최대 200)</span>
+</form>"""
     return HTMLResponse(page(u, "감사 로그",
-        f"<h2>감사 로그</h2><p class='sub'>누가 · 언제 · 무엇을 — 수정 불가 기록</p>"
+        f"<h2>감사 로그</h2><p class='sub'>누가 · 언제 · 무엇을 — 수정 불가 기록</p>{filt}"
         f"<table><tr><th>시각</th><th>행위</th><th>담당</th><th>카드</th><th>비고</th></tr>{body}</table>",
         "/audit"))

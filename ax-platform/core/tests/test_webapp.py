@@ -491,3 +491,21 @@ def test_logout_requires_post(tmp_db):
     r = c.post("/logout")
     assert r.status_code == 303 and r.headers["location"] == "/login"
     assert c.get("/inbox").status_code == 303   # 로그아웃됨
+
+
+def test_audit_search_filters(tmp_db):
+    """P5-U1: 감사 로그 검색 — 카드 번호·행위·기간 필터."""
+    from axp.agents import inbox as _inbox
+    db.executescript(_inbox.DDL)
+    db.execute("INSERT INTO audit_log (card_id, action, actor, role, before_json, after_json, note, at) "
+               "VALUES (7,'approve','김승인','card_approver','{}','{}','','2026-09-01T09:00:00')")
+    db.execute("INSERT INTO audit_log (card_id, action, actor, role, before_json, after_json, note, at) "
+               "VALUES (8,'reject','김승인','card_approver','{}','{}','수치 의문: x','2026-09-02T09:00:00')")
+    c = _client()
+    _login(c, "approver")
+    all_ = c.get("/audit").text
+    assert ">#7</a>" in all_ and ">#8</a>" in all_
+    only7 = c.get("/audit?card=7").text
+    assert ">#7</a>" in only7 and ">#8</a>" not in only7
+    rej = c.get("/audit?action=reject").text
+    assert ">#8</a>" in rej and ">#7</a>" not in rej
