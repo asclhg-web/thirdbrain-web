@@ -216,3 +216,9 @@ P4에서 웹앱에 화면 6종(업로드·온보딩·계정·배치·연결·상
   AX_P5_Master_Plan.docx(5단계 실행계획서) · AX_Operations_Manual_v2.pptx(표준
   운영매뉴얼 24쪽, 화면 16종) · AX_HW/SW_Architecture.png(구성도 원본).
 - 저장소 상태: 브랜치 claude/odoo-ai-erp-presentation-ymviq8, 전부 푸시·미커밋 0.
+
+## 재시작 내성 실증 (2026-09-11 22:12Z)
+
+실행 환경 재시작으로 PG가 내려갔다 올라온 뒤(`service postgresql start`),
+**논리 복제 구독이 자동 재개**되고 소크 8사이클도 전 계열 일치(슬롯 지연 12kB).
+정전·재부팅 시나리오에서 CDC가 사람 개입 없이 복구됨을 실측 — 운영 안심 요소.
