@@ -31,6 +31,19 @@ SERIES = {
 }
 
 
+# P3: prod 적재 경로 — 논리 복제로 도착한 실테이블 위의 매핑 뷰(axp_prod.*,
+# deploy/odoo17_prod_mapping.sql)를 증분 폴링해 스테이징으로 옮긴다.
+# 뷰가 demo 스키마와 같은 모양·타입(text 캐스트)으로 투영하므로 하류는 동일.
+PROD_SERIES = {
+    "axp_prod.v_sales":         "staging_sales",
+    "axp_prod.v_purchase":      "staging_purchase",
+    "axp_prod.v_stock_move":    "staging_stock_move",
+    "axp_prod.v_mrp":           "staging_mrp",
+    "axp_prod.v_maintenance":   "staging_maintenance",
+    "axp_prod.v_quality_scrap": "staging_quality",
+}
+
+
 def source_path() -> Path:
     return config.DATA / "odoo.db"          # demo 합성 Odoo
 
@@ -76,6 +89,42 @@ def sync(source: str = "odoo") -> dict[str, int]:
             counts[stable] = len(rows)
     finally:
         src.close()
+    return counts
+
+
+def sync_prod(source: str = "odoo_prod") -> dict[str, int]:
+    """prod 증분 동기화 — 복제 매핑 뷰 → 스테이징 (PG 백엔드 전용, 멱등).
+
+    demo sync()와 같은 cdc_state 체크포인트를 쓰므로 한 프로파일에서
+    demo/prod를 섞지 않는 한 안전하다. 뷰가 없으면(복제 미구성) -1 표식.
+    """
+    if db.BACKEND != "postgres":
+        raise RuntimeError("sync_prod는 PostgreSQL 백엔드 전용입니다 (AXP_DB=postgres)")
+    staging.init()
+    counts: dict[str, int] = {}
+    for view, stable in PROD_SERIES.items():
+        vschema, vname = view.split(".", 1)
+        if not db.scalar(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_schema=? AND table_name=?", (vschema, vname)):
+            counts[stable] = -1   # 매핑 뷰 없음(복제 미구성 또는 모듈 부재)
+            continue
+        last = db.scalar(
+            "SELECT last_src_id FROM cdc_state WHERE table_name=?", (stable,)) or 0
+        rows = db.query(f"SELECT * FROM {view} WHERE id > ? ORDER BY id", (last,))
+        if rows:
+            ncols = len(rows[0])
+            placeholders = ",".join(["?"] * (ncols + 2))
+            ts = common.now_iso()
+            db.executemany(
+                f"INSERT INTO {stable} VALUES ({placeholders})",
+                [tuple(r.values()) + (ts, source) for r in rows])
+            db.execute(
+                "INSERT INTO cdc_state (table_name, last_src_id, last_run_at) VALUES (?,?,?) "
+                "ON CONFLICT(table_name) DO UPDATE SET last_src_id=excluded.last_src_id, "
+                "last_run_at=excluded.last_run_at",
+                (stable, rows[-1]["id"], ts))
+        counts[stable] = len(rows)
     return counts
 
 

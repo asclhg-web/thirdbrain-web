@@ -86,14 +86,18 @@ def build_dims() -> dict[str, int]:
     mats["material_name"] = mats["material_id"]
     counts["dim_material"] = _rebuild("dim_material", mats)
 
+    # P3-I9: 실 Odoo에서는 발주 시점에 로트가 없다(로트는 입고에서 생긴다) —
+    # 미상 로트를 제외하면 fact_procurement(PK에 lot_id 포함)가 NULL로 깨진다.
+    # 제외 대신 'LOT-미상' 표식으로 차원·사실 양쪽에 일관 적재한다(원장 보존).
+    unk = "COALESCE(lot_id, 'LOT-미상:'||material_id||':'||COALESCE(vendor_id,''))"
     lots = db.df(
-        "SELECT lot_id, material_id, vendor_id, MIN(receipt_date) AS received_date "
-        "FROM staging_purchase GROUP BY lot_id, material_id, vendor_id")
-    n_null = int(lots["lot_id"].isna().sum()) if len(lots) else 0
-    if n_null:  # P2-I11: 로트 미표기 조달(초안 등)은 차원에 올리지 않는다
+        f"SELECT {unk} AS lot_id, material_id, vendor_id, "
+        "MIN(receipt_date) AS received_date "
+        f"FROM staging_purchase GROUP BY {unk}, material_id, vendor_id")
+    n_unk = int(lots["lot_id"].astype(str).str.startswith("LOT-미상").sum()) if len(lots) else 0
+    if n_unk:
         common.alert("warn", "transform",
-                     f"lot_id 없는 조달 {n_null}건 — dim_material_lot에서 제외(원장은 보존)")
-        lots = lots.dropna(subset=["lot_id"])
+                     f"lot_id 없는 조달 {n_unk}건 — 'LOT-미상' 표식으로 적재(입고 확정 시 재처리 대상)")
     counts["dim_material_lot"] = _rebuild("dim_material_lot", lots)
 
     sops = db.df("SELECT DISTINCT sop_id FROM staging_mrp")
@@ -140,7 +144,8 @@ def build_facts() -> dict[str, int]:
     counts["fact_production"] = _rebuild("fact_production", prodn)
 
     proc = db.df("""
-        SELECT po_ref, receipt_date AS date_key, vendor_id, material_id, lot_id,
+        SELECT po_ref, receipt_date AS date_key, vendor_id, material_id,
+               COALESCE(lot_id, 'LOT-미상:'||material_id||':'||COALESCE(vendor_id,'')) AS lot_id,
                qty, qty*unit_price AS amount
         FROM staging_purchase""")
     counts["fact_procurement"] = _rebuild("fact_procurement", proc)

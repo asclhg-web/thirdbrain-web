@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import os
 import sys
 import time
 from datetime import date, datetime, timedelta
@@ -28,8 +29,14 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
             common.alert("crit", "scheduler", f"{name} 실패: {e}")
 
     from .ingest import odoo_cdc, iot
-    stage("cdc_sync", lambda: odoo_cdc.sync())
-    stage("cdc_reconcile", lambda: odoo_cdc.reconcile())
+    # P3: AXP_CDC=prod 면 복제 매핑 뷰 경로(sync_prod), 아니면 demo 폴링.
+    # prod 모드의 정합은 논리 복제 자체가 보장(슬롯 lag 모니터링)하므로
+    # sqlite 원장 대조인 reconcile은 demo 전용이다.
+    if os.environ.get("AXP_CDC", "demo") == "prod":
+        stage("cdc_sync", lambda: odoo_cdc.sync_prod())
+    else:
+        stage("cdc_sync", lambda: odoo_cdc.sync())
+        stage("cdc_reconcile", lambda: odoo_cdc.reconcile())
     stage("iot_gap_check", lambda: iot.gap_check())
 
     from .dataset import transform, quality, features, validation

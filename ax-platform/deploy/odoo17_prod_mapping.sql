@@ -20,15 +20,16 @@
 CREATE SCHEMA IF NOT EXISTS axp_prod;
 
 -- staging_sales ≈ (id, order_ref, order_date, store_id, product_id, qty, unit_price, channel, promo_flag, write_date)
-CREATE OR REPLACE VIEW axp_prod.v_sales AS
+DROP VIEW IF EXISTS axp_prod.v_sales;
+CREATE VIEW axp_prod.v_sales AS
 SELECT l.id,
        o.name                        AS order_ref,
        o.date_order::date::text      AS order_date,
-       COALESCE(o.warehouse_id, 0)   AS store_id,
-       l.product_id,
+       COALESCE(o.warehouse_id, 0)::text AS store_id,
+       l.product_id::text            AS product_id,
        l.product_uom_qty             AS qty,
        l.price_unit                  AS unit_price,
-       COALESCE(o.team_id, 0)        AS channel,
+       COALESCE(o.team_id, 0)::text  AS channel,
        (COALESCE(l.discount, 0) > 0)::int AS promo_flag,
        l.write_date::text            AS write_date
 FROM public.sale_order_line l
@@ -37,13 +38,14 @@ WHERE COALESCE(l.display_type, '') = ''      -- 섹션/메모 라인 제외
   AND o.state IN ('sale', 'done');           -- 확정 주문만 (draft 견적 제외)
 
 -- staging_purchase ≈ (id, po_ref, order_date, receipt_date, vendor_id, material_id, qty, unit_price, lot_id, write_date)
-CREATE OR REPLACE VIEW axp_prod.v_purchase AS
+DROP VIEW IF EXISTS axp_prod.v_purchase;
+CREATE VIEW axp_prod.v_purchase AS
 SELECT l.id,
        o.name                        AS po_ref,
        o.date_order::date::text      AS order_date,
        l.date_planned::date::text    AS receipt_date,
-       o.partner_id                  AS vendor_id,
-       l.product_id                  AS material_id,
+       o.partner_id::text            AS vendor_id,
+       l.product_id::text            AS material_id,
        l.product_qty                 AS qty,
        l.price_unit                  AS unit_price,
        NULL::text                    AS lot_id,   -- 로트는 입고 stock_move_line에서 (2차)
@@ -54,14 +56,15 @@ WHERE COALESCE(l.display_type, '') = ''
   AND o.name NOT LIKE 'PO/AXP/%';              -- P2-I11: 플랫폼 발주 초안 자기 환류 차단
 
 -- staging_stock_move ≈ (id, move_date, product_id, from_loc, to_loc, qty, move_type, lot_id, reason, write_date)
-CREATE OR REPLACE VIEW axp_prod.v_stock_move AS
+DROP VIEW IF EXISTS axp_prod.v_stock_move;
+CREATE VIEW axp_prod.v_stock_move AS
 SELECT m.id,
        m.date::date::text            AS move_date,
-       m.product_id,
-       m.location_id                 AS from_loc,
-       m.location_dest_id            AS to_loc,
+       m.product_id::text            AS product_id,
+       m.location_id::text           AS from_loc,
+       m.location_dest_id::text      AS to_loc,
        m.product_uom_qty             AS qty,
-       m.picking_type_id             AS move_type,
+       m.picking_type_id::text       AS move_type,
        NULL::text                    AS lot_id,   -- 로트는 stock_move_line(2차)
        m.origin                      AS reason,
        m.write_date::text            AS write_date
@@ -69,15 +72,16 @@ FROM public.stock_move m
 WHERE m.state = 'done';
 
 -- staging_mrp ≈ (id, mo_ref, prod_date, product_id, line_id, worker_id, equipment_id, sop_id, qty_planned, qty_done, shift, write_date)
-CREATE OR REPLACE VIEW axp_prod.v_mrp AS
+DROP VIEW IF EXISTS axp_prod.v_mrp;
+CREATE VIEW axp_prod.v_mrp AS
 SELECT p.id,
        p.name                        AS mo_ref,
        COALESCE(p.date_finished, p.date_start)::date::text AS prod_date,
-       p.product_id,
-       NULL::int                     AS line_id,     -- 작업장은 mrp_workorder(2차)
-       p.user_id                     AS worker_id,
-       NULL::int                     AS equipment_id,
-       p.bom_id                      AS sop_id,      -- BOM=표준작업 규약
+       p.product_id::text            AS product_id,
+       NULL::text                    AS line_id,     -- 작업장은 mrp_workorder(2차)
+       p.user_id::text               AS worker_id,
+       NULL::text                    AS equipment_id,
+       p.bom_id::text                AS sop_id,      -- BOM=표준작업 규약
        p.product_qty                 AS qty_planned,
        p.qty_producing               AS qty_done,
        NULL::text                    AS shift,       -- 교대는 현장 장표(M1-3)에서
@@ -86,10 +90,11 @@ FROM public.mrp_production p
 WHERE p.state IN ('progress', 'to_close', 'done');
 
 -- staging_maintenance ≈ (id, event_date, equipment_id, event_type, duration_min, note, write_date)
-CREATE OR REPLACE VIEW axp_prod.v_maintenance AS
+DROP VIEW IF EXISTS axp_prod.v_maintenance;
+CREATE VIEW axp_prod.v_maintenance AS
 SELECT r.id,
        COALESCE(r.close_date, r.request_date)::text AS event_date,
-       r.equipment_id,
+       r.equipment_id::text          AS equipment_id,
        COALESCE(r.maintenance_type, 'corrective')   AS event_type,
        COALESCE(r.duration, 0) * 60                 AS duration_min,  -- duration은 시간 단위
        r.name                                       AS note,
@@ -101,16 +106,17 @@ FROM public.maintenance_request r;
 --   team_id, user_id, quality_state, measure ...) 기준 뷰를 온사이트에서 추가.
 --   Community 고객: 불량 집계는 stock_scrap + 현장 장표(M1-3)로 대체 —
 --   v_quality_scrap이 그 대체 투영이다.
-CREATE OR REPLACE VIEW axp_prod.v_quality_scrap AS
+DROP VIEW IF EXISTS axp_prod.v_quality_scrap;
+CREATE VIEW axp_prod.v_quality_scrap AS
 SELECT s.id,
        s.date_done::date::text       AS check_date,
        s.origin                      AS mo_ref,
-       s.product_id,
-       NULL::int                     AS line_id,
-       s.create_uid                  AS worker_id,
-       NULL::int                     AS equipment_id,
+       s.product_id::text            AS product_id,
+       NULL::text                    AS line_id,
+       s.create_uid::text            AS worker_id,
+       NULL::text                    AS equipment_id,
        NULL::text                    AS material_lot_id,
-       NULL::int                     AS sop_id,
+       NULL::text                    AS sop_id,
        'scrap'                       AS defect_type,
        s.scrap_qty                   AS qty_defect,
        NULL::text                    AS shift,
