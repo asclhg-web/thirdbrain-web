@@ -42,3 +42,23 @@ jobs:
           AXP_DB: postgres
           AXP_PG_DSN: host=127.0.0.1 port=5432 user=axp password=axp dbname=axp
         run: python -m pytest -q
+      - name: Judge regression 30 (demo snapshot)
+        run: |
+          tar -xzf customers/taesungdang/demo-snapshot-20260911.tar.gz -C /tmp
+          cd core && AXP_DB=sqlite AXP_DATA=/tmp/out python - <<'EOF'
+          from axp.judge import regression
+          r = regression.run()
+          print(f"{r['n_pass']}/{r['n_total']}")
+          assert r["n_pass"] == r["n_total"], [x["id"] for x in r["results"] if not x["pass"]]
+          EOF
+      - name: Odoo addon sanity (syntax + XML)
+        run: |
+          python -m py_compile $(find odoo-addon -name '*.py')
+          python - <<'EOF'
+          import glob
+          from xml.etree import ElementTree
+          files = glob.glob("odoo-addon/**/*.xml", recursive=True)
+          for f in files:
+              ElementTree.parse(f)
+          print(f"XML ok: {len(files)} files")
+          EOF
