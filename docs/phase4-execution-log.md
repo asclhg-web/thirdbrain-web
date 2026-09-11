@@ -23,7 +23,7 @@
 | P4-3 웹 업로드 화면 (엑셀/POS) | W4 | **완료** | /upload 3유형 반입·멱등·권한·needs_mapping 실측, 테스트 3종 |
 | P4-4 업타임 하트비트·경보 + status | W2·W11 | **완료** | 다운 crit 1회·복구 info 1회 실측, /health·/status 공개, systemd 타이머 |
 | P4-5 랜딩 개편 (체험 신청) | W3 | **완료(재배포 대기)** | #trial 승인제 섹션+nav, 스크린샷 QA — Cloudflare 재업로드는 사용자 |
-| P4-6 Odoo 연결 마법사 1차 | W8~9 | 대기 | — |
+| P4-6 Odoo 연결 마법사 1차 | W8~9 | **완료** | 실 Odoo 17로 실검증 — 버전·모듈 71·wal_level·권한·11테이블·기존 발행 감지 |
 | P4-7 Tunnel 결선 스크립트·가이드 | W1 | **완료(준비물)** | install-tunnel.sh(문법 검증)+deploy-odooaierp.md — 서버 실행만 남음 |
 | P4-8 약관·개인정보 처리방침 초안 | W10~11 | 대기 | — |
 
@@ -99,3 +99,19 @@
   매일 0시 초기화·업로드 파일 24h 파기·합성 데이터 고지. nav에 '체험 신청' 추가.
 - Playwright 스크린샷으로 렌더 QA. **주의: 정적 사이트 반영은 사용자가
   Cloudflare(Workers)에 재업로드해야 실사이트에 나타난다** — 기존 배포 방식 동일.
+
+## P4-6: Odoo 연결 마법사 1차 (2026-09-11)
+
+3단계에서 사람 손으로 실증한 절차(버전 확인→publication→검증)를 화면으로 —
+`/connect` (admin 전용, 읽기 전용 접속, 비밀번호 미저장).
+
+- 검사 항목: Odoo 버전(base.latest_version)·설치 모듈 수 · wal_level=logical 여부
+  (아니면 조치 문구) · 계정 REPLICATION 권한 · CDC 후보 13테이블 존재 매트릭스 ·
+  기존 axp_pub 발행 존재 여부.
+- 결과 화면에서 **그 인스턴스 구성에 맞춘 발행 SQL을 생성**(존재 테이블만) —
+  DBA가 복사·실행. 다음 단계(구독·매핑 뷰·정합)는 체크리스트 C로 연결.
+- **실검증**: 로컬 실 Odoo 17(odoo_real)로 — 버전 17.0.1.3 · 모듈 71 ·
+  wal_level=logical · REPLICATION 있음 · 11개 발행 가능 · 부재 2개 자동 제외 ·
+  기존 axp_pub 감지(DROP 안내)까지 전부 표시 확인.
+- 테스트 3종(admin 강제·접속 실패 UX·비Odoo DB 감지/PG 전용) —
+  전체 71+2skip(sqlite)·74(PG) green.

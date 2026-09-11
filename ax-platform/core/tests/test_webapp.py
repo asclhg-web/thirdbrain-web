@@ -202,3 +202,32 @@ def test_health_and_status_public(tmp_db):
     assert "서비스 상태" in r.text and "정상" in r.text
     # 민감 정보(계정·수치·회사 데이터) 미노출 — 최소 신호만
     assert "admin" not in r.text and "카드" not in r.text
+
+
+def test_connect_wizard_requires_admin(tmp_db):
+    """P4-6: Odoo 연결 마법사는 admin 전용."""
+    c = _client()
+    _login(c, "steward")
+    assert c.get("/connect").status_code == 403
+
+
+def test_connect_wizard_rejects_bad_host(tmp_db):
+    c = _client()
+    _login(c, "admin")
+    r = c.post("/connect", data={"host": "127.0.0.1", "port": "1",
+                                 "dbname": "x", "user": "x", "password": "x"})
+    assert r.status_code == 400 and "접속 실패" in r.text
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.skipif(os.environ.get("AXP_DB") != "postgres",
+                     reason="PG 백엔드에서만 — 실 PG로 비Odoo DB 검사")
+def test_connect_wizard_detects_non_odoo_db(tmp_db):
+    """플랫폼 PG(axp)는 Odoo가 아니므로 '검사 중 오류'가 떠야 한다."""
+    c = _client()
+    _login(c, "admin")
+    r = c.post("/connect", data={"host": "127.0.0.1", "port": "5432",
+                                 "dbname": "axp", "user": "axp", "password": "axp"})
+    assert r.status_code == 400 and "Odoo DB가 맞는지" in r.text

@@ -180,6 +180,7 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/upload", "자료 반입", ("steward",)),
+       ("/connect", "Odoo 연결", ()),        # admin 전용 — _require가 강제
        ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
        ("/briefing", "브리핑", ("viewer", "steward", "approver")),
        ("/ask", "질문", ("viewer", "steward", "approver")),
@@ -343,6 +344,111 @@ def card_decide(card_id: int, request: Request,
 
 
 # ── 격리 큐 (스튜어드) ──────────────────────────────────
+# ── P4-6: Odoo 연결 마법사 — 3단계 실증 절차(P3-2)의 제품화 1차 ──────
+CDC_CANDIDATES = [
+    "sale_order", "sale_order_line", "purchase_order", "purchase_order_line",
+    "stock_move", "stock_quant", "stock_scrap", "mrp_production",
+    "mrp_workorder", "quality_check", "quality_alert",
+    "maintenance_request", "maintenance_equipment"]
+
+
+def _connect_form(msg: str = "") -> str:
+    return f"""<h2>Odoo 연결 마법사 — 붙기 전에 검사부터</h2>
+<p class="sub">Odoo DB에 <b>읽기 전용</b>으로 접속해 버전·모듈·복제 설정을 검사하고,
+귀사 구성에 맞는 발행(publication) SQL을 만들어 드립니다. 여기서 원장에 쓰기는 없습니다.
+비밀번호는 저장하지 않습니다.</p>{msg}
+<form method="post" class="card" style="max-width:560px">
+  <p><input name="host" placeholder="Odoo DB 호스트 (예: 192.168.0.10)" style="width:100%" required></p>
+  <p style="display:flex;gap:8px">
+    <input name="port" placeholder="포트" value="5432" style="width:120px">
+    <input name="dbname" placeholder="DB 이름 (예: odoo)" style="flex:1" required></p>
+  <p style="display:flex;gap:8px">
+    <input name="user" placeholder="계정 (읽기·REPLICATION 권장)" style="flex:1" required>
+    <input name="password" type="password" placeholder="비밀번호" style="flex:1" required></p>
+  <button class="btn ok">검사 실행</button>
+</form>"""
+
+
+@app.get("/connect", response_class=HTMLResponse)
+def connect_form(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "Odoo 연결", _connect_form(), "/connect"))
+
+
+@app.post("/connect", response_class=HTMLResponse)
+async def connect_check(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    host = str(form.get("host", "")).strip()
+    port = str(form.get("port", "5432")).strip() or "5432"
+    dbname = str(form.get("dbname", "")).strip()
+    user_ = str(form.get("user", "")).strip()
+    pw = str(form.get("password", ""))
+    try:
+        import psycopg
+        con = psycopg.connect(host=host, port=int(port), dbname=dbname,
+                              user=user_, password=pw, connect_timeout=8)
+    except Exception as e:  # noqa: BLE001
+        return HTMLResponse(page(u, "Odoo 연결", _connect_form(
+            f"<div class='card warn'>접속 실패 — {html.escape(str(e)[:250])}"
+            "<div class='sub'>방화벽(5432)·pg_hba.conf·계정을 확인하세요. "
+            "현장 체크리스트 B·C 참조.</div></div>"), "/connect"), 400)
+    try:
+        with con:
+            cur = con.execute(
+                "SELECT latest_version FROM ir_module_module WHERE name='base'")
+            row = cur.fetchone()
+            odoo_ver = row[0] if row else "?"
+            n_mod = con.execute(
+                "SELECT count(*) FROM ir_module_module WHERE state='installed'"
+            ).fetchone()[0]
+            wal = con.execute("SHOW wal_level").fetchone()[0]
+            present, absent = [], []
+            for t in CDC_CANDIDATES:
+                (present if con.execute(
+                    "SELECT to_regclass('public.' || %s)", (t,)
+                ).fetchone()[0] else absent).append(t)
+            has_pub = bool(con.execute(
+                "SELECT 1 FROM pg_publication WHERE pubname='axp_pub'").fetchone())
+            can_repl = con.execute(
+                "SELECT rolreplication OR rolsuper FROM pg_roles WHERE rolname=%s",
+                (user_,)).fetchone()
+            can_repl = bool(can_repl and can_repl[0])
+    except Exception as e:  # noqa: BLE001
+        return HTMLResponse(page(u, "Odoo 연결", _connect_form(
+            f"<div class='card warn'>검사 중 오류 — {html.escape(str(e)[:250])}"
+            "<div class='sub'>Odoo DB가 맞는지 확인하세요(ir_module_module 필요).</div></div>"),
+            "/connect"), 400)
+    finally:
+        con.close()
+
+    pub_sql = ("-- axp_pub — 이 Odoo 인스턴스 실검사 결과 기반 (생성: " + common.now_iso() + ")\n"
+               "CREATE PUBLICATION axp_pub FOR TABLE\n  "
+               + ",\n  ".join(present) + ";")
+    ok = lambda b: ("<span style='color:#0E8F86'>✔</span>" if b
+                    else "<span style='color:#A8493B'>✘</span>")
+    checks = f"""
+<div class="card"><b>검사 결과 — {html.escape(host)}/{html.escape(dbname)}</b>
+  <div class="ln">{ok(True)} Odoo 버전: <b>{html.escape(str(odoo_ver))}</b> · 설치 모듈 {n_mod}개</div>
+  <div class="ln">{ok(wal == 'logical')} wal_level = {html.escape(wal)}
+    {'— 논리 복제 가능' if wal == 'logical' else " — <b>postgresql.conf에서 wal_level=logical 로 바꾸고 재시작해야 합니다</b>"}</div>
+  <div class="ln">{ok(can_repl)} 계정 REPLICATION 권한 {'있음' if can_repl else '없음 — 구독 생성에 필요(읽기 검사에는 무관)'}</div>
+  <div class="ln">{ok(True)} CDC 대상 테이블: <b>{len(present)}개 발행 가능</b>
+    {('· 부재 ' + str(len(absent)) + '개(모듈 미설치 — 자동 제외): ' + ', '.join(absent)) if absent else ''}</div>
+  <div class="ln">{ok(not has_pub)} 발행 axp_pub {'이미 존재 — 재생성 전 DROP PUBLICATION 필요' if has_pub else '미존재 — 아래 SQL로 생성'}</div>
+</div>
+<div class="card"><b>이 인스턴스용 발행 SQL</b> — Odoo DB에서 관리자(DBA)가 실행하세요
+  <textarea readonly style="width:100%;height:160px;font-family:monospace;font-size:13px;margin-top:8px">{html.escape(pub_sql)}</textarea>
+  <div class="sub">다음 단계: 플랫폼 서버에서 구독 생성(odoo_cdc_prod.sql 2절) →
+  매핑 뷰 적용(odoo17_prod_mapping.sql) → 정합 대조. 절차는 현장 체크리스트 C를 따릅니다.</div>
+</div>"""
+    return HTMLResponse(page(u, "Odoo 연결", _connect_form() + checks, "/connect"))
+
+
 # ── P4-4: 공개 상태 — 하트비트·status 페이지 (인증 없음, 최소 정보) ──
 @app.get("/health")
 def health():
