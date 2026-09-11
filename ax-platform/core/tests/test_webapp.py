@@ -14,13 +14,28 @@ from axp import webapp  # noqa: E402
 webapp.BOOTSTRAP_PW = "change-me!"
 
 
+class _Client(TestClient):
+    """P5-S3: 로그인한 사용자의 CSRF 토큰을 POST에 자동 주입 (실브라우저의 폼 동작 재현)."""
+    _user = None
+
+    def post(self, url, data=None, files=None, **kw):
+        if self._user and url != "/login" and not kw.pop("no_csrf", False):
+            data = dict(data or {})
+            data.setdefault("_csrf", webapp._sign("csrf|" + self._user))
+        return super().post(url, data=data, files=files, **kw)
+
+
 def _client():
-    return TestClient(webapp.app, follow_redirects=False)
+    return _Client(webapp.app, follow_redirects=False)
 
 
-def _login(c, user):
+def _login(c, user, keep_must_change=False):
+    webapp.ensure_users()
+    if not keep_must_change:   # 기존 테스트는 초기 비밀번호 강제 변경(P5-S2) 이후 상태로
+        db.execute("UPDATE axp_users SET must_change=0 WHERE username=?", (user,))
     r = c.post("/login", data={"username": user, "password": "change-me!"})
     assert r.status_code == 303, r.text
+    c._user = user
     return r
 
 
@@ -360,3 +375,50 @@ def test_runs_admin_only_and_lifecycle(tmp_db, monkeypatch):
                "VALUES ('2025-09-05','x','t','running')")
     assert a.post("/runs", data={"run_date": "2025-09-05"}).status_code == 409
     assert a.post("/runs", data={"run_date": "bad-date"}).status_code in (400, 409)
+
+
+def test_csrf_required_on_posts(tmp_db):
+    """P5-S3: 토큰 없는 POST는 403 — 폼 재생·업로드 경로 포함."""
+    c = _client()
+    _login(c, "admin")
+    r = c.post("/runs", data={"run_date": "2025-09-03"}, no_csrf=True)
+    assert r.status_code == 403 and "보안 토큰" in r.text
+    r = c.post("/upload", data={"kind": "pos_daily"},
+               files={"file": ("x.csv", b"a,b\n1,2\n", "text/csv")}, no_csrf=True)
+    assert r.status_code == 403
+    # 토큰이 있으면 통과(기존 테스트 전체가 증명하지만 명시적으로 한 번)
+    assert c.post("/users/unlock", data={"username": "admin"}).status_code == 200
+
+
+def test_session_expiry_forces_relogin(tmp_db, monkeypatch):
+    """P5-S1: 만료 지난 세션 쿠키는 무효 — 재로그인으로 유도."""
+    c = _client()
+    _login(c, "admin")
+    assert c.get("/inbox").status_code == 200
+    # 만료를 과거로 조작한 토큰(서명은 유효) — 거절돼야 한다
+    import time as _t
+    exp = int(_t.time()) - 10
+    body = f"admin|{exp}"
+    c.cookies.set("axp_session", f"{body}|{webapp._sign(body)}")
+    r = c.get("/inbox")
+    assert r.status_code == 303 and r.headers["location"] == "/login"
+
+
+def test_must_change_redirects_until_password_set(tmp_db):
+    """P5-S2: 초기 비밀번호 상태면 /password 외 전부 리다이렉트."""
+    c = _client()
+    _login(c, "admin", keep_must_change=True)
+    r = c.get("/inbox")
+    assert r.status_code == 303 and r.headers["location"] == "/password"
+    assert c.get("/password").status_code == 200          # 변경 화면은 허용
+    r = c.post("/password", data={"new_pw": "새로운비밀번호9!"})
+    assert r.status_code in (200, 303)
+    assert c.get("/inbox").status_code == 200             # 변경 후 정상
+
+
+def test_security_headers_present(tmp_db):
+    c = _client()
+    r = c.get("/login")
+    assert r.headers["X-Frame-Options"] == "SAMEORIGIN"
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+    assert "default-src 'self'" in r.headers["Content-Security-Policy"]

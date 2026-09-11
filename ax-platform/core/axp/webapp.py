@@ -121,21 +121,55 @@ def _sign(value: str) -> str:
     return hmac.new(SECRET.encode(), value.encode(), hashlib.sha256).hexdigest()[:32]
 
 
+# P5-S1: 세션 만료 — 토큰은 username|만료시각|서명. 만료 지나면 재로그인.
+SESSION_HOURS = int(os.environ.get("AXP_SESSION_HOURS", "12"))
+
+
+def _session_token(username: str) -> str:
+    exp = int((datetime.now(timezone.utc)
+               + timedelta(hours=SESSION_HOURS)).timestamp())
+    body = f"{username}|{exp}"
+    return f"{body}|{_sign(body)}"
+
+
 def current_user(request: Request) -> dict | None:
     tok = request.cookies.get("axp_session", "")
-    if "|" not in tok:
+    parts = tok.rsplit("|", 2)
+    if len(parts) != 3:
         return None
-    name, sig = tok.rsplit("|", 1)
-    if not hmac.compare_digest(_sign(name), sig):
+    name, exp, sig = parts
+    if not hmac.compare_digest(_sign(f"{name}|{exp}"), sig):
+        return None
+    try:
+        if int(exp) < datetime.now(timezone.utc).timestamp():
+            return None                        # 만료 — 재로그인 유도
+    except ValueError:
         return None
     ensure_users()
     return db.one("SELECT * FROM axp_users WHERE username=?", (name,))
+
+
+# P5-S3: CSRF — 세션에서 파생한 토큰을 모든 POST 폼에 심고 검사한다.
+def _csrf_token(u: dict) -> str:
+    return _sign("csrf|" + u["username"])
+
+
+def csrf_field(u: dict) -> str:
+    return f"<input type='hidden' name='_csrf' value='{_csrf_token(u)}'>"
+
+
+async def _csrf_ok(request: Request, u: dict) -> bool:
+    form = await request.form()
+    return hmac.compare_digest(str(form.get("_csrf", "")), _csrf_token(u))
 
 
 def _require(request: Request, roles: tuple[str, ...] = ()) -> dict | Response:
     u = current_user(request)
     if u is None:
         return RedirectResponse("/login", status_code=303)
+    # P5-S2: 초기 비밀번호 상태면 변경 전까지 다른 화면을 막는다
+    if u.get("must_change") and request.url.path not in ("/password", "/logout"):
+        return RedirectResponse("/password", status_code=303)
     if roles and u["role"] not in roles + ("admin",):
         return HTMLResponse(page(u, "권한 없음",
             f"<div class='card warn'>이 작업은 {' 또는 '.join(roles)} 역할이 필요합니다.</div>"), 403)
@@ -178,6 +212,38 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 @media(max-width:640px){header nav a{margin-right:9px;font-size:13px}}
 </style>"""
 
+# P5-S3/S4: CSRF 중앙 강제(로그인 제외 전 POST) + 보안 헤더.
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    if request.method == "POST" and request.url.path != "/login":
+        u = current_user(request)
+        if u is not None:
+            body = await request.body()
+
+            async def replay():
+                return {"type": "http.request", "body": body, "more_body": False}
+
+            tmp = Request(request.scope, replay)
+            try:
+                form = await tmp.form()
+                ok = hmac.compare_digest(str(form.get("_csrf", "")), _csrf_token(u))
+            except Exception:  # noqa: BLE001
+                ok = False
+            request._receive = replay          # 하류 핸들러가 본문을 다시 읽도록
+            if not ok:
+                return HTMLResponse(page(u, "보안",
+                    "<div class='card warn'>보안 토큰이 유효하지 않습니다 — "
+                    "화면을 새로고침한 뒤 다시 시도하세요.</div>"), 403)
+    resp = await call_next(request)
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    resp.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+    return resp
+
+
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/upload", "자료 반입", ("steward",)),
        ("/setup", "온보딩 설정", ()),        # steward/admin — _require가 강제
@@ -211,12 +277,19 @@ def page(user: dict | None, title: str, body: str, active: str = "") -> str:
                    if prof.get("trial") else "")
     brand_html = (f"<span style='color:#B9A78F;margin-left:10px'>{brand}</span>"
                   if brand else "") + trial_badge
-    return f"""<!doctype html><meta charset='utf-8'>
+    doc = f"""<!doctype html><meta charset='utf-8'>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)} — AX 플랫폼</title>{STYLE}
 <header><div class="wrap bar"><span class="mark">AX</span><b>AX 플랫폼</b>{brand_html}
 <nav>{nav}</nav>{who}</div></header>
 <main><div class="wrap">{warn}{body}</div></main>"""
+    if user is not None:
+        # P5-S3: 모든 POST 폼에 CSRF 토큰 자동 주입 — 폼을 새로 만들어도 자동 방어
+        import re as _re
+        doc = _re.sub(r"(<form\b[^>]*method=[\"']post[\"'][^>]*>)",
+                      lambda m: m.group(1) + csrf_field(user), doc,
+                      flags=_re.IGNORECASE)
+    return doc
 
 
 # ── 인증 ────────────────────────────────────────────────
@@ -244,8 +317,10 @@ def login(username: str = Form(...), password: str = Form(...)):
         return HTMLResponse(page(None, "로그인", "<div class='card warn'>아이디 또는 비밀번호가 다릅니다. <a href='/login'>다시</a></div>"), 401)
     _login_ok(username)
     r = RedirectResponse("/inbox", status_code=303)
-    r.set_cookie("axp_session", f"{username}|{_sign(username)}",
-                 httponly=True, samesite="lax")
+    r.set_cookie("axp_session", _session_token(username),
+                 httponly=True, samesite="lax",
+                 secure=os.environ.get("AXP_MODE") == "prod",
+                 max_age=SESSION_HOURS * 3600)
     return r
 
 
