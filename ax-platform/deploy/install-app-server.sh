@@ -48,6 +48,7 @@ AXP_DB=postgres
 AXP_PG_DSN=host=127.0.0.1 port=5432 user=axp password=${PGPW} dbname=axp
 AXP_DATA=${AXP_DATA}
 AXP_SECRET=$(openssl rand -hex 32)
+AXP_API_KEY=$(openssl rand -hex 24)
 AXP_NOTIFY=dryrun
 # GPU 서버 연결 시 주석 해제:
 #AXP_LLM=ollama
