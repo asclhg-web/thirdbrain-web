@@ -44,3 +44,12 @@
 
 최종 산출: 테스트 27→43(양쪽 green), 신규 모듈 5·핵심 개조 6, +1,950줄/28파일.
 종합 보고: docs/presentations/AX_P2_Execution_Report.docx
+
+## 서버·GPU 서버 보유 반영 (추가 지시)
+
+| 항목 | 상태 | 내용 |
+|---|---|---|
+| Ollama 어댑터 실HTTP 검증 | **완료** | 모의 Ollama 서버로 4테스트 — 정상 응답·인용 위반 시 1회 재생성(호출 2회 확인)·서버 다운 시 결정적 조립기 폴백·공인IP 게이트 차단 |
+| 앱 서버 원커맨드 설치 | **완료** | deploy/install-app-server.sh — PG16+논리복제 설정·의존성·/opt 배치·무작위 비밀 env·systemd 2유닛·양쪽 테스트 후 기동 |
+| GPU 서버 원커맨드 설치 | **완료** | deploy/install-gpu-server.sh — Ollama+내부망 바인딩·ufw 11434 앱서버 한정·한국어 후보 3모델 pull |
+| 모델 선정 하네스 | **완료** | deploy/llm_bench.py — 후보 모델별 회귀 30선 통과율·재생성률·p50/p95 비교표. 모의 서버 검증: 일반 답변 13/30으로 판별력 확인 |
