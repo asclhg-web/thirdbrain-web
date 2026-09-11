@@ -44,6 +44,12 @@ def main() -> None:
     s.add_argument("adapter", choices=["daily", "receipt"],
                    help="daily: 일별 정산 집계 / receipt: 영수증 단위 거래 로그")
     s.add_argument("file"); s.add_argument("--by", required=True)
+    s = sub.add_parser("tenant", help="체험/고객 테넌트 관리 (P4-1)")
+    s.add_argument("op", choices=["create", "reset", "destroy", "purge-uploads", "list"])
+    s.add_argument("name", nargs="?")
+    s.add_argument("--company", default=None)
+    s.add_argument("--template", default=None)
+    s.add_argument("--hours", type=float, default=24.0)
     a = ap.parse_args()
 
     if a.cmd == "cards":
@@ -136,6 +142,26 @@ def main() -> None:
                 print("  거절:", e)
             for w in res["double_count_warnings"]:
                 print("  경고:", w)
+    elif a.cmd == "tenant":
+        import json as _json
+        from . import tenant as _t
+        if a.op == "list":
+            for m in _t.listing():
+                print(f"{m['name']:20s} {m['company']:24s} "
+                      f"{'체험' if m.get('trial') else '정식'} {m['size_mb']}MB "
+                      f"생성 {m['created_at'][:10]}")
+            if not _t.listing():
+                print("테넌트 없음")
+        elif a.op == "create":
+            r = _t.create(a.name, company=a.company, template=a.template)
+            print(_json.dumps(r, ensure_ascii=False, indent=2))
+            print(f"→ 웹앱 기동: AXP_DATA={r['data_dir']} (계정: {r['credentials_file']})")
+        elif a.op == "reset":
+            print(_json.dumps(_t.reset(a.name), ensure_ascii=False))
+        elif a.op == "destroy":
+            print(_json.dumps(_t.destroy(a.name), ensure_ascii=False))
+        elif a.op == "purge-uploads":
+            print(_json.dumps(_t.purge_uploads(a.name, hours=a.hours), ensure_ascii=False))
 
 
 if __name__ == "__main__":
