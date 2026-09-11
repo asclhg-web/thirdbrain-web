@@ -72,7 +72,8 @@ curl -s https://status.odooaierp.com/status | grep 정상
 1. 랜딩(odooaierp.com)의 '체험 신청' 폼(P4-5)에서 회사·이메일 접수
 2. 관리자가 확인 후: `tenant create <고객명>` → credentials 파일의 계정을
    이메일로 안내 (승인제 — 사용자 결정 ③)
-3. 고객은 try.odooaierp.com 에 로그인 — 헤더에 '체험판 · 합성 데이터' 상시 표시
+3. 고객은 try.odooaierp.com 에 로그인 — **첫 로그인 시 비밀번호 변경이 강제**되고
+   (변경 전에는 다른 화면이 열리지 않음), 헤더에 '체험판 · 합성 데이터' 상시 표시
 4. 고객이 자기 엑셀/POS 파일을 '자료 반입'에서 올려 보면(24h 후 자동 파기)
    자기 데이터 기준 브리핑을 체험
 
