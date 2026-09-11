@@ -231,3 +231,42 @@ def test_connect_wizard_detects_non_odoo_db(tmp_db):
     r = c.post("/connect", data={"host": "127.0.0.1", "port": "5432",
                                  "dbname": "axp", "user": "axp", "password": "axp"})
     assert r.status_code == 400 and "Odoo DB가 맞는지" in r.text
+
+
+def test_setup_wizard_saves_profile_and_seeds_dictionary(tmp_db):
+    """P4-9: 온보딩 설정 저장 → profile.json + 코드 사전 반영."""
+    import json as _json
+    from axp import config as _config
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/setup", data={
+        "company": "행복제과",
+        "stores": "S-A=본점=retail\nS-B=공항점",
+        "products": "P-1=크림빵\nP-2=단팥빵",
+        "aliases": "product,크림 빵,P-1\nstore,본  점,S-A"})
+    assert r.status_code == 200 and "저장 완료" in r.text
+    prof = _json.loads((_config.DATA / "profile.json").read_text(encoding="utf-8"))
+    assert prof["company"] == "행복제과"
+    assert prof["store_names"] == {"S-A": "본점", "S-B": "공항점"}
+    assert prof["store_channels"] == {"S-A": "retail"}
+    assert prof["product_names"]["P-2"] == "단팥빵"
+    row = db.one("SELECT standard_code FROM code_dictionary WHERE domain='product' AND alias='크림 빵'")
+    assert row and row["standard_code"] == "P-1"
+    body = c.get("/inbox").text                     # 회사명이 헤더에 반영
+    assert "행복제과" in body
+
+
+def test_setup_wizard_rejects_bad_lines(tmp_db):
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/setup", data={
+        "company": "X", "stores": "잘못된줄", "products": "P-1=크림빵",
+        "aliases": "unknown,별칭,CODE"})
+    assert r.status_code == 400 and "저장하지 않았습니다" in r.text
+    assert "매장 1행" in r.text and "별칭 1행" in r.text
+
+
+def test_setup_requires_steward(tmp_db):
+    c = _client()
+    _login(c, "approver")
+    assert c.get("/setup").status_code == 403

@@ -180,6 +180,7 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/upload", "자료 반입", ("steward",)),
+       ("/setup", "온보딩 설정", ()),        # steward/admin — _require가 강제
        ("/connect", "Odoo 연결", ()),        # admin 전용 — _require가 강제
        ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
        ("/briefing", "브리핑", ("viewer", "steward", "approver")),
@@ -344,6 +345,105 @@ def card_decide(card_id: int, request: Request,
 
 
 # ── 격리 큐 (스튜어드) ──────────────────────────────────
+# ── P4-9: 온보딩 위저드 1차 — 매장·품목·코드 사전을 화면에서 (W6) ────
+def _setup_form(u, msg: str = "") -> str:
+    from . import profile_rt
+    prof = profile_rt.load()
+    stores = "\n".join(
+        f"{code}={name}" + (f"={prof.get('store_channels', {}).get(code, '')}"
+                            if prof.get('store_channels', {}).get(code) else "")
+        for code, name in prof.get("store_names", {}).items())
+    prods = "\n".join(f"{c}={n}" for c, n in prof.get("product_names", {}).items())
+    aliases = "\n".join(f"{d},{a},{c}" for d, a, c in prof.get("alias_seed", []))
+    return f"""<h2>온보딩 설정 — 우리 회사 말로 바꿉니다</h2>
+<p class="sub">여기서 정한 이름이 브리핑·승인함·질문 화면 전체에 쓰입니다.
+코드 별칭은 엑셀·장표의 현장 표기를 표준 코드로 잇는 사전입니다(격리 큐가 그 관문).</p>{msg}
+<form method="post" class="card" style="max-width:680px">
+  <p><b>회사명</b><br><input name="company" value="{html.escape(prof.get('company', ''))}" style="width:100%"></p>
+  <p><b>매장</b> — 한 줄에 하나: <code>코드=이름</code> 또는 <code>코드=이름=채널</code> (채널: retail/B2B)<br>
+  <textarea name="stores" style="width:100%;height:110px;font-family:monospace">{html.escape(stores)}</textarea></p>
+  <p><b>품목</b> — 한 줄에 하나: <code>코드=이름</code><br>
+  <textarea name="products" style="width:100%;height:110px;font-family:monospace">{html.escape(prods)}</textarea></p>
+  <p><b>코드 별칭 사전</b> — 한 줄에 하나: <code>영역,현장표기,표준코드</code> (영역: store/product/worker/equipment)<br>
+  <textarea name="aliases" style="width:100%;height:90px;font-family:monospace">{html.escape(aliases)}</textarea></p>
+  <button class="btn ok">저장</button>
+  <span class="sub" style="margin-left:8px">저장 즉시 코드 사전에도 반영됩니다</span>
+</form>"""
+
+
+def _parse_kv_lines(text: str, what: str, errors: list[str],
+                    max_parts: int = 2) -> dict:
+    out: dict = {}
+    for i, line in enumerate(str(text).splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in line.split("=")]
+        if len(parts) < 2 or not parts[0] or not parts[1]:
+            errors.append(f"{what} {i}행: '코드=이름' 형식이 아닙니다 — {line[:40]}")
+            continue
+        if parts[0] in out:
+            errors.append(f"{what} {i}행: 코드 중복 — {parts[0]}")
+            continue
+        out[parts[0]] = parts[1:max_parts + 1] if max_parts > 1 else parts[1]
+    return out
+
+
+@app.get("/setup", response_class=HTMLResponse)
+def setup_form(request: Request):
+    u = _require(request, ("steward",))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "온보딩 설정", _setup_form(u), "/setup"))
+
+
+@app.post("/setup", response_class=HTMLResponse)
+async def setup_save(request: Request):
+    u = _require(request, ("steward",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    errors: list[str] = []
+    stores_raw = _parse_kv_lines(form.get("stores", ""), "매장", errors, max_parts=2)
+    prods = {k: v[0] for k, v in
+             _parse_kv_lines(form.get("products", ""), "품목", errors).items()}
+    aliases: list[list[str]] = []
+    for i, line in enumerate(str(form.get("aliases", "")).splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) != 3 or parts[0] not in ("store", "product", "worker", "equipment"):
+            errors.append(f"별칭 {i}행: '영역,현장표기,표준코드' 형식이 아닙니다 — {line[:40]}")
+            continue
+        aliases.append(parts)
+    company = str(form.get("company", "")).strip()
+    if not company:
+        errors.append("회사명이 비어 있습니다")
+    if errors:
+        msg = ("<div class='card warn'><b>저장하지 않았습니다</b> — 아래를 고쳐 주세요"
+               + "".join(f"<div class='ln'>· {html.escape(e)}</div>" for e in errors)
+               + "</div>")
+        return HTMLResponse(page(u, "온보딩 설정", _setup_form(u, msg), "/setup"), 400)
+
+    from . import profile_rt
+    prof = profile_rt.load()
+    prof["company"] = company
+    prof["store_names"] = {k: v[0] for k, v in stores_raw.items()}
+    prof["store_channels"] = {k: v[1] for k, v in stores_raw.items() if len(v) > 1 and v[1]}
+    prof["product_names"] = prods
+    prof["alias_seed"] = aliases
+    (config.DATA / "profile.json").write_text(
+        json.dumps(prof, ensure_ascii=False, indent=2), encoding="utf-8")
+    from .dataset import codemap
+    codemap.init()      # alias_seed가 코드 사전으로 들어간다
+    common.alert("info", "setup", f"온보딩 설정 저장: {u['username']} — "
+                 f"매장 {len(prof['store_names'])}·품목 {len(prods)}·별칭 {len(aliases)}")
+    msg = (f"<div class='card ok'><b>저장 완료</b> — 매장 {len(prof['store_names'])}개 · "
+           f"품목 {len(prods)}개 · 별칭 {len(aliases)}건이 코드 사전에 반영됐습니다.</div>")
+    return HTMLResponse(page(u, "온보딩 설정", _setup_form(u, msg), "/setup"))
+
+
 # ── P4-6: Odoo 연결 마법사 — 3단계 실증 절차(P3-2)의 제품화 1차 ──────
 CDC_CANDIDATES = [
     "sale_order", "sale_order_line", "purchase_order", "purchase_order_line",
