@@ -181,6 +181,7 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/upload", "자료 반입", ("steward",)),
        ("/setup", "온보딩 설정", ()),        # steward/admin — _require가 강제
+       ("/users", "계정 관리", ()),          # admin 전용 — _require가 강제
        ("/connect", "Odoo 연결", ()),        # admin 전용 — _require가 강제
        ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
        ("/briefing", "브리핑", ("viewer", "steward", "approver")),
@@ -345,6 +346,126 @@ def card_decide(card_id: int, request: Request,
 
 
 # ── 격리 큐 (스튜어드) ──────────────────────────────────
+# ── P4-10: 계정 관리 — 추가·임시 비밀번호 재발급·잠금 해제 (admin) ────
+ROLES = ("admin", "steward", "approver", "viewer")
+ROLE_LABEL = {"admin": "관리자", "steward": "데이터 스튜어드",
+              "approver": "승인자", "viewer": "열람"}
+
+
+def _users_page(u, msg: str = "") -> str:
+    rows = db.query("SELECT username, role, display, must_change FROM axp_users "
+                    "ORDER BY username")
+    locks = {r["username"]: r for r in db.query(
+        "SELECT username, fails, locked_until FROM axp_login_attempts")}
+    now = datetime.now(timezone.utc).isoformat()
+    trs = ""
+    for r in rows:
+        lk = locks.get(r["username"])
+        locked = bool(lk and lk["locked_until"] and lk["locked_until"] > now)
+        state = ("잠금 중" if locked else
+                 ("초기 비밀번호" if r["must_change"] else "정상"))
+        actions = (f"<form method='post' action='/users/reset' style='display:inline'>"
+                   f"<input type='hidden' name='username' value='{html.escape(r['username'])}'>"
+                   f"<button class='btn plain'>임시 비밀번호 재발급</button></form>")
+        if locked or (lk and lk["fails"]):
+            actions += (f" <form method='post' action='/users/unlock' style='display:inline'>"
+                        f"<input type='hidden' name='username' value='{html.escape(r['username'])}'>"
+                        f"<button class='btn plain'>잠금 해제</button></form>")
+        trs += (f"<tr><td>{html.escape(r['username'])}</td>"
+                f"<td>{ROLE_LABEL.get(r['role'], r['role'])}</td>"
+                f"<td>{html.escape(r['display'])}</td>"
+                f"<td>{state}</td><td>{actions}</td></tr>")
+    opts = "".join(f"<option value='{r}'>{ROLE_LABEL[r]}</option>"
+                   for r in ("viewer", "approver", "steward", "admin"))
+    return f"""<h2>계정 관리 — 발급은 봉투처럼</h2>
+<p class="sub">임시 비밀번호는 이 화면에 <b>한 번만</b> 표시됩니다 — 전달 후에는 다시 볼 수 없고,
+사용자는 첫 로그인에서 변경해야 합니다. 체험 신청(승인제) 접수 후 여기서 계정을 만들어 회신하세요.</p>{msg}
+<div class="card"><table style="width:100%">
+<tr><th>아이디</th><th>역할</th><th>표시 이름</th><th>상태</th><th>동작</th></tr>{trs}</table></div>
+<form method="post" action="/users/add" class="card" style="max-width:560px">
+  <b>새 계정</b>
+  <p style="display:flex;gap:8px;margin-top:8px">
+    <input name="username" placeholder="아이디 (영소문자·숫자)" style="flex:1" required>
+    <select name="role">{opts}</select></p>
+  <p><input name="display" placeholder="표시 이름 (예: 김순희)" style="width:100%" required></p>
+  <button class="btn ok">계정 만들기</button>
+</form>"""
+
+
+@app.get("/users", response_class=HTMLResponse)
+def users_page(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    ensure_users()
+    return HTMLResponse(page(u, "계정 관리", _users_page(u), "/users"))
+
+
+@app.post("/users/add", response_class=HTMLResponse)
+async def users_add(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    username = str(form.get("username", "")).strip().lower()
+    role = str(form.get("role", "viewer"))
+    display = str(form.get("display", "")).strip()
+    import re as _re
+    if not _re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,30}", username) or role not in ROLES \
+            or not display:
+        return HTMLResponse(page(u, "계정 관리", _users_page(u,
+            "<div class='card warn'>아이디(영소문자·숫자 2~31자)·역할·표시 이름을 확인하세요.</div>"),
+            "/users"), 400)
+    if db.one("SELECT 1 FROM axp_users WHERE username=?", (username,)):
+        return HTMLResponse(page(u, "계정 관리", _users_page(u,
+            f"<div class='card warn'>이미 있는 아이디입니다: {html.escape(username)}</div>"),
+            "/users"), 400)
+    pw = secrets.token_urlsafe(9)
+    salt = secrets.token_hex(8)
+    db.execute("INSERT INTO axp_users VALUES (?,?,?,?,?,1)",
+               (username, _hash(pw, salt), salt, role, display))
+    common.alert("info", "webapp", f"계정 생성: {username}({role}) by {u['username']}")
+    return HTMLResponse(page(u, "계정 관리", _users_page(u,
+        f"<div class='card ok'><b>계정 생성</b> — {html.escape(username)} / "
+        f"임시 비밀번호 <code>{html.escape(pw)}</code> (지금만 표시 — 안전하게 전달하세요)</div>"),
+        "/users"))
+
+
+@app.post("/users/reset", response_class=HTMLResponse)
+async def users_reset(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    username = str(form.get("username", "")).strip()
+    if not db.one("SELECT 1 FROM axp_users WHERE username=?", (username,)):
+        return HTMLResponse(page(u, "계정 관리", _users_page(u,
+            "<div class='card warn'>없는 계정입니다.</div>"), "/users"), 404)
+    pw = secrets.token_urlsafe(9)
+    salt = secrets.token_hex(8)
+    db.execute("UPDATE axp_users SET pw_hash=?, salt=?, must_change=1 WHERE username=?",
+               (_hash(pw, salt), salt, username))
+    db.execute("DELETE FROM axp_login_attempts WHERE username=?", (username,))
+    common.alert("info", "webapp", f"비밀번호 재발급: {username} by {u['username']}")
+    return HTMLResponse(page(u, "계정 관리", _users_page(u,
+        f"<div class='card ok'><b>재발급</b> — {html.escape(username)} / 임시 비밀번호 "
+        f"<code>{html.escape(pw)}</code> (지금만 표시 · 첫 로그인에서 변경 강제)</div>"),
+        "/users"))
+
+
+@app.post("/users/unlock", response_class=HTMLResponse)
+async def users_unlock(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    username = str(form.get("username", "")).strip()
+    db.execute("DELETE FROM axp_login_attempts WHERE username=?", (username,))
+    common.alert("info", "webapp", f"잠금 해제: {username} by {u['username']}")
+    return HTMLResponse(page(u, "계정 관리", _users_page(u,
+        f"<div class='card ok'>잠금 해제 — {html.escape(username)}</div>"), "/users"))
+
+
 # ── P4-9: 온보딩 위저드 1차 — 매장·품목·코드 사전을 화면에서 (W6) ────
 def _setup_form(u, msg: str = "") -> str:
     from . import profile_rt

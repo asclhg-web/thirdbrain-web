@@ -270,3 +270,43 @@ def test_setup_requires_steward(tmp_db):
     c = _client()
     _login(c, "approver")
     assert c.get("/setup").status_code == 403
+
+
+def test_users_admin_only_and_add_reset_unlock(tmp_db):
+    """P4-10: 계정 관리 — admin 전용, 추가→임시 비번 로그인→재발급→잠금 해제."""
+    import re as _re
+    c = _client()
+    _login(c, "steward")
+    assert c.get("/users").status_code == 403
+    c2 = _client()
+    _login(c2, "admin")
+    # 추가 — 임시 비밀번호가 화면에 한 번 표시
+    r = c2.post("/users/add", data={"username": "worker1", "role": "viewer",
+                                    "display": "현장 열람"})
+    assert r.status_code == 200 and "계정 생성" in r.text
+    pw = _re.search(r"<code>([^<]+)</code>", r.text).group(1)
+    c3 = _client()
+    assert c3.post("/login", data={"username": "worker1", "password": pw}).status_code == 303
+    # 재발급 — 이전 비밀번호 무효 + must_change
+    r = c2.post("/users/reset", data={"username": "worker1"})
+    new_pw = _re.search(r"<code>([^<]+)</code>", r.text).group(1)
+    assert new_pw != pw
+    c4 = _client()
+    assert c4.post("/login", data={"username": "worker1", "password": pw}).status_code == 401
+    assert c4.post("/login", data={"username": "worker1", "password": new_pw}).status_code == 303
+    assert db.one("SELECT must_change FROM axp_users WHERE username='worker1'")["must_change"] == 1
+    # 잠금 → 관리자 해제 → 즉시 로그인
+    for _ in range(5):
+        c4.post("/login", data={"username": "worker1", "password": "bad"})
+    assert c4.post("/login", data={"username": "worker1", "password": new_pw}).status_code == 423
+    c2.post("/users/unlock", data={"username": "worker1"})
+    assert c4.post("/login", data={"username": "worker1", "password": new_pw}).status_code == 303
+
+
+def test_users_add_validates(tmp_db):
+    c = _client()
+    _login(c, "admin")
+    assert c.post("/users/add", data={"username": "한글", "role": "viewer",
+                                      "display": "x"}).status_code == 400
+    assert c.post("/users/add", data={"username": "admin", "role": "viewer",
+                                      "display": "중복"}).status_code == 400
