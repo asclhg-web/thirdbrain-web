@@ -56,6 +56,8 @@ WHERE COALESCE(l.display_type, '') = ''
   AND o.name NOT LIKE 'PO/AXP/%';              -- P2-I11: 플랫폼 발주 초안 자기 환류 차단
 
 -- staging_stock_move ≈ (id, move_date, product_id, from_loc, to_loc, qty, move_type, lot_id, reason, write_date)
+-- P5-D: 로트 결선 — stock_move_line→stock_lot 조인(복수 로트 무브는 대표 1건).
+--   발행에 stock_move_line·stock_lot 추가 필요(아래 후보 목록에 반영).
 DROP VIEW IF EXISTS axp_prod.v_stock_move;
 CREATE VIEW axp_prod.v_stock_move AS
 SELECT m.id,
@@ -65,7 +67,10 @@ SELECT m.id,
        m.location_dest_id::text      AS to_loc,
        m.product_uom_qty             AS qty,
        m.picking_type_id::text       AS move_type,
-       NULL::text                    AS lot_id,   -- 로트는 stock_move_line(2차)
+       (SELECT lt.name FROM public.stock_move_line ml
+          LEFT JOIN public.stock_lot lt ON lt.id = ml.lot_id
+         WHERE ml.move_id = m.id AND lt.name IS NOT NULL
+         ORDER BY ml.id LIMIT 1)     AS lot_id,
        m.origin                      AS reason,
        m.write_date::text            AS write_date
 FROM public.stock_move m
@@ -78,9 +83,14 @@ SELECT p.id,
        p.name                        AS mo_ref,
        COALESCE(p.date_finished, p.date_start)::date::text AS prod_date,
        p.product_id::text            AS product_id,
-       NULL::text                    AS line_id,     -- 작업장은 mrp_workorder(2차)
+       -- P5-D: 작업장 결선 — workorder의 첫 작업장을 라인·설비로 (규약: 작업장=설비)
+       (SELECT wc.id::text FROM public.mrp_workorder wo
+          JOIN public.mrp_workcenter wc ON wc.id = wo.workcenter_id
+         WHERE wo.production_id = p.id ORDER BY wo.id LIMIT 1) AS line_id,
        p.user_id::text               AS worker_id,
-       NULL::text                    AS equipment_id,
+       (SELECT wc.name::text FROM public.mrp_workorder wo
+          JOIN public.mrp_workcenter wc ON wc.id = wo.workcenter_id
+         WHERE wo.production_id = p.id ORDER BY wo.id LIMIT 1) AS equipment_id,
        p.bom_id::text                AS sop_id,      -- BOM=표준작업 규약
        p.product_qty                 AS qty_planned,
        p.qty_producing               AS qty_done,

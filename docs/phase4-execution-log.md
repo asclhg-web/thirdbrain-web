@@ -340,3 +340,20 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
   가로 스크롤 0(scrollWidth=400), 내비 줄바꿈·카드 스택·폼 전폭 정상.
   체험 고객의 휴대폰 접속(Tunnel 공개 후) 대응 확인. 수정 필요 없음.
 - CDC 소크 16사이클 무경보 지속(재기동 3회째 자동 재개).
+
+## P5-D: 2차 범위 선행 — 로트 추적·작업장 매핑 실증 (2026-09-11 23:3x)
+
+3단계에서 "2차 범위"로 미뤘던 두 항목을 실 Odoo로 완성:
+
+- **복제 확장**: 발행 후보에 stock_move_line·stock_lot·mrp_workcenter 추가
+  (odoo_cdc_prod.sql) → 실 인스턴스에 ALTER PUBLICATION + 구독 REFRESH —
+  14릴레이션 전부 ready.
+- **로트 추적**: 실 Odoo에서 로트 관리 원자재(M-FLOUR-T) 발주→로트 입고
+  (WH/IN/00001, LOT-2609-A) → v_stock_move가 move_line×stock_lot 조인으로
+  로트 투영 → **sync_prod 후 staging_stock_move.lot_id='LOT-2609-A' 실측**.
+  이제 fact_procurement의 'LOT-미상'이 입고 확정 시 실로트로 채워지는 경로 개통.
+- **작업장 매핑**: 실 BOM(공정 '굽기'=OVEN-2)로 제조지시 WH/MO/00002 생성·진행
+  → v_mrp가 workorder×workcenter 조인으로 line_id=2·equipment_id=OVEN-2 투영
+  → **staging_mrp까지 도달 실측**. 설비 예지·불량 상관의 실데이터 연결 고리 완성.
+- 적용 중 잡은 것: mrp_workcenter.name은 varchar(jsonb 아님) — ::text 캐스트.
+- 전체 92+3skip(sqlite)·95(PG) green · 소크 17사이클 무경보.
