@@ -40,6 +40,8 @@ def _now() -> str:
 
 
 def _eligible_cards() -> list[dict]:
+    from ..judge import cards as _jc
+    db.executescript(_jc.DDL)
     db.executescript(DDL)
     return db.query(
         "SELECT c.* FROM judgment_cards c "

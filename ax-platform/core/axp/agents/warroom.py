@@ -18,6 +18,8 @@ th{background:#6E3A1C} .warn{color:#E8A33D}</style>"""
 
 
 def metrics(as_of: str) -> dict:
+    from ..judge import cards as _jc
+    db.executescript(_jc.DDL)
     total = db.scalar("SELECT COUNT(*) FROM judgment_cards") or 0
     by_status = {r["status"]: r["n"] for r in db.query(
         "SELECT status, COUNT(*) n FROM judgment_cards GROUP BY status")}
@@ -30,6 +32,17 @@ def metrics(as_of: str) -> dict:
         "SELECT agent, COUNT(*) runs, SUM(cards_created) cards, "
         "SUM(CASE WHEN status='error' THEN 1 ELSE 0 END) errors FROM agent_runs GROUP BY agent") \
         if db.table_exists("agent_runs") else []
+    funnel = {}
+    if db.table_exists("causal_candidates"):
+        # P2: 지식 퍼널 — 마이닝 후보의 거짓 양성률 추적(M3)
+        f = {r["status"]: r["n"] for r in db.query(
+            "SELECT status, COUNT(*) n FROM causal_candidates GROUP BY status")}
+        resolved = f.get("promoted", 0) + f.get("rejected", 0) + f.get("demoted", 0)
+        funnel = {"watching": f.get("watching", 0), "submitted": f.get("submitted", 0),
+                  "promoted": f.get("promoted", 0), "rejected": f.get("rejected", 0),
+                  "demoted": f.get("demoted", 0),
+                  "fp_rate": round((f.get("rejected", 0) + f.get("demoted", 0))
+                                    / resolved, 3) if resolved else None}
     risks = []
     if db.table_exists("risk_reports"):
         latest = db.scalar("SELECT MAX(run_at) FROM risk_reports")
@@ -54,7 +67,7 @@ def metrics(as_of: str) -> dict:
     return {"as_of": as_of, "total_cards": total, "by_status": by_status,
             "processing_rate": (decided / total) if total else 0,
             "approval_rate": (approved / decided) if decided else 0,
-            "reject_reasons": reasons, "agent_runs": agent_runs,
+            "reject_reasons": reasons, "funnel": funnel, "agent_runs": agent_runs,
             "kpi": kpi, "drift_top": drift_rows, "risks": risks}
 
 
@@ -76,6 +89,10 @@ def render(as_of: str) -> str:
         for r in m["risks"]) or "<tr><td colspan=4>점검 이력 없음(격주)</td></tr>"
     status_rows = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>"
                           for k, v in sorted(m["by_status"].items()))
+    fn = m.get("funnel") or {}
+    funnel_w, funnel_s = fn.get("watching", 0), fn.get("submitted", 0)
+    funnel_p, funnel_r, funnel_d = fn.get("promoted", 0), fn.get("rejected", 0), fn.get("demoted", 0)
+    funnel_fp = f"{fn['fp_rate']:.0%}" if fn.get("fp_rate") is not None else "—"
     html = f"""<!doctype html><meta charset="utf-8"><title>War Room</title>{CSS}
 <h1>War Room — {as_of}</h1>
 <div class="cards">
@@ -89,6 +106,9 @@ def render(as_of: str) -> str:
 <h2>카드 상태</h2><table><tr><th>상태</th><th>건수</th></tr>{status_rows}</table>
 <h2>반려 사유 분포</h2><table><tr><th>사유</th><th>건수</th></tr>{reason_rows}</table>
 <h2>에이전트 가동</h2><table><tr><th>에이전트</th><th>실행</th><th>카드</th><th>오류</th></tr>{agent_rows}</table>
+<h2>지식 퍼널 — 원인 후보의 생애</h2>
+<table><tr><th>관찰</th><th>상신</th><th>승격</th><th>반려</th><th>강등</th><th>거짓 양성률</th></tr>
+<tr><td>{funnel_w}</td><td>{funnel_s}</td><td>{funnel_p}</td><td>{funnel_r}</td><td>{funnel_d}</td><td><b>{funnel_fp}</b></td></tr></table>
 <h2>입력 드리프트 상위</h2><table><tr><th>특징</th><th>PSI</th><th>수준</th></tr>{drift_rows}</table>
 <h2>리스크 5 (격주 자동 점검)</h2><table><tr><th>리스크</th><th>판정</th><th>관측 지표</th><th>대응</th></tr>{risk_rows}</table>
 <p><small>주간 리뷰 순서: ① 상단 KPI ② 반려 사유 → 개선 안건 ③ 에이전트 오류 ④ 드리프트 → 재학습 판정 ⑤ 승급/강등 결정</small></p>"""

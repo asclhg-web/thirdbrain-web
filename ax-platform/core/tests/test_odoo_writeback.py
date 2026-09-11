@@ -49,3 +49,15 @@ def test_writeback_ignores_unapproved(tmp_db):
     _mk_card(status="proposed")
     r = odoo_writeback.run(mode="demo")
     assert r["created"] == []
+
+
+def test_drafts_not_reingested_by_cdc(tmp_db):
+    """P2-I11 회귀 — 플랫폼 초안(PO/AXP/*)은 CDC가 재수집하지 않는다."""
+    cid = _mk_card()
+    odoo_writeback.run(mode="demo")
+    counts = odoo_cdc.sync()
+    n = db.scalar("SELECT COUNT(*) FROM staging_purchase WHERE po_ref LIKE 'PO/AXP/%'")
+    assert n == 0, "초안이 스테이징으로 되돌아왔다 — 자기 환류 오염"
+    rec = odoo_cdc.reconcile()
+    pu = [r for r in rec["series"] if r["series"] == "staging_purchase"][0]
+    assert pu["ok"], pu   # 초안 제외 기준으로 정합도 일치해야 한다

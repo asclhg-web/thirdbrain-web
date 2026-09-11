@@ -343,12 +343,14 @@ def write_df(frame: pd.DataFrame, table: str, if_exists: str = "append") -> int:
 
 
 def load_frame(c, frame: pd.DataFrame, table: str) -> int:
-    """열려 있는 conn() 연결 위에 DataFrame 적재 — 백엔드 공통."""
+    """열려 있는 conn() 연결 위에 DataFrame 적재 — 백엔드 공통.
+    P2-I11: COPY 경로에서 NaN이 문자열 'nan'으로 들어가던 것을 NULL로 정규화."""
     if BACKEND == "postgres":
         cols = list(frame.columns)
+        clean = frame.astype(object).where(pd.notna(frame), None)
         with c.raw.cursor() as cur:
             with cur.copy(f"COPY {table} ({', '.join(cols)}) FROM STDIN") as cp:
-                for row in frame.itertuples(index=False, name=None):
+                for row in clean.itertuples(index=False, name=None):
                     cp.write_row(row)
         return len(frame)
     frame.to_sql(table, c, if_exists="append", index=False)

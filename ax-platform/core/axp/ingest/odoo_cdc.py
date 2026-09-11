@@ -43,10 +43,21 @@ def sync(source: str = "odoo") -> dict[str, int]:
     src.row_factory = sqlite3.Row
     try:
         for otable, (stable, cols) in SERIES.items():
+            # P2: 원천에 없는 테이블(모듈 미설치 고객)은 우아하게 건너뛴다 —
+            # quality/maintenance 모듈이 없는 Odoo에서도 나머지 계열은 돈다(P-02).
+            if not src.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                    (otable,)).fetchone():
+                counts[stable] = -1   # 표식: 원천 테이블 없음
+                continue
             last = db.scalar(
                 "SELECT last_src_id FROM cdc_state WHERE table_name=?", (stable,)) or 0
+            # P2-I11: 플랫폼이 만든 발주 '초안'(PO/AXP/*)은 재수집하지 않는다 —
+            # 자기 산출물이 원천으로 되돌아오는 자기 환류 오염 차단.
+            extra = (" AND (po_ref IS NULL OR po_ref NOT LIKE 'PO/AXP/%')"
+                     if otable == "purchase_order_line" else "")
             rows = src.execute(
-                f"SELECT {cols} FROM {otable} WHERE id > ? ORDER BY id", (last,)
+                f"SELECT {cols} FROM {otable} WHERE id > ?{extra} ORDER BY id", (last,)
             ).fetchall()
             if rows:
                 ncols = len(rows[0])
@@ -74,6 +85,10 @@ def reconcile() -> dict:
     report, ok = [], True
     try:
         for otable, (stable, cols) in SERIES.items():
+            if not src.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                    (otable,)).fetchone():
+                continue   # 원천 테이블 없음(모듈 미설치) — sync와 동일 기준
             qty_col = "qty" if "qty," in cols or cols.endswith(", qty") else None
             if otable == "mrp_production":
                 qty_col = "qty_done"
@@ -81,12 +96,15 @@ def reconcile() -> dict:
                 qty_col = "qty_defect"
             if otable == "maintenance_request":
                 qty_col = "duration_min"
-            o_cnt = src.execute(f"SELECT COUNT(*) FROM {otable}").fetchone()[0]
+            where = (" WHERE (po_ref IS NULL OR po_ref NOT LIKE 'PO/AXP/%')"
+                     if otable == "purchase_order_line" else "")   # P2-I11 동일 기준
+            o_cnt = src.execute(f"SELECT COUNT(*) FROM {otable}{where}").fetchone()[0]
             s_cnt = db.scalar(f"SELECT COUNT(*) FROM {stable}")
             row = {"series": stable, "odoo_count": o_cnt, "staging_count": s_cnt,
                    "count_diff": o_cnt - s_cnt}
             if qty_col:
-                o_sum = src.execute(f"SELECT COALESCE(SUM({qty_col}),0) FROM {otable}").fetchone()[0]
+                o_sum = src.execute(
+                    f"SELECT COALESCE(SUM({qty_col}),0) FROM {otable}{where}").fetchone()[0]
                 s_sum = db.scalar(f"SELECT COALESCE(SUM({qty_col}),0) FROM {stable}")
                 row["qty_diff"] = round((o_sum or 0) - (s_sum or 0), 6)
             bad = row["count_diff"] != 0 or abs(row.get("qty_diff", 0)) > 1e-6

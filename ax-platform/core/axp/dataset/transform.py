@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .. import config, db
+from .. import common, config, db
 from . import codemap
 
 HOLIDAY_WEEKS = [("2025-01-27", "2025-02-02"), ("2025-10-03", "2025-10-09"),
@@ -89,6 +89,11 @@ def build_dims() -> dict[str, int]:
     lots = db.df(
         "SELECT lot_id, material_id, vendor_id, MIN(receipt_date) AS received_date "
         "FROM staging_purchase GROUP BY lot_id, material_id, vendor_id")
+    n_null = int(lots["lot_id"].isna().sum()) if len(lots) else 0
+    if n_null:  # P2-I11: 로트 미표기 조달(초안 등)은 차원에 올리지 않는다
+        common.alert("warn", "transform",
+                     f"lot_id 없는 조달 {n_null}건 — dim_material_lot에서 제외(원장은 보존)")
+        lots = lots.dropna(subset=["lot_id"])
     counts["dim_material_lot"] = _rebuild("dim_material_lot", lots)
 
     sops = db.df("SELECT DISTINCT sop_id FROM staging_mrp")
