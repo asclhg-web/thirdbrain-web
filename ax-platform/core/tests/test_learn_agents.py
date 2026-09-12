@@ -27,6 +27,24 @@ def test_twin_conservation():
     assert abs(served + r["stockout_qty"] - r["total_demand"]) < 1e-6
 
 
+def test_agent_not_ready_is_waiting_not_crit(tmp_db):
+    """P5-N: 신규 사이트(모델·점수 테이블 없음)에서 에이전트는 실패(crit)가
+    아니라 대기(waiting·info) — 학습 전은 정상 국면이다."""
+    from axp import db
+    from axp.agents import five, runtime
+    five.register_all()
+    for name in ("demand_agent", "production_plan_agent", "equip_alert_agent"):
+        r = runtime.run_agent(name, {"run_date": "2026-09-12"})
+        assert r["ok"] is True and r.get("waiting") is True, (name, r)
+        assert db.scalar(
+            "SELECT status FROM agent_runs WHERE agent=? ORDER BY run_id DESC LIMIT 1",
+            (name,)) == "waiting"
+    assert db.scalar(
+        "SELECT COUNT(*) FROM alerts WHERE level='crit' AND module='M7'") == 0
+    assert (db.scalar(
+        "SELECT COUNT(*) FROM alerts WHERE level='info' AND module='M7'") or 0) >= 3
+
+
 def test_production_plan_feedback(tmp_db):
     from axp.judge import cards as jcards
     from axp.agents import inbox

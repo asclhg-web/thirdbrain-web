@@ -23,6 +23,13 @@ CREATE TABLE IF NOT EXISTS agent_runs (
 _REGISTRY: dict[str, dict] = {}
 
 
+class NotReady(Exception):
+    """P5-N: 신규 사이트 정상 상태 — 입력(모델·점수 테이블)이 아직 없어
+    카드를 만들 수 없는 국면. 실패(crit)가 아니라 대기(info)로 다룬다:
+    실 Odoo 신규 연결 직후엔 학습할 이력 자체가 없는 것이 정상이며,
+    crit 경보는 '고쳐야 할 장애'에만 쓴다(경보 피로 방지)."""
+
+
 def register(name: str, trigger_kind: str, fn, spec: str = "") -> None:
     """에이전트 등록 — fn(ctx: dict) -> list[card_id]."""
     _REGISTRY[name] = {"trigger": trigger_kind, "fn": fn, "spec": spec}
@@ -57,6 +64,12 @@ def run_agent(name: str, ctx: dict, shadow: bool = False) -> dict:
                    "WHERE run_id=?", (len(card_ids), common.now_iso(), run_id))
         return {"run_id": run_id, "agent": name, "cards": card_ids,
                 "auto_executed": auto_executed, "ok": True}
+    except NotReady as e:
+        db.execute("UPDATE agent_runs SET status='waiting', error=?, finished_at=? "
+                   "WHERE run_id=?", (str(e), common.now_iso(), run_id))
+        common.alert("info", "M7", f"에이전트 {name} 대기: {e}")
+        return {"run_id": run_id, "agent": name, "ok": True, "waiting": True,
+                "reason": str(e)}
     except Exception as e:  # noqa: BLE001
         err = f"{e}\n{traceback.format_exc(limit=3)}"
         db.execute("UPDATE agent_runs SET status='error', error=?, finished_at=? "

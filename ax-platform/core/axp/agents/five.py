@@ -18,8 +18,19 @@ from ..learn import anomaly, forecast, policy, simulate
 from . import runtime
 
 
+def _require_model(model_id: str) -> None:
+    """P5-N: 학습 전 사전 검사 — 서빙 모델이 없으면 실패가 아니라 대기."""
+    from ..learn import cards as lcards
+    try:
+        lcards.serving(model_id)
+    except lcards.CardError as e:
+        raise runtime.NotReady(
+            f"{model_id} 학습 전({e}) — 데이터 축적 후 M4 학습이 승급되면 카드 생성 시작")
+
+
 def demand_agent(ctx: dict) -> list[int]:
     from .. import profile_rt
+    _require_model("demand_forecast")
     as_of = ctx["run_date"]
     pairs = ctx.get("pairs") or profile_rt.primary_pairs()
     out = []
@@ -82,6 +93,9 @@ def allocation_agent(ctx: dict) -> list[int]:
 
 def equip_alert_agent(ctx: dict) -> list[int]:
     """이상 점수 임계 초과 설비 — 점검 제안 카드(+해설)."""
+    if not db.table_exists("anomaly_scores"):
+        raise runtime.NotReady(
+            "이상탐지 점수 테이블 없음 — 센서·정비 데이터 축적 후 M4 이상탐지가 만들면 시작")
     as_of = ctx["run_date"]
     alerts = db.query(
         "SELECT * FROM anomaly_scores WHERE is_alert=1 AND date_key=?", (as_of,))
@@ -128,6 +142,7 @@ def production_plan_agent(ctx: dict) -> list[int]:
 
     용량 = 라인별 과거 최대 일 계획량 × 1.1. 초과분은 '용량 초과' 경고와 함께
     감축안을 제시 — 결정은 언제나 카드 승인으로."""
+    _require_model("demand_forecast")
     as_of = ctx["run_date"]
     pred = forecast.predict(as_of)
     next_day = pred["date_key"].min()
