@@ -238,3 +238,9 @@
   문서화. 아침 결선은 두 명령(git pull → install-tunnel.sh)+브라우저 승인.
 - 남은 작업 전체를 AX_Next_Work_Plan.docx(①아침 터널 마무리 ②데이터
   반입 ③9/14 데모 ④GPU Ollama ⑤운영 상시화 ⑥대표 몫 ⑦6단계)로 정리·전달.
+- **터널 공개 완료 (2026-09-13 07:08 KST, 실측)**: 아침 재실행에서 2/5
+  인증서 확보 확인 → 터널 axp 생성(95465c11-…) → CNAME 3종
+  (try/app/status.odooaierp.com) 라우트 등록 → cloudflared systemd
+  `active (running)`, 엣지 연결 3개 등록(quic). odooaierp.com 공개
+  구조(B6) 결선 — 외부(사외망) 접속 확인은 대표 휴대폰 검증 대기
+  (클라우드 컨테이너는 egress 정책상 임의 도메인 확인 불가).
