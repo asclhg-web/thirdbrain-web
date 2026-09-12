@@ -230,14 +230,19 @@ def snapshot_stock(date_key: str | None = None) -> dict:
 
 def _m_wape() -> tuple[float | None, str]:
     try:
-        from .learn import retrain
         import math
-        v = retrain.recent_wape(common.now_iso()[:10])
+
+        from .learn import retrain
+        # 벽시계가 아니라 데이터 최신일 기준 — 특징 저장소와 같은 기준점(P7-5 교정)
+        as_of = db.scalar("SELECT MAX(date_key) FROM fact_sales")
+        if not as_of:
+            return None, "판매 실적 없음 — 데이터 축적 후 측정"
+        v = retrain.recent_wape(str(as_of))
         if v is None or (isinstance(v, float) and math.isnan(v)):
             return None, "서빙 모델 학습 전 — 판매 데이터 축적 후 측정"
-        return round(float(v) * 100, 2), "retrain.recent_wape(최근 28일 홀드아웃)"
+        return round(float(v) * 100, 2), f"최근 28일 홀드아웃(기준일 {as_of})"
     except Exception as e:  # noqa: BLE001
-        return None, f"서빙 모델 학습 전({type(e).__name__}) — 판매 데이터 축적 후 측정"
+        return None, f"측정 불가({str(e)[:40]}) — 모델 학습·특징 생성 후"
 
 
 def _m_scrap_rate() -> tuple[float | None, str]:
