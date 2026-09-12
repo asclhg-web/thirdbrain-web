@@ -261,11 +261,16 @@ import pytest as _pytest
 @_pytest.mark.skipif(os.environ.get("AXP_DB") != "postgres",
                      reason="PG 백엔드에서만 — 실 PG로 비Odoo DB 검사")
 def test_connect_wizard_detects_non_odoo_db(tmp_db):
-    """플랫폼 PG(axp)는 Odoo가 아니므로 '검사 중 오류'가 떠야 한다."""
+    """플랫폼 PG 자신은 Odoo가 아니므로 '검사 중 오류'가 떠야 한다.
+    P7-I8: 자격증명 하드코딩(axp/axp)은 개발 클러스터에서만 우연히 맞았다 —
+    실제 검증 대상 DSN(AXP_PG_DSN)에서 접속 정보를 읽어 어느 설치에서도 돈다."""
+    kv = dict(p.split("=", 1) for p in os.environ["AXP_PG_DSN"].split() if "=" in p)
     c = _client()
     _login(c, "admin")
-    r = c.post("/connect", data={"host": "127.0.0.1", "port": "5432",
-                                 "dbname": "axp", "user": "axp", "password": "axp"})
+    r = c.post("/connect", data={"host": kv.get("host", "127.0.0.1"),
+                                 "port": kv.get("port", "5432"),
+                                 "dbname": kv["dbname"], "user": kv["user"],
+                                 "password": kv.get("password", "")})
     assert r.status_code == 400 and "Odoo DB가 맞는지" in r.text
 
 
