@@ -383,3 +383,26 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
   [P-BREAD-T, P-CAKE-T, P-PIE-T], 로트 표식도 M-FLOUR-T 기반** 실측.
 - 파일 순서 결함(신규 DB에서 스키마 생성 전 DROP) 수정 — 스키마 삭제 후
   단독 적용 재검증. prod 전 구간 사이클 '전 단계 정상' 유지.
+## P5-D3: 정비 설비 이름 투영 — 설비 차원 합류 (2026-09-12 00:0x)
+
+- **문제**: v_maintenance가 equipment_id를 숫자 id('1')로 투영해, v_mrp의
+  작업장 이름('OVEN-2')과 dim_equipment에서 서로 다른 행으로 분리됐다
+  (같은 물리 설비인데 차원이 갈라져 정비 사실이 생산과 못 만남).
+- **해소**: maintenance_equipment.name(jsonb, `{"en_US": "OVEN-1(테스트)"}` 실측)
+  을 LEFT JOIN해 COALESCE(en_US → 아무 번역 → id 폴백)로 투영 —
+  v_product_code와 같은 폴백 규약. 전량 재동기화 실측:
+  **dim_equipment = [OVEN-1(테스트), OVEN-2]** (숫자 '1' 소멸),
+  fact_equipment_event 19건 전부 이름으로 결선.
+- prod 사이클 '전 단계 정상', 테스트 92+3skip(SQLite)/95(PG) 유지.
+- **결정(복제 범위)**: res_partner는 이메일·전화 등 PII를 담아 **복제하지
+  않는다** — 공급사(vendor_id)는 숫자 id로 유지하고, 사람이 읽을 별칭은
+  M2 codemap이 담당(온사이트에서 이름이 필요하면 발행 후보에 추가하되
+  개인정보 차단 목록 M1-P를 먼저 적용하는 조건).
+- **관찰(게이트 warn 2건, 원인 규명 — 실데이터가 드러낸 차원 커버리지 격차)**:
+  - P5-I3: dim_calendar가 판매일자만으로 구성 → 미래 착수 MO(2026-09-16)의
+    fact_production.date_key가 참조 고아(warn). 달력을 판매∪생산∪재고∪정비
+    일자 합집합으로 확장할 것(다음 블록).
+  - P5-I4: dim_product가 판매 품목만 담음 → 자재 입고 무브(M-FLOUR-T)의
+    fact_inventory_move.product_id가 참조 고아(warn). 무브 품목 검증을
+    dim_product∪dim_material 합집합 기준으로 바꾸거나 차원 포함 범위를
+    재정의할 것(다음 블록).

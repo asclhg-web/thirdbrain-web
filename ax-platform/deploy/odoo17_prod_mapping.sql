@@ -121,12 +121,16 @@ DROP VIEW IF EXISTS axp_prod.v_maintenance;
 CREATE VIEW axp_prod.v_maintenance AS
 SELECT r.id,
        COALESCE(r.close_date, r.request_date)::text AS event_date,
-       r.equipment_id::text          AS equipment_id,
+       -- P5-D3: 설비도 이름으로 투영(작업장 이름과 차원에서 합류하도록)
+       COALESCE(me.name->>'en_US',
+                (SELECT v.value FROM jsonb_each_text(me.name) v LIMIT 1),
+                r.equipment_id::text) AS equipment_id,
        COALESCE(r.maintenance_type, 'corrective')   AS event_type,
        COALESCE(r.duration, 0) * 60                 AS duration_min,  -- duration은 시간 단위
        r.name                                       AS note,
        r.write_date::text                           AS write_date
-FROM public.maintenance_request r;
+FROM public.maintenance_request r
+LEFT JOIN public.maintenance_equipment me ON me.id = r.equipment_id;
 
 -- staging_quality: Odoo Community에는 quality_check 없음(Enterprise 전용).
 --   Enterprise 고객: quality_check(id, control_date, production_id, product_id,
