@@ -451,3 +451,18 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
 - 실측: prod 프로파일 6계열 전부 count_diff=0·qty_diff=0(ok=True).
   테스트: 일치→ok / 원장 삭제 흉내→count_diff=-1 crit 적발 —
   92+5skip(SQLite)/97(PG). prod 사이클 '전 단계 정상'(cdc_reconcile 포함).
+
+## P5-R2: MO 완료 갱신 실증 + 정합 신호 노출 + 운영 문서 (2026-09-12 00:5x)
+
+- **MO 완료 갱신 실증(P5-I5 생산 계열 검증)**: WH/MO/00002를 실완료 처리 —
+  Odoo 17 함정 2건 기록: 작업주문 미종료 시 button_mark_done이 조용히
+  to_close에 머물고, 자재 소모 0이면 mrp.consumption.warning 위저드가 뜬다
+  (컨텍스트로 create → action_confirm으로 확정). 완료 후 동기화에서
+  **갱신 재수집 1건: prod_date가 예정일(09-16)→실완료일(09-12)로 대체**,
+  fact_production 반영, 게이트·정합 ok — 재수집이 생산 계열도 덮음을 실증.
+- **/status 정합 신호**: recon_log 최근 결과를 불리언 신호로만 노출
+  (수치 비노출 원칙 유지) — 통과/점검 중/대기 3상태. 테스트 추가.
+- **운영 문서 명시(약속 이행)**: pilot-site-checklist C절에 16릴레이션 갱신,
+  정합 배치 첫 실행 확인 항목, 업그레이드 시 워터마크 이전 갱신은 전량
+  재동기화 1회 필요 항목 추가. operations-guide 야간 행에 reconcile_prod 반영.
+- 테스트 92+5skip(SQLite)/97(PG).

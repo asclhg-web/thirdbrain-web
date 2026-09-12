@@ -215,6 +215,13 @@ def test_health_and_status_public(tmp_db):
     r = c.get("/status")
     assert r.status_code == 200
     assert "서비스 상태" in r.text and "정상" in r.text
+    # P5-R2: 정합 배치 신호 — 기록 없으면 '대기', 통과 기록 있으면 '통과'
+    assert "데이터 정합" in r.text and "정합 배치 대기" in r.text
+    from axp import db
+    db.executescript(
+        "CREATE TABLE IF NOT EXISTS recon_log (run_at TEXT, ok INTEGER, detail TEXT)")
+    db.execute("INSERT INTO recon_log VALUES ('2026-09-12T00:00:00', 1, '[]')")
+    assert "최근 정합 배치 통과" in c.get("/status").text
     # 민감 정보(계정·수치·회사 데이터) 미노출 — 최소 신호만
     assert "admin" not in r.text and "카드" not in r.text
 

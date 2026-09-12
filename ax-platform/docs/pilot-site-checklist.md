@@ -30,12 +30,16 @@
 - [ ] postgresql.conf `wal_level=logical` + 재시작 창구 협의 — 고객사 DBA
 - [ ] 복제 전용 계정 axp_repl(REPLICATION, SELECT만) 발급 — 고객사 DBA
 - [ ] odoo_cdc_prod.sql 실행 → publication 생성, 제외된 테이블 NOTICE 기록
-      [리허설 완료: Odoo 17 실스키마에서 11테이블 발행]
+      [리허설 완료: Odoo 17 실스키마에서 16릴레이션 발행 — 품목·로트·작업장 포함]
 - [ ] 플랫폼 측 구독 생성·초기 복사 — 데이터량에 따라 야간 창구
       [리허설 완료: 같은 클러스터 리허설로 절차 검증]
 - [ ] 매핑 뷰 적용(odoo17_prod_mapping.sql) 후 계열별 건수 대조
       [리허설 완료: 뷰 6종] — **버전이 17이 아니면 컬럼 매트릭스 재실측**
 - [ ] pg_dump 백업 스크립트에 `--no-subscriptions` 확인 (P2-I9 — 필수)
+- [ ] 야간 정합 배치(reconcile_prod) 첫 실행 결과 6계열 diff 0 확인 —
+      오차·고아 행 경보 시 처방은 전량 재동기화(cdc_state·staging 삭제 후 sync)
+- [ ] (기존 설치 업그레이드 시) P5-I5 갱신 재수집은 write_date 워터마크가
+      생긴 뒤부터만 동작 — 업그레이드 직후 전량 재동기화 1회로 과거 갱신을 따라잡을 것
 - [ ] Odoo XML-RPC 쓰기 계정(발주 초안용) + 기본 공급처 ID 확인 — P-06
 
 ## D. 판매 원천 (D0~D7)

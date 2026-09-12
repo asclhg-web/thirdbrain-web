@@ -6,7 +6,7 @@
 
 | 시각 | 일 | 명령/화면 | 담당 |
 |---|---|---|---|
-| 야간 | 정합 배치 + 변환 + 마이닝 | scheduler가 자동: `odoo_cdc.reconcile` → `transform.run_all` → `mining.nightly` | 자동 |
+| 야간 | 정합 배치 + 변환 + 마이닝 | scheduler가 자동: `odoo_cdc.reconcile`(demo) / `odoo_cdc.reconcile_prod`(실 Odoo — 뷰 대비 건수·합계, 삭제 고아 적발) → `transform.run_all` → `mining.nightly` | 자동 |
 | 07:00 | 아침 브리핑 발행 | `briefing.run_nightly_and_brief(오늘)` → 메신저 | 자동 |
 | 07:30 | 아침 회의 | 현장 보드(field_board) 순서로 | 현장 리더 |
 | 오전 | 품질 리포트 조치 | `quality.daily_report` 위반 → 격리 큐 확정(`codemap.confirm`) | **스튜어드** |

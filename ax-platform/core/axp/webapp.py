@@ -885,12 +885,18 @@ def status_page():
     except Exception:  # noqa: BLE001
         db_ok = False
     crit_24h = 0
+    recon_ok = None   # P5-R2: 최근 정합 배치 신호(불리언만 — 수치 비노출 원칙 유지)
     if db_ok:
         try:
             cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
             crit_24h = db.scalar(
                 "SELECT COUNT(*) FROM alerts WHERE level='crit' AND created_at>?",
                 (cutoff,)) or 0
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            row = db.one("SELECT ok FROM recon_log ORDER BY run_at DESC LIMIT 1")
+            recon_ok = bool(row["ok"]) if row else None
         except Exception:  # noqa: BLE001
             pass
     dot = lambda ok: ("<span style='color:#0E8F86'>●</span>" if ok
@@ -900,6 +906,7 @@ def status_page():
   <div class="ln">{dot(True)} 웹 애플리케이션 — 정상</div>
   <div class="ln">{dot(db_ok)} 데이터베이스 — {'정상' if db_ok else '점검 중'}</div>
   <div class="ln">{dot(crit_24h == 0)} 야간 파이프라인 — {'최근 24시간 심각 경보 없음' if crit_24h == 0 else f'점검 중(심각 경보 {crit_24h}건)'}</div>
+  <div class="ln">{dot(recon_ok is not False)} 데이터 정합 — {'최근 정합 배치 통과' if recon_ok else ('점검 중' if recon_ok is False else '정합 배치 대기')}</div>
   <div class="sub" style="margin-top:8px">기준 시각: {common.now_iso()} (UTC)</div>
 </div>"""
     return HTMLResponse(page(None, "서비스 상태", body),
