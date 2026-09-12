@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS axp_project_kpis (
   created_at TEXT
 );
 CREATE TABLE IF NOT EXISTS axp_kpi_measurements (
+  m_id INTEGER PRIMARY KEY AUTOINCREMENT,   -- 동일 초 다중 측정의 순서 보장
   kpi_id INTEGER NOT NULL, measured_at TEXT NOT NULL,
   value REAL, source TEXT DEFAULT ''
 );
@@ -114,6 +115,13 @@ AREAS: dict[str, dict] = {
 
 def init() -> None:
     db.executescript(DDL)
+    # P7-1 직후 하루 사이 스키마 교정(m_id 추가): 측정치는 재계산 가능한
+    # 파생값이므로 구버전 테이블은 재생성한다(원장 아님 — 손실 무해).
+    try:
+        db.scalar("SELECT m_id FROM axp_kpi_measurements LIMIT 1")
+    except Exception:  # noqa: BLE001
+        db.executescript("DROP TABLE IF EXISTS axp_kpi_measurements")
+        db.executescript(DDL)
 
 
 def create(name: str, goal: str, owner: str, areas: list[str],
@@ -281,18 +289,32 @@ def measure_all(project_id: int) -> dict:
     return out
 
 
+def measure_active_all() -> dict:
+    """야간 배치 진입점 — 모든 활성 프로젝트 KPI를 측정(누적)."""
+    init()
+    total = {"projects": 0, "measured": 0, "pending": 0}
+    for pr in listing():
+        if pr["status"] != "active":
+            continue
+        r = measure_all(pr["project_id"])
+        total["projects"] += 1
+        total["measured"] += r["measured"]
+        total["pending"] += r["pending"]
+    return total
+
+
 def series(kpi_id: int, limit: int = 30) -> list[dict]:
     init()
     rows = db.query(
         "SELECT measured_at, value FROM axp_kpi_measurements WHERE kpi_id=? "
-        "ORDER BY measured_at DESC LIMIT ?", (kpi_id, limit))
+        "ORDER BY m_id DESC LIMIT ?", (kpi_id, limit))
     return list(reversed(rows))
 
 
 def latest(kpi_id: int) -> dict | None:
     init()
     return db.one("SELECT measured_at, value, source FROM axp_kpi_measurements "
-                  "WHERE kpi_id=? ORDER BY measured_at DESC LIMIT 1", (kpi_id,))
+                  "WHERE kpi_id=? ORDER BY m_id DESC LIMIT 1", (kpi_id,))
 
 
 def kpi_status(k: dict) -> str:

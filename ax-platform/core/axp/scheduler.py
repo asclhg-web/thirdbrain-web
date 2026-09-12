@@ -72,6 +72,10 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
             from .agents import risk
             stage("risk_check", lambda: risk.check_all(run_date))
 
+    # P7-3: KPI 자동 측정 — 에이전트 실행 전에 측정해 kpi_agent가 최신을 본다
+    from . import projects as _projects
+    stage("projects_measure", lambda: _projects.measure_active_all())
+
     from .agents import five, runtime, promotion
     five.register_all()
     stage("agents", lambda: runtime.run_all({"run_date": run_date}, shadow=shadow))

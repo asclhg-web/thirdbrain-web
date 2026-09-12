@@ -199,6 +199,49 @@ def production_plan_agent(ctx: dict) -> list[int]:
     return [jcards.create(card)]
 
 
+def kpi_agent(ctx: dict) -> list[int]:
+    """⑦ KPI 개선 루프(P7-3) — 미달 KPI마다 개선 제안 카드를 승인함으로.
+
+    프로젝트 대시보드의 '미달'을 사람이 놓치지 않게 카드로 끌어온다.
+    승인 시 환류가 improve 피드백을 기록하고, 다음 측정이 루프를 잇는다.
+    같은 KPI의 대기 카드가 있으면 중복 생성하지 않는다."""
+    from .. import projects
+    projects.init()
+    out = []
+    import json as _json
+    open_kpis = {_json.loads(c["evidence_json"]).get("kpi_id")
+                 for c in jcards.listing(status="proposed", kind="kpi_improve")}
+    for pr in projects.listing():
+        if pr["status"] != "active":
+            continue
+        p = projects.get(pr["project_id"])
+        for k in p["kpis"]:
+            if k["target"] is None or k["kpi_id"] in open_kpis:
+                continue
+            if projects.kpi_status(k) != "미달":
+                continue
+            m = projects.latest(k["kpi_id"])
+            area = projects.AREAS[k["area"]]
+            lever = " · ".join(mod for mod, _ in area["modules"][:2])
+            gap = (f"{m['value']:g}{k['unit']} → 목표 {k['target']:g}{k['unit']} "
+                   f"({'낮춰야' if k['direction'] == 'down' else '높여야'} 함)")
+            out.append(jcards.create({
+                "kind": "kpi_improve", "agent": "kpi_agent",
+                "proposal": f"[{p['name']}] {k['kpi_name']} 미달 — 개선 활동 착수 제안 ({gap})",
+                "narrative": (f"{area['name']} 영역 KPI '{k['kpi_name']}'가 목표에 미달했습니다. "
+                              f"현재 {m['value']:g}{k['unit']}, 목표 {k['target']:g}{k['unit']} "
+                              f"[근거: {m['source']}]. 우선 점검 지렛대: {lever}. "
+                              f"승인하면 개선 활동이 피드백 이력에 기록되고, 다음 측정에서 재판정됩니다."),
+                "values": [{"name": k["kpi_name"], "value": m["value"],
+                            "unit": k["unit"], "source": m["source"]}],
+                "range": {"target": k["target"]},
+                "evidence": {"kpi_id": k["kpi_id"], "project_id": p["project_id"],
+                             "area": k["area"], "measured_at": m["measured_at"]},
+                "approver": "card_approver",
+            }))
+    return out
+
+
 def knowledge_agent(ctx: dict) -> list[int]:
     """⑤ 지식검증 — Rule 승격 상신 + 승격된 규칙의 SOP 개정 제안(3단계 심화).
 
@@ -265,6 +308,7 @@ SPECS = {
     "allocation_agent": "트리거: 생산 완료 이벤트 · 입력: fact_production 금일 · 호출: 판매 비중 · 카드: 매장 배분안 · 승인자: 카드 승인자",
     "equip_alert_agent": "트리거: 이상 점수 임계 이벤트 · 입력: anomaly_scores · 호출: 감지기+적중 리포트 · 카드: 점검 제안 · 승인자: 카드 승인자",
     "knowledge_agent": "트리거: 확신도 임계 이벤트 · 입력: causal_candidates · 호출: confidence 루프 · 카드: Rule 승격 상신 · 승인자: 카드 승인자",
+    "kpi_agent": "트리거: 일 배치(측정 후) · 입력: 프로젝트 KPI 실측 vs 목표 · 카드: 미달 KPI 개선 제안(중복 방지) · 승인자: 카드 승인자 — P7 무한 개선 루프",
 }
 
 
@@ -279,3 +323,4 @@ def register_all() -> None:
                      SPECS["equip_alert_agent"])
     runtime.register("knowledge_agent", "event:confidence", knowledge_agent,
                      SPECS["knowledge_agent"])
+    runtime.register("kpi_agent", "daily", kpi_agent, SPECS["kpi_agent"])

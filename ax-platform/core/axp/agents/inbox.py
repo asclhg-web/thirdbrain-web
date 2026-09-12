@@ -130,6 +130,13 @@ def apply_feedback(card_id: int, actor: str) -> dict:
         written.append(_set_param(
             f"sop_revision:{card['evidence']['sop_id']}:{card['evidence']['rule_key']}",
             1.0, card_id, actor))
+    elif card["kind"] == "kpi_improve":
+        # P7-3: KPI 개선 승인 → 피드백 이력 기록(루프의 '개선' 단계).
+        # 다음 야간 측정이 재판정하고, 여전히 미달이면 새 카드가 온다.
+        from .. import projects
+        projects.record_feedback(card["evidence"]["kpi_id"], "improve",
+                                 f"카드 #{card_id} 승인: {card['proposal']}", actor)
+        written.append({"kpi_feedback": card["evidence"]["kpi_id"]})
     elif card["kind"] == "knowledge":
         from ..graph import confidence
         res = confidence.decide(card["evidence"]["cc_id"], True, actor,
