@@ -70,7 +70,27 @@ def test_sync_prod_recollects_updated_rows(prod_view):
     assert r2["staging_sales"] == 0
 
 
+def test_reconcile_prod_detects_orphan(prod_view):
+    """P5-R: 정합 배치 — 일치 시 ok, 원장 삭제로 남은 스테이징 고아는 적발."""
+    staging.init()
+    odoo_cdc.sync_prod()
+    r = odoo_cdc.reconcile_prod()
+    assert r["ok"] is True
+    sales = next(x for x in r["series"] if x["series"] == "staging_sales")
+    assert sales["count_diff"] == 0 and sales["qty_diff"] == 0
+
+    with db.conn() as c:                        # 원장 삭제를 흉내 — 스테이징 고아
+        c.execute(f"DELETE FROM {prod_view}.v_sales WHERE id=1")
+    r2 = odoo_cdc.reconcile_prod()
+    assert r2["ok"] is False
+    sales2 = next(x for x in r2["series"] if x["series"] == "staging_sales")
+    assert sales2["count_diff"] == -1           # 뷰 < 스테이징
+    assert db.scalar("SELECT COUNT(*) FROM recon_log") == 2
+
+
 def test_sync_prod_rejects_sqlite(monkeypatch, tmp_db):
     monkeypatch.setattr(db, "BACKEND", "sqlite")
     with pytest.raises(RuntimeError):
         odoo_cdc.sync_prod()
+    with pytest.raises(RuntimeError):
+        odoo_cdc.reconcile_prod()

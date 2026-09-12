@@ -56,5 +56,6 @@ SELECT slot_name,
        pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS lag
 FROM pg_replication_slots WHERE slot_name = 'axp_slot';
 
--- 4) 야간 정합 배치는 axp.ingest.odoo_cdc.reconcile() 이 수행
---    (건수·수량 합계를 원장과 대조, 오차 시 crit 경보)
+-- 4) 야간 정합 배치는 axp.ingest.odoo_cdc.reconcile_prod() 가 수행
+--    (매핑 뷰 대비 스테이징 건수·수량 합계 대조, 오차 시 crit 경보 —
+--     원장 삭제로 남는 스테이징 고아 행도 여기서 적발, 처방은 전량 재동기화)

@@ -30,10 +30,11 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
 
     from .ingest import odoo_cdc, iot
     # P3: AXP_CDC=prod 면 복제 매핑 뷰 경로(sync_prod), 아니면 demo 폴링.
-    # prod 모드의 정합은 논리 복제 자체가 보장(슬롯 lag 모니터링)하므로
-    # sqlite 원장 대조인 reconcile은 demo 전용이다.
+    # P5-I5 후속: 복제는 원장→실테이블만 보장한다 — 뷰→스테이징 폴링은
+    # 코드 경로이므로 prod도 자체 정합 배치(reconcile_prod)로 대조한다.
     if os.environ.get("AXP_CDC", "demo") == "prod":
         stage("cdc_sync", lambda: odoo_cdc.sync_prod())
+        stage("cdc_reconcile", lambda: odoo_cdc.reconcile_prod())
     else:
         stage("cdc_sync", lambda: odoo_cdc.sync())
         stage("cdc_reconcile", lambda: odoo_cdc.reconcile())

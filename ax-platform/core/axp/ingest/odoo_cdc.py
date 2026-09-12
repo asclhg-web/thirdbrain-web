@@ -152,6 +152,54 @@ def sync_prod(source: str = "odoo_prod") -> dict[str, int]:
     return counts
 
 
+# 스테이징 계열별 수량 대조 컬럼(뷰와 스테이징에 같은 이름으로 존재)
+_PROD_QTY = {"staging_sales": "qty", "staging_purchase": "qty",
+             "staging_stock_move": "qty", "staging_mrp": "qty_done",
+             "staging_maintenance": "duration_min", "staging_quality": "qty_defect"}
+
+
+def reconcile_prod(source: str = "odoo_prod") -> dict:
+    """prod 야간 정합 배치 — 매핑 뷰 대비 스테이징 건수·수량 합계 대조.
+
+    논리 복제는 원장→실테이블 정합을 보장하지만, 뷰→스테이징 폴링
+    (id 증분 + write_date 재수집)은 코드 경로라 별도 대조가 필요하다.
+    원장에서 삭제된 행이 스테이징에 고아로 남는 경우도 여기서만 적발된다
+    (count_diff 음수 → crit 경보, 처방은 전량 재동기화)."""
+    if db.BACKEND != "postgres":
+        raise RuntimeError("reconcile_prod는 PostgreSQL 백엔드 전용입니다 (AXP_DB=postgres)")
+    report, ok = [], True
+    for view, stable in PROD_SERIES.items():
+        vschema, vname = view.split(".", 1)
+        if not db.scalar(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_schema=? AND table_name=?", (vschema, vname)):
+            continue   # 매핑 뷰 없음(모듈 부재) — sync_prod와 동일 기준
+        v_cnt = db.scalar(f"SELECT COUNT(*) FROM {view}") or 0
+        s_cnt = db.scalar(
+            f"SELECT COUNT(*) FROM {stable} WHERE _source=?", (source,)) or 0
+        qty = _PROD_QTY[stable]
+        v_sum = db.scalar(f"SELECT COALESCE(SUM({qty}),0) FROM {view}") or 0
+        s_sum = db.scalar(
+            f"SELECT COALESCE(SUM({qty}),0) FROM {stable} WHERE _source=?",
+            (source,)) or 0
+        row = {"series": stable, "view_count": v_cnt, "staging_count": s_cnt,
+               "count_diff": v_cnt - s_cnt,
+               "qty_diff": round(float(v_sum) - float(s_sum), 6)}
+        bad = row["count_diff"] != 0 or abs(row["qty_diff"]) > 1e-6
+        row["ok"] = not bad
+        if bad:
+            ok = False
+            common.alert("crit", "M1-1", f"prod 정합 오차: {row}")
+        report.append(row)
+    result = {"ok": ok, "series": report, "checked_at": common.now_iso()}
+    db.executescript(
+        "CREATE TABLE IF NOT EXISTS recon_log (run_at TEXT, ok INTEGER, detail TEXT)")
+    import json
+    db.execute("INSERT INTO recon_log VALUES (?,?,?)",
+               (result["checked_at"], int(ok), json.dumps(report, ensure_ascii=False)))
+    return result
+
+
 def reconcile() -> dict:
     """야간 정합 배치 — 원장 대비 건수·수량 합계 대조. 오차는 경보."""
     src = sqlite3.connect(source_path())

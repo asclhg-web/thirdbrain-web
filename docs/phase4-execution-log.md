@@ -438,3 +438,16 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
   button_validate.
 - 테스트: test_sync_prod에 갱신 재수집·멱등 테스트 추가 —
   92+4skip(SQLite)/96(PG). prod 사이클 '전 단계 정상', 게이트 위반 0 유지.
+
+## P5-R: prod 야간 정합 배치 결선 — reconcile_prod (2026-09-12 00:4x)
+
+- **격차**: 스케줄러 prod 분기는 "정합은 복제가 보장"을 근거로 정합 배치를
+  생략했다 — 그러나 복제가 보장하는 건 원장→실테이블까지고, 뷰→스테이징
+  폴링(id 증분 + P5-I5 재수집)은 코드 경로다. 원장에서 삭제된 행이
+  스테이징에 고아로 남는 경우는 어떤 기존 장치로도 적발되지 않았다.
+- **해소**: reconcile_prod() 신설 — 매핑 뷰 대비 스테이징(_source 필터)
+  건수·수량 합계를 계열별 대조, 오차 시 crit 경보 + recon_log 기록.
+  스케줄러 prod 분기에 cdc_reconcile 단계로 결선(주석의 낡은 근거 교체).
+- 실측: prod 프로파일 6계열 전부 count_diff=0·qty_diff=0(ok=True).
+  테스트: 일치→ok / 원장 삭제 흉내→count_diff=-1 crit 적발 —
+  92+5skip(SQLite)/97(PG). prod 사이클 '전 단계 정상'(cdc_reconcile 포함).
