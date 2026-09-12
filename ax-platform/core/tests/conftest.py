@@ -33,3 +33,13 @@ def tmp_db(tmp_path, monkeypatch):
                 c.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
         except Exception:
             pass  # 정리 실패가 테스트를 깨뜨리진 않는다
+        # P7-I1: 프로파일별 캐시 연결이 테스트마다 누적돼 스위트가 커지면
+        # max_connections 고갈("too many clients")로 마지막 테스트가 깨진다 —
+        # 이 테스트의 스키마 연결을 닫고 캐시에서 제거한다.
+        cache = getattr(_db._tls, "pg", None) or {}
+        raw = cache.pop(schema, None)
+        if raw is not None:
+            try:
+                raw.close()
+            except Exception:
+                pass
