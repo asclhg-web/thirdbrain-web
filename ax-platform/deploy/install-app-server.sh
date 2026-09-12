@@ -95,7 +95,12 @@ fi
 echo "== 6/7 검증 (테스트 양쪽 백엔드) =="
 cd "$AXP_HOME"
 sudo -u axp env AXP_DATA="$AXP_DATA" python3 -m pytest -q core/tests | tail -1
-sudo -u axp env $(grep -v '^#' "$ENV_FILE" | xargs) python3 -m pytest -q core/tests | tail -1
+# P7-I6(서버1 실설치 적발): env를 xargs로 풀면 DSN의 공백에서 끊어져
+# 비밀번호 없는 반쪽 DSN으로 접속 — PG 스위트가 전면 거짓 실패한다.
+# 검증은 정렬된 PGPW로 DSN을 직접 조립해 통째로 전달한다(따옴표 보존).
+sudo -u axp env AXP_DATA="$AXP_DATA" AXP_DB=postgres \
+  AXP_PG_DSN="host=127.0.0.1 port=5432 user=axp password=${PGPW} dbname=axp" \
+  python3 -m pytest -q core/tests | tail -1
 
 echo "== 7/7 systemd 등록·기동 (웹·스케줄러·하트비트) =="
 cp "$AXP_HOME/deploy/systemd/axp-web.service" /etc/systemd/system/
