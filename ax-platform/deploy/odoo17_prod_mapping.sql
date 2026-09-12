@@ -62,7 +62,14 @@ SELECT l.id,
        COALESCE(pc.code, l.product_id::text) AS material_id,
        l.product_qty                 AS qty,
        l.price_unit                  AS unit_price,
-       NULL::text                    AS lot_id,   -- 로트는 입고 stock_move_line에서 (2차)
+       -- P3-I9 완결: 입고 확정 시 실로트 결선 — stock_move.purchase_line_id로
+       --   발주 라인과 입고 무브를 정확히 잇는다(추정 아님). 입고 전엔 NULL이며
+       --   하류 transform이 'LOT-미상' 표식으로 지켰다가 재수집 시 실로트로 대체.
+       (SELECT lt.name FROM public.stock_move sm
+          JOIN public.stock_move_line ml ON ml.move_id = sm.id
+          JOIN public.stock_lot lt ON lt.id = ml.lot_id
+         WHERE sm.purchase_line_id = l.id AND sm.state = 'done'
+         ORDER BY ml.id LIMIT 1)     AS lot_id,
        l.write_date::text            AS write_date
 FROM public.purchase_order_line l
 JOIN public.purchase_order o ON o.id = l.order_id

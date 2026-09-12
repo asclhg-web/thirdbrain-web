@@ -53,6 +53,23 @@ def test_sync_prod_incremental_and_idempotent(prod_view):
     assert db.scalar("SELECT COUNT(*) FROM staging_sales") == 3
 
 
+def test_sync_prod_recollects_updated_rows(prod_view):
+    """P5-I5: 원장에서 제자리 갱신된 행(입고 후 로트 확정 등)은 id 증분에
+    안 잡힌다 — write_date 워터마크로 다시 떠서 스테이징에서 대체한다."""
+    staging.init()
+    odoo_cdc.sync_prod()                        # 초기 적재 + 워터마크
+    with db.conn() as c:                        # 원장 제자리 갱신을 흉내
+        c.execute(f"UPDATE {prod_view}.v_sales "
+                  "SET qty=999, write_date='2026-09-05' WHERE id=1")
+    r = odoo_cdc.sync_prod()
+    assert r["staging_sales"] == 1              # 갱신 재수집 1건
+    assert db.scalar("SELECT COUNT(*) FROM staging_sales") == 2  # 행수 불변(대체)
+    assert db.scalar("SELECT qty FROM staging_sales WHERE src_id=1") == 999
+
+    r2 = odoo_cdc.sync_prod()                   # 멱등 — 워터마크 전진 후 재수집 없음
+    assert r2["staging_sales"] == 0
+
+
 def test_sync_prod_rejects_sqlite(monkeypatch, tmp_db):
     monkeypatch.setattr(db, "BACKEND", "sqlite")
     with pytest.raises(RuntimeError):

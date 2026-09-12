@@ -418,3 +418,23 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
 - 테스트 92+3skip(SQLite)/95(PG), 데모 스냅샷 회귀 30/30 유지
   (데모 프로파일은 무브 품목이 전부 판매 품목이라 차원 내용 불변).
 - CDC 소크 19사이클 정합(all_ok, mismatch 없음, slot lag 490kB 정상 범위).
+
+## P5-I5 해소 + P3-I9 완결: 갱신 재수집·입고 실로트 backfill (2026-09-12 00:3x)
+
+- **P5-I5(신규 발견·해소)**: sync_prod가 id 증분 전용이라 원장에서 제자리
+  갱신된 행(입고 후 로트 확정, MO 완료 수량, 정비 종결)이 재수집되지 않았다.
+  cdc_state에 write_date 워터마크(last_write_date)를 추가하고, 워터마크 이후
+  갱신된 기존 행을 다시 떠서 스테이징에서 대체(멱등). 기존 프로파일은
+  마이그레이션(ALTER 멱등)으로 컬럼이 생기며, 워터마크 초기화 이전의 갱신은
+  전량 재동기화로만 따라잡는다(운영 문서 명시 사항).
+- **P3-I9 완결**: v_purchase의 lot_id를 stock_move.purchase_line_id 경유
+  입고 실로트로 결선(추정 아님, 정확한 발주라인-입고 링크). E2E 실증:
+  P00054 자재 발주 생성·확정 → 동기화(lot NULL) → 입고 확정(LOT-2612-B)
+  → 다음 동기화에서 **갱신 재수집 1건, staging lot_id가 LOT-2612-B로 대체**
+  → fact_procurement·dim_material_lot에 실로트 반영. 남은 LOT-미상 4건은
+  실제 미입고 발주(정직한 잔여).
+- Odoo 17 함정: stock.move.line의 qty_done·reserved_uom_qty가 17에서
+  quantity·picked로 개편 — 입고 스크립트는 quantity=수량, picked=True 후
+  button_validate.
+- 테스트: test_sync_prod에 갱신 재수집·멱등 테스트 추가 —
+  92+4skip(SQLite)/96(PG). prod 사이클 '전 단계 정상', 게이트 위반 0 유지.

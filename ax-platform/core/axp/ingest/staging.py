@@ -55,10 +55,16 @@ CREATE TABLE IF NOT EXISTS staging_iot (
 CREATE INDEX IF NOT EXISTS idx_iot_ts ON staging_iot (equipment_id, signal, reading_ts);
 CREATE TABLE IF NOT EXISTS cdc_state (
   table_name TEXT PRIMARY KEY, last_src_id INTEGER NOT NULL DEFAULT 0,
-  last_run_at TEXT
+  last_run_at TEXT, last_write_date TEXT
 );
 """
 
 
 def init() -> None:
     db.executescript(DDL)
+    # P5-I5 마이그레이션: 이 DDL 이전에 만들어진 DB의 cdc_state에는
+    # 갱신 워터마크 컬럼이 없다 — 있으면 그대로, 없으면 추가(멱등).
+    try:
+        db.execute("ALTER TABLE cdc_state ADD COLUMN last_write_date TEXT")
+    except Exception:
+        pass

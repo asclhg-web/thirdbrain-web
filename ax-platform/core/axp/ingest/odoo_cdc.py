@@ -109,22 +109,46 @@ def sync_prod(source: str = "odoo_prod") -> dict[str, int]:
                 "WHERE table_schema=? AND table_name=?", (vschema, vname)):
             counts[stable] = -1   # 매핑 뷰 없음(복제 미구성 또는 모듈 부재)
             continue
-        last = db.scalar(
-            "SELECT last_src_id FROM cdc_state WHERE table_name=?", (stable,)) or 0
+        st = db.one(
+            "SELECT last_src_id, last_write_date FROM cdc_state WHERE table_name=?",
+            (stable,))
+        last = (st["last_src_id"] if st else 0) or 0
+        last_wd = (st["last_write_date"] if st else None) or ""
+        ts = common.now_iso()
         rows = db.query(f"SELECT * FROM {view} WHERE id > ? ORDER BY id", (last,))
         if rows:
             ncols = len(rows[0])
             placeholders = ",".join(["?"] * (ncols + 2))
-            ts = common.now_iso()
             db.executemany(
                 f"INSERT INTO {stable} VALUES ({placeholders})",
                 [tuple(r.values()) + (ts, source) for r in rows])
-            db.execute(
-                "INSERT INTO cdc_state (table_name, last_src_id, last_run_at) VALUES (?,?,?) "
-                "ON CONFLICT(table_name) DO UPDATE SET last_src_id=excluded.last_src_id, "
-                "last_run_at=excluded.last_run_at",
-                (stable, rows[-1]["id"], ts))
-        counts[stable] = len(rows)
+        # P5-I5: 갱신 재수집 — 원장에서 제자리 갱신된 행(입고 후 로트 확정,
+        # MO 완료 수량, 정비 종결 등)은 id 증분에 잡히지 않는다. write_date
+        # 워터마크 이후 갱신된 기존 행을 다시 떠서 스테이징에서 대체한다.
+        # (워터마크가 없는 기존 프로파일은 이번 실행에서 초기화만 되고,
+        #  그 이전의 갱신은 전량 재동기화로만 따라잡는다 — 운영 문서에 명시)
+        upd = []
+        if last and last_wd:
+            upd = db.query(
+                f"SELECT * FROM {view} WHERE id <= ? AND write_date > ? ORDER BY id",
+                (last, last_wd))
+            if upd:
+                ncols = len(upd[0])
+                placeholders = ",".join(["?"] * (ncols + 2))
+                for r in upd:
+                    db.execute(f"DELETE FROM {stable} WHERE src_id=?", (r["id"],))
+                db.executemany(
+                    f"INSERT INTO {stable} VALUES ({placeholders})",
+                    [tuple(r.values()) + (ts, source) for r in upd])
+        new_last = rows[-1]["id"] if rows else last
+        new_wd = db.scalar(f"SELECT MAX(write_date) FROM {view}") or last_wd or None
+        db.execute(
+            "INSERT INTO cdc_state (table_name, last_src_id, last_run_at, last_write_date) "
+            "VALUES (?,?,?,?) "
+            "ON CONFLICT(table_name) DO UPDATE SET last_src_id=excluded.last_src_id, "
+            "last_run_at=excluded.last_run_at, last_write_date=excluded.last_write_date",
+            (stable, new_last, ts, new_wd))
+        counts[stable] = len(rows) + len(upd)
     return counts
 
 
