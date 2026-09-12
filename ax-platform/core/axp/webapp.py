@@ -17,6 +17,7 @@ import json
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -608,6 +609,117 @@ def _users_page(u, msg: str = "") -> str:
   <p><input name="display" placeholder="표시 이름 (예: 김순희)" style="width:100%" required></p>
   <button class="btn ok">계정 만들기</button>
 </form>"""
+
+
+# ── P6-2: 체험 신청·발급 — 승인제 기본, 자동 발급은 스위치 ─────────
+_SIGNUP_FORM = """<h2>체험 신청</h2>
+<p class="sub">신청 후 {mode} 체험 데이터는 합성 데이터이며, 업로드 파일은 24시간 뒤 파기됩니다.</p>{msg}
+<form method="post" class="card" style="max-width:460px">
+  <p><input name="company" placeholder="회사명" style="width:100%"></p>
+  <p><input name="email" placeholder="이메일" style="width:100%"></p>
+  <p><input name="contact" placeholder="담당자 이름(선택)" style="width:100%"></p>
+  <p><textarea name="note" placeholder="쓰시는 ERP·궁금한 점(선택)" style="width:100%;height:60px"></textarea></p>
+  <p style="display:none"><input name="website" tabindex="-1" autocomplete="off"></p>
+  <button class="btn ok" style="width:100%">신청</button>
+</form>"""
+
+
+def _signup_mode() -> str:
+    from . import signup
+    return ("계정이 즉시 발급됩니다." if signup.auto_issue_enabled()
+            else "담당자가 확인 후 1영업일 안에 계정을 보내 드립니다(승인제).")
+
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup_form():
+    return HTMLResponse(page(None, "체험 신청",
+                             _SIGNUP_FORM.format(mode=_signup_mode(), msg="")))
+
+
+@app.post("/signup", response_class=HTMLResponse)
+async def signup_submit(request: Request):
+    from . import signup
+    form = await request.form()
+    if str(form.get("website", "")):          # 허니팟 — 봇은 조용히 성공 화면만
+        return HTMLResponse(page(None, "체험 신청",
+            "<div class='card ok'>신청이 접수되었습니다.</div>"))
+    try:
+        row = signup.submit(str(form.get("company", "")), str(form.get("email", "")),
+                            str(form.get("contact", "")), str(form.get("note", "")))
+    except ValueError as e:
+        return HTMLResponse(page(None, "체험 신청",
+            _SIGNUP_FORM.format(mode=_signup_mode(),
+                                msg=f"<div class='card warn'>{html.escape(str(e))}</div>")), 400)
+    if signup.auto_issue_enabled():
+        try:
+            r = signup.issue(row["req_id"], "auto(AXP_AUTO_ISSUE)")
+            creds = Path(r["tenant"]["credentials_file"]).read_text(encoding="utf-8")
+            return HTMLResponse(page(None, "체험 발급", f"""
+<div class='card ok'><b>체험 계정이 발급되었습니다 — 이 화면은 한 번만 보입니다.</b>
+<pre style='white-space:pre-wrap'>{html.escape(creds)}</pre>
+<p class='sub'>첫 로그인에서 비밀번호를 바꾸게 됩니다. 접속 주소는 안내 메일을 확인하세요.</p></div>"""))
+        except Exception as e:  # noqa: BLE001 — 발급 실패는 대기로 남고 사람이 잇는다
+            common.alert("warn", "signup", f"자동 발급 실패 #{row['req_id']}: {e} — 승인제 경로로 대기")
+    return HTMLResponse(page(None, "체험 신청",
+        "<div class='card ok'>신청이 접수되었습니다 — 담당자가 확인 후 이메일로 안내드립니다.</div>"))
+
+
+def _signups_page(u, msg: str = "") -> str:
+    from . import signup
+    rows = signup.pending()
+    trs = "".join(
+        f"<tr><td>#{r['req_id']}</td><td>{html.escape(r['company'])}</td>"
+        f"<td>{html.escape(r['email'])}</td><td class='sub'>{html.escape(r['note'] or '')}</td>"
+        f"<td><form method='post' action='/signups/issue' style='display:inline'>"
+        f"<input type='hidden' name='req_id' value='{r['req_id']}'>"
+        f"<button class='btn ok'>발급</button></form> "
+        f"<form method='post' action='/signups/reject' style='display:inline'>"
+        f"<input type='hidden' name='req_id' value='{r['req_id']}'>"
+        f"<button class='btn'>반려</button></form></td></tr>" for r in rows)
+    mode = "자동 발급 켜짐(AXP_AUTO_ISSUE=1)" if signup.auto_issue_enabled() \
+        else "승인제(자동 발급 꺼짐 — 접수된 결정)"
+    return (f"<h2>체험 신청 관리</h2><p class='sub'>현재 모드: {mode}. 발급 시 테넌트가 만들어지고 "
+            f"초기 비밀번호 파일 경로가 표시됩니다 — 이메일 발송은 수동입니다(SMTP 결선 전).</p>{msg}"
+            f"<div class='card'><b>대기 {len(rows)}건</b><table style='width:100%;margin-top:8px'>"
+            f"<tr><th>#</th><th>회사</th><th>이메일</th><th>메모</th><th></th></tr>{trs}</table></div>")
+
+
+@app.get("/signups", response_class=HTMLResponse)
+def signups_page(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "체험 신청 관리", _signups_page(u), "/signups"))
+
+
+@app.post("/signups/issue", response_class=HTMLResponse)
+async def signups_issue(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import signup
+    form = await request.form()
+    try:
+        r = signup.issue(int(str(form.get("req_id", "0"))), u["username"])
+        msg = (f"<div class='card ok'>발급 완료 — 테넌트 {html.escape(r['request']['tenant_name'])} · "
+               f"초기 계정: {html.escape(r['tenant']['credentials_file'])}</div>")
+    except (ValueError, TypeError) as e:
+        msg = f"<div class='card warn'>{html.escape(str(e))}</div>"
+    return HTMLResponse(page(u, "체험 신청 관리", _signups_page(u, msg), "/signups"))
+
+
+@app.post("/signups/reject", response_class=HTMLResponse)
+async def signups_reject(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import signup
+    form = await request.form()
+    try:
+        signup.reject(int(str(form.get("req_id", "0"))), u["username"])
+    except (ValueError, TypeError):
+        pass
+    return RedirectResponse("/signups", status_code=303)
 
 
 # ── P6-1: 과금 — 구독·청구·미납 잠금 (admin) ─────────────────────
