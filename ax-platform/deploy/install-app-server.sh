@@ -48,6 +48,9 @@ rsync -a --delete "$REPO_DIR/core" "$REPO_DIR/deploy" "$AXP_HOME/"
 chown -R axp:axp "$AXP_HOME" /var/lib/axp
 
 echo "== 4/7 파이썬 의존성 =="
+# 서버1 실설치 실측(P7): 우분투 24.04 기본 typing_extensions(4.10, deb 설치)를
+# pip이 못 지워 중단 — 선제 대체로 우회(RECORD 없는 deb 패키지 충돌 유형)
+pip3 install -q --break-system-packages --ignore-installed typing_extensions
 pip3 install -q --break-system-packages \
   pandas scikit-learn matplotlib pyarrow fastapi "uvicorn[standard]" \
   python-multipart openpyxl defusedxml lxml pytest "psycopg[binary]" httpx

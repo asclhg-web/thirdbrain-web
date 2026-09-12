@@ -164,3 +164,13 @@
 - 우선순위 전환: 9/14 태성당 데모 최종 점검 — 기존 리허설 문서를
   AX_Demo_Day_Onepager.docx(당일 한 장: 5분 점검·15분 타임라인·질문
   한 줄 답·플랜B·금지 3)로 압축, 렌더 1쪽 검수·전달.
+
+## 서버1 실설치 진행 (2026-09-12 11:2x~, 대표 실시간)
+
+- BIOS: ASUS PRIME B560M-A — 'Intel (VMX) 가상화 기술' Enabled 확인
+  (WMI VirtualizationFirmwareEnabled는 False로 오보 — 실판정은 wsl 설치
+  성공 여부로. 교훈: WMI 표시를 신뢰 기준으로 쓰지 말 것).
+- WSL2 Ubuntu-24.04 설치·사용자(asc) 생성·systemd 활성(ps -p 1=systemd).
+- 저장소 public 확인 → 무인증 clone. install-app-server.sh 실행:
+  4/7에서 우분투 24.04 기본 typing_extensions(deb) 충돌로 중단(P7-I3) —
+  --ignore-installed 선제 대체로 우회, 스크립트에 반영.
