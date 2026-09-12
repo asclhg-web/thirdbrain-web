@@ -27,7 +27,24 @@ fi
 cloudflared --version
 
 echo "── 2/5 Cloudflare 로그인 (브라우저 승인 — ${ZONE} 존 선택)"
-[ -f /root/.cloudflared/cert.pem ] || cloudflared tunnel login
+if [ ! -f /root/.cloudflared/cert.pem ]; then
+  cloudflared tunnel login || true
+  # P7-I10(서버1 실측): WSL에서 인증서 자동 전달이 'Failed to fetch
+  # resource'로 실패하는 사례 — 승인만 됐다면 브라우저가 cert.pem을
+  # 내려받으므로 Windows 다운로드 폴더에서 자동 회수한다.
+  if [ ! -f /root/.cloudflared/cert.pem ]; then
+    F=$(ls -t /mnt/c/Users/*/Downloads/cert*.pem 2>/dev/null | head -1)
+    if [ -n "$F" ]; then
+      mkdir -p /root/.cloudflared && cp "$F" /root/.cloudflared/cert.pem
+      echo "  자동 회수: $F → /root/.cloudflared/cert.pem"
+    else
+      echo "!! 인증서가 없습니다 — 화면의 URL을 브라우저로 열어 로그인하고"
+      echo "   도메인(${ZONE})을 클릭·선택한 뒤 파란 Authorize(권한 부여)"
+      echo "   버튼까지 눌러야 합니다. URL은 몇 분이면 만료 — 완료 후 재실행."
+      exit 1
+    fi
+  fi
+fi
 
 echo "── 3/5 터널 생성: ${TUNNEL_NAME}"
 cloudflared tunnel list | grep -q " ${TUNNEL_NAME} " || cloudflared tunnel create "${TUNNEL_NAME}"

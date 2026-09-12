@@ -56,9 +56,20 @@ $ sudo systemctl restart axp-web axp-scheduler
 ```bash
 $ sudo bash deploy/install-tunnel.sh
 ```
-중간에 나오는 URL을 브라우저로 열어 Cloudflare 로그인 → odooaierp.com 존
-승인(= 서브도메인 3종 결정). 끝나면 휴대폰(사외망)에서
-try.odooaierp.com 접속 확인.
+
+2/5에서 나오는 `https://dash.cloudflare.com/argotunnel?...` 주소는
+**일회용·수 분 내 만료** — 나오는 즉시 복사해 Windows 브라우저에서 연다.
+
+1. Cloudflare 로그인(odooaierp.com을 등록한 계정).
+2. "Authorize Argo Tunnel"(권한 부여) 페이지의 **도메인 목록에서
+   odooaierp.com 줄을 클릭**해 선택.
+3. 하단에 활성화되는 파란 **Authorize(권한 부여)** 버튼 클릭 → Success.
+4. WSL 터미널에 `You have successfully logged in` 확인.
+
+WSL 실측(P7-I10): 승인해도 터미널에 `Failed to write the certificate`가
+나올 수 있다 — 이때 브라우저가 cert.pem을 내려받으며, 스크립트가
+Windows 다운로드 폴더에서 **자동 회수**한다(재실행만 하면 됨).
+끝나면 휴대폰(사외망)에서 try.odooaierp.com 접속 확인.
 
 ## 6. 상시성 (겸용 장비 주의)
 

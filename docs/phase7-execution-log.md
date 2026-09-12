@@ -227,3 +227,14 @@
   완주 — 실설치 적발 결함 7건(I3~I9) 전부 당일 수정·검증·반영.
   다음 갈림길: (A) GPU 서버 Ollama 연결(192.168.0.5, server-map.md 절차)
   (B) Cloudflare Tunnel 공개(install-tunnel.sh — odooaierp.com, B6).
+- **B(터널 공개) 착수 — 브라우저 승인에서 야간 중단 (2026-09-12 밤)**:
+  cloudflared 설치·로그인 URL 발급까지 진행. `tunnel login`이 3회 모두
+  'Failed to write the certificate / Failed to fetch resource'로 종료 —
+  승인(Authorize) 미완료 + URL 만료 반복이 겹친 상황. 대표 취침으로 중단.
+- **P7-I10(서버1 실측)**: WSL에서 cert 자동 전달 실패 사례에 대비해
+  install-tunnel.sh 2/5에 Windows 다운로드 폴더의 cert*.pem **자동 회수**
+  추가(승인만 되면 재실행으로 완결). 승인 화면 절차(도메인 클릭→파란
+  Authorize)와 URL 만료 주의를 deploy-server1-wsl.md 5절에 화면 기준으로
+  문서화. 아침 결선은 두 명령(git pull → install-tunnel.sh)+브라우저 승인.
+- 남은 작업 전체를 AX_Next_Work_Plan.docx(①아침 터널 마무리 ②데이터
+  반입 ③9/14 데모 ④GPU Ollama ⑤운영 상시화 ⑥대표 몫 ⑦6단계)로 정리·전달.
