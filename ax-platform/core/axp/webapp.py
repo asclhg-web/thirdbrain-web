@@ -1193,6 +1193,19 @@ async def upload_post(request: Request):
     if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
         return HTMLResponse(page(u, "자료 반입", _upload_form(
             f"<div class='card warn'>파일이 너무 큽니다(최대 {MAX_UPLOAD_MB}MB).</div>"), "/upload"), 413)
+    # P6-4: 테넌트 저장 총량 상한 — 파일 1건 크기와 별개로 raw 수신함
+    # 누적이 쿼터를 넘으면 반입 거부(체험 남용·디스크 고갈 방지).
+    # 체험 테넌트는 24시간 파기(purge-uploads)가 있어 정상 사용은 안 걸린다.
+    quota = int(os.environ.get("AXP_TENANT_QUOTA_MB", "500"))
+    raw_dir = config.DATA / "raw"
+    used = sum(p.stat().st_size for p in raw_dir.rglob("*") if p.is_file()) \
+        if raw_dir.exists() else 0
+    if used + len(data) > quota * 1024 * 1024:
+        common.alert("warn", "webapp",
+                     f"업로드 쿼터 초과 거부: 사용 {used // (1024*1024)}MB / 상한 {quota}MB (by {u['username']})")
+        return HTMLResponse(page(u, "자료 반입", _upload_form(
+            f"<div class='card warn'>저장 공간 상한({quota}MB)에 도달했습니다 — "
+            f"오래된 업로드가 파기된 뒤 다시 시도하거나 관리자에게 문의하세요.</div>"), "/upload"), 413)
     # 안전한 파일명으로 수신함에 저장 후 어댑터 호출(원본 보존은 어댑터가 수행)
     import re as _re
     from pathlib import Path as _P

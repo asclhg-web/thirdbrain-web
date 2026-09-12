@@ -191,6 +191,20 @@ def test_upload_pos_daily_via_web(tmp_db):
     assert "이미 반입" in r2.text                      # sha256 멱등
 
 
+def test_upload_quota_rejects(tmp_db, monkeypatch):
+    """P6-4: raw 수신함 누적이 쿼터를 넘으면 413 — 파일 1건 상한과 별개."""
+    from axp import config
+    monkeypatch.setenv("AXP_TENANT_QUOTA_MB", "1")
+    big = config.DATA / "raw" / "old"
+    big.mkdir(parents=True, exist_ok=True)
+    (big / "filler.bin").write_bytes(b"0" * (1024 * 1024))
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/upload", data={"kind": "pos_daily"},
+               files={"file": ("x.csv", b"a,b\n1,2\n", "text/csv")})
+    assert r.status_code == 413 and "상한" in r.text
+
+
 def test_upload_requires_steward(tmp_db):
     c = _client()
     _login(c, "approver")
