@@ -244,3 +244,6 @@
   `active (running)`, 엣지 연결 3개 등록(quic). odooaierp.com 공개
   구조(B6) 결선 — 외부(사외망) 접속 확인은 대표 휴대폰 검증 대기
   (클라우드 컨테이너는 egress 정책상 임의 도메인 확인 불가).
+- **공개 경로 실측 (07:15 KST)**: 서버1에서
+  `curl https://try.odooaierp.com/health` → `{"ok":true}` — Cloudflare
+  엣지 왕복 확인. 남은 확인: 사외망(휴대폰 LTE) 접속.
