@@ -174,3 +174,8 @@
 - 저장소 public 확인 → 무인증 clone. install-app-server.sh 실행:
   4/7에서 우분투 24.04 기본 typing_extensions(deb) 충돌로 중단(P7-I3) —
   --ignore-installed 선제 대체로 우회, 스크립트에 반영.
+- **P7-I4(서버1 실설치 적발)**: 설치 스크립트 3/7 rsync가 core·deploy만
+  배치하고 registry(데이터 계약)를 빠뜨림 → 6/7 검증에서
+  test_contract_rules_generated가 계약 없음으로 실패(운영이었다면 품질
+  게이트 전면 '계약 없음' crit). rsync에 registry 추가로 해소 —
+  6/7 검증 단계가 실배치 결함을 출고 전에 잡아낸 실례.

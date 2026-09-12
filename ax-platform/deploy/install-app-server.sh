@@ -44,7 +44,9 @@ grep -q "^wal_level = logical" "$PGCONF" || {
 echo "== 3/7 코드 배치 =="
 id -u axp &>/dev/null || useradd -r -m -d /var/lib/axp -s /usr/sbin/nologin axp
 mkdir -p "$AXP_HOME" "$AXP_DATA"
-rsync -a --delete "$REPO_DIR/core" "$REPO_DIR/deploy" "$AXP_HOME/"
+# P7-I4(서버1 실설치 적발): registry(데이터 계약)가 빠지면 품질 게이트가
+# '계약 없음'으로 전면 실패한다 — 코드·계약·배포 3종을 함께 배치
+rsync -a --delete "$REPO_DIR/core" "$REPO_DIR/deploy" "$REPO_DIR/registry" "$AXP_HOME/"
 chown -R axp:axp "$AXP_HOME" /var/lib/axp
 
 echo "== 4/7 파이썬 의존성 =="
