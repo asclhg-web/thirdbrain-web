@@ -9,6 +9,7 @@
 | 야간 | 정합 배치 + 변환 + 마이닝 | scheduler가 자동: `odoo_cdc.reconcile`(demo) / `odoo_cdc.reconcile_prod`(실 Odoo — 뷰 대비 건수·합계, 삭제 고아 적발) → `transform.run_all` → `mining.nightly` | 자동 |
 | 07:00 | 아침 브리핑 발행 | `briefing.run_nightly_and_brief(오늘)` → 메신저 | 자동 |
 | 07:30 | 아침 회의 | 현장 보드(field_board) 순서로 | 현장 리더 |
+| 아침 | 프로젝트 KPI 확인(P7) | 브리핑의 'KPI' 절 또는 /projects 대시보드 — 미달 KPI의 개선 카드는 승인함에서 처리, 목표 조정은 사유와 함께 | **관리자/승인자** |
 | 오전 | 품질 리포트 조치 | `quality.daily_report` 위반 → 격리 큐 확정(`codemap.confirm`) | **스튜어드** |
 | 수시 | 승인함 처리 | /cards 대기 카드 검토·승인/반려(사유 필수) | **카드 승인자** |
 | 수시 | 체험 신청 처리(P6-2) | /signups 대기 목록 → 발급(테넌트 자동 생성·초기 계정 파일 경로 표시)·반려. 이메일 발송은 수동(SMTP 결선 전). 자동 발급은 AXP_AUTO_ISSUE=1 협의 후에만 | **admin** |

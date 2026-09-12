@@ -709,6 +709,11 @@ async def projects_create(request: Request):
     return RedirectResponse(f"/projects/{p['project_id']}", status_code=303)
 
 
+def jcards_listing_kpi():
+    from .judge import cards as jcards
+    return jcards.listing(status="proposed", kind="kpi_improve")
+
+
 def _project_dash(u, pid: int, msg: str = "") -> str:
     from . import projects
     p = projects.get(pid)
@@ -724,6 +729,21 @@ def _project_dash(u, pid: int, msg: str = "") -> str:
                else f"<span class='sub'>{html.escape(pending_reason)}</span>")
         tgt = f"{k['target']:g}" if k["target"] is not None else "—"
         base = f"{k['baseline']:g}" if k["baseline"] is not None else "—"
+        # P7-9: 루프 상태 한 줄 — 미달이면 개선 카드가 어디쯤 있는지 보여준다
+        loop_line = ""
+        if st == "미달" and m is not None:
+            import json as _json
+            open_card = next(
+                (c["card_id"] for c in jcards_listing_kpi()
+                 if _json.loads(c["evidence_json"]).get("kpi_id") == k["kpi_id"]), None)
+            if open_card:
+                loop_line = (f"<div class='sub'>개선 카드 <a href='/inbox'>#{open_card} "
+                             f"승인 대기</a></div>")
+            elif db.one("SELECT 1 FROM axp_kpi_feedback WHERE kpi_id=? AND action='improve' "
+                        "AND measured_m_id=?", (k["kpi_id"], m["m_id"])):
+                loop_line = "<div class='sub'>개선 활동 기록됨 — 다음 측정에서 재판정</div>"
+            else:
+                loop_line = "<div class='sub'>다음 야간 배치에서 개선 카드가 제안됩니다</div>"
         adjust = f"""<form method="post" action="/projects/{pid}/target" style="margin-top:6px">
   <input type="hidden" name="kpi_id" value="{k['kpi_id']}">
   <input name="target" placeholder="목표" style="width:70px" value="{k['target'] if k['target'] is not None else ''}">
@@ -735,7 +755,7 @@ def _project_dash(u, pid: int, msg: str = "") -> str:
   <div class="sub">{html.escape(projects.AREAS[k['area']]['name'])} · {'낮을수록' if k['direction'] == 'down' else '높을수록'} 좋음</div>
   <div style="font-size:1.5em;margin:6px 0">{val}</div>
   <div class="sub">기준선 {base} · 목표 {tgt}</div>
-  {_kpi_svg(ser, k['target'], k['direction'])}{adjust}</div>""")
+  {_kpi_svg(ser, k['target'], k['direction'])}{loop_line}{adjust}</div>""")
     mods = "".join(
         f"<tr><td>{html.escape(projects.AREAS[m['area']]['name'])}</td>"
         f"<td>{html.escape(m['module'])}</td><td class='sub'>{html.escape(m['algorithm'])}</td></tr>"
