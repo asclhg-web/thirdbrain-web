@@ -333,6 +333,12 @@ def login(username: str = Form(...), password: str = Form(...)):
         _login_fail(username)
         return HTMLResponse(page(None, "로그인", "<div class='card warn'>아이디 또는 비밀번호가 다릅니다. <a href='/login'>다시</a></div>"), 401)
     _login_ok(username)
+    # P6-1: 미납 잠금 — 관리자만 들어와 수납·해제할 수 있다(데이터는 보존).
+    from . import billing
+    if billing.is_locked() and u["role"] != "admin":
+        return HTMLResponse(page(None, "이용 정지",
+            "<div class='card warn'><b>구독 미납으로 이용이 잠시 정지되었습니다.</b><br>"
+            "데이터는 안전하게 보존 중입니다 — 관리자(계약 담당)에게 문의해 주세요.</div>"), 402)
     r = RedirectResponse("/inbox", status_code=303)
     r.set_cookie("axp_session", _session_token(username),
                  httponly=True, samesite="lax",
@@ -602,6 +608,104 @@ def _users_page(u, msg: str = "") -> str:
   <p><input name="display" placeholder="표시 이름 (예: 김순희)" style="width:100%" required></p>
   <button class="btn ok">계정 만들기</button>
 </form>"""
+
+
+# ── P6-1: 과금 — 구독·청구·미납 잠금 (admin) ─────────────────────
+def _billing_page(u, msg: str = "") -> str:
+    from . import billing
+    sub = billing.get()
+    inv = billing.invoices()
+    stat_lbl = {"active": "정상", "past_due": "납기 경과", "locked": "미납 잠금"}
+    if sub:
+        head = (f"<div class='card'><b>구독</b> — 플랜 {html.escape(sub['plan'])} · "
+                f"월 {sub['monthly_fee']:,}원 · 상태 <b>{stat_lbl.get(sub['status'], sub['status'])}</b>"
+                + (f" <form method='post' action='/billing/unlock' style='display:inline'>"
+                   f"<button class='btn'>잠금 해제</button></form>"
+                   if sub["status"] == "locked" else "") + "</div>")
+    else:
+        head = "<div class='card sub'>구독 미설정 — 아래에서 플랜을 정하면 과금이 시작됩니다.</div>"
+    ivs = "".join(
+        f"<tr><td>#{i['invoice_id']}</td><td>{html.escape(i['period'])}</td>"
+        f"<td>{i['amount']:,}원</td>"
+        f"<td>{ {'issued': '발행', 'paid': '수납', 'overdue': '미납'}[i['status']] }</td>"
+        f"<td>{html.escape(i['due_date'] or '')}</td>"
+        f"<td>{('' if i['status'] == 'paid' else f'''<form method='post' action='/billing/paid' style='display:inline'><input type='hidden' name='invoice_id' value='{i['invoice_id']}'><button class='btn ok'>수납 처리</button></form>''')}</td></tr>"
+        for i in inv)
+    plans = "".join(f"<option value='{k}'>{k}</option>" for k in ("trial", "standard", "pilot"))
+    return f"""<h2>과금 — 구독과 청구</h2>
+<p class="sub">수납은 사람이 확인하고 기록합니다(자동 출금은 결제 수단 확정 후 — 6단계 계획서 A4).
+잠금은 데이터를 지우지 않습니다 — 로그인만 막고, 수납 즉시 원상복구.</p>{msg}{head}
+<form method="post" action="/billing/plan" class="card" style="max-width:460px">
+  <b>플랜 설정</b>
+  <p><select name="plan">{plans}</select>
+     <input name="monthly_fee" placeholder="월 요금(원)" style="width:140px"> </p>
+  <button class="btn ok">저장</button>
+</form>
+<form method="post" action="/billing/issue" class="card" style="max-width:460px">
+  <b>이번 달 청구 발행</b><p class="sub">멱등 — 이미 발행된 달은 그대로 둡니다. trial(0원)은 발행 없음.</p>
+  <button class="btn ok">발행</button>
+</form>
+<div class="card"><b>청구 이력</b><table style="width:100%;margin-top:8px">
+<tr><th>#</th><th>기간</th><th>금액</th><th>상태</th><th>납기</th><th></th></tr>{ivs}</table></div>"""
+
+
+@app.get("/billing", response_class=HTMLResponse)
+def billing_page(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "과금", _billing_page(u), "/billing"))
+
+
+@app.post("/billing/plan", response_class=HTMLResponse)
+async def billing_plan(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import billing
+    form = await request.form()
+    try:
+        fee = int(str(form.get("monthly_fee", "0")).replace(",", "") or 0)
+        billing.set_plan(str(form.get("plan", "")), fee, u["username"])
+    except ValueError as e:
+        return HTMLResponse(page(u, "과금", _billing_page(u,
+            f"<div class='card warn'>{html.escape(str(e))}</div>"), "/billing"), 400)
+    return RedirectResponse("/billing", status_code=303)
+
+
+@app.post("/billing/issue", response_class=HTMLResponse)
+async def billing_issue(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import billing
+    billing.issue()
+    return RedirectResponse("/billing", status_code=303)
+
+
+@app.post("/billing/paid", response_class=HTMLResponse)
+async def billing_paid(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import billing
+    form = await request.form()
+    try:
+        billing.mark_paid(int(str(form.get("invoice_id", "0"))), u["username"])
+    except (ValueError, TypeError) as e:
+        return HTMLResponse(page(u, "과금", _billing_page(u,
+            f"<div class='card warn'>{html.escape(str(e))}</div>"), "/billing"), 400)
+    return RedirectResponse("/billing", status_code=303)
+
+
+@app.post("/billing/unlock", response_class=HTMLResponse)
+async def billing_unlock(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import billing
+    billing.unlock(u["username"])
+    return RedirectResponse("/billing", status_code=303)
 
 
 @app.get("/users", response_class=HTMLResponse)

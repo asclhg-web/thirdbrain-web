@@ -43,6 +43,9 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
     from .dataset import transform, quality, features, validation
     stage("transform", lambda: transform.run_all())
     stage("quality_report", lambda: quality.daily_report(run_date))
+    # P6-1: 미납 검사 — 구독 미설정 인스턴스에선 무동작
+    from . import billing
+    stage("billing_check", lambda: billing.check_overdue(run_date))
     stage("cross_validation", lambda: validation.excel_vs_ledger())
     stage("features", lambda: features.materialize(run_date, horizon=7))
 

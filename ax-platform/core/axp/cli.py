@@ -50,6 +50,11 @@ def main() -> None:
     s.add_argument("--company", default=None)
     s.add_argument("--template", default=None)
     s.add_argument("--hours", type=float, default=24.0)
+    s = sub.add_parser("billing", help="과금 — 구독·청구·미납 잠금 (P6-1)")
+    s.add_argument("op", choices=["status", "set-plan", "issue", "paid", "unlock", "check"])
+    s.add_argument("arg", nargs="?", help="set-plan: 플랜명 / paid: 청구번호 / issue: 기간(YYYY-MM)")
+    s.add_argument("--fee", type=int, default=0, help="set-plan: 월 요금(원)")
+    s.add_argument("--by", default="cli")
     a = ap.parse_args()
 
     if a.cmd == "cards":
@@ -162,6 +167,22 @@ def main() -> None:
             print(_json.dumps(_t.destroy(a.name), ensure_ascii=False))
         elif a.op == "purge-uploads":
             print(_json.dumps(_t.purge_uploads(a.name, hours=a.hours), ensure_ascii=False))
+    elif a.cmd == "billing":
+        import json as _json
+        from . import billing as _b
+        if a.op == "status":
+            print(_json.dumps({"subscription": _b.get(), "invoices": _b.invoices()},
+                              ensure_ascii=False, indent=2))
+        elif a.op == "set-plan":
+            print(_json.dumps(_b.set_plan(a.arg or "", a.fee, a.by), ensure_ascii=False))
+        elif a.op == "issue":
+            print(_json.dumps(_b.issue(a.arg), ensure_ascii=False))
+        elif a.op == "paid":
+            _b.mark_paid(int(a.arg), a.by); print("수납 처리 완료")
+        elif a.op == "unlock":
+            _b.unlock(a.by); print("잠금 해제")
+        elif a.op == "check":
+            print(_json.dumps(_b.check_overdue(), ensure_ascii=False))
 
 
 if __name__ == "__main__":
