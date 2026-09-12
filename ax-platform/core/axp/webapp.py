@@ -269,6 +269,7 @@ NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/briefing", "브리핑", ("viewer", "steward", "approver")),
        ("/ask", "질문", ("viewer", "steward", "approver")),
        ("/rules", "규칙", ("viewer", "steward", "approver")),
+       ("/projects", "프로젝트", ("viewer", "steward", "approver")),
        ("/warroom", "War Room", ("viewer", "steward", "approver")),
        ("/audit", "감사 로그", ("viewer", "steward", "approver")),
        ("/promotions", "자동실행", ("approver", "viewer")),
@@ -626,6 +627,182 @@ def _users_page(u, msg: str = "") -> str:
   <p><input name="display" placeholder="표시 이름 (예: 김순희)" style="width:100%" required></p>
   <button class="btn ok">계정 만들기</button>
 </form>"""
+
+
+# ── P7-2: 프로젝트·KPI 센터 — 정의→모듈·알고리즘→KPI→성과→피드백 ──
+def _kpi_svg(vals: list[float], target: float | None, direction: str) -> str:
+    """측정 시계열의 소형 SVG 차트 — 외부 라이브러리 없이 서버에서 그린다."""
+    if not vals:
+        return "<span class='sub'>측정 전</span>"
+    w, h, pad = 260, 64, 6
+    lo, hi = min(vals + ([target] if target is not None else [])), \
+        max(vals + ([target] if target is not None else []))
+    if hi == lo:
+        hi = lo + 1
+    def sx(i):
+        return pad + (w - 2 * pad) * (i / max(len(vals) - 1, 1))
+    def sy(v):
+        return h - pad - (h - 2 * pad) * ((v - lo) / (hi - lo))
+    pts = " ".join(f"{sx(i):.1f},{sy(v):.1f}" for i, v in enumerate(vals))
+    tline = ""
+    if target is not None:
+        ty = sy(target)
+        tline = (f"<line x1='{pad}' y1='{ty:.1f}' x2='{w-pad}' y2='{ty:.1f}' "
+                 f"stroke='#C07F1E' stroke-dasharray='4 3' stroke-width='1.5'/>")
+    dots = "".join(f"<circle cx='{sx(i):.1f}' cy='{sy(v):.1f}' r='2.5' fill='#0E8F86'/>"
+                   for i, v in enumerate(vals))
+    return (f"<svg width='{w}' height='{h}' viewBox='0 0 {w} {h}' role='img'>"
+            f"<polyline points='{pts}' fill='none' stroke='#0E8F86' stroke-width='2'/>"
+            f"{tline}{dots}</svg>")
+
+
+def _projects_list(u, msg: str = "") -> str:
+    from . import projects
+    rows = projects.listing()
+    trs = "".join(
+        f"<tr><td><a href='/projects/{r['project_id']}'>#{r['project_id']} "
+        f"{html.escape(r['name'])}</a></td>"
+        f"<td class='sub'>{html.escape(r['goal'] or '')}</td>"
+        f"<td>{html.escape(r['status'])}</td><td>{html.escape(r['created_at'][:10])}</td></tr>"
+        for r in rows)
+    areas = "".join(
+        f"<label style='display:block;margin:4px 0'><input type='checkbox' name='areas' "
+        f"value='{code}'> <b>{html.escape(a['name'])}</b> "
+        f"<span class='sub'>— {html.escape(' · '.join(m for m, _ in a['modules']))}</span></label>"
+        for code, a in projects.AREAS.items())
+    return f"""<h2>프로젝트 — 정의에서 성과까지</h2>
+<p class="sub">프로젝트를 정의하고 5대 지능화 요구사항에서 우리 회사에 맞는 모듈·알고리즘·KPI를 고르면,
+대시보드가 성과를 보여주고 미달 KPI에는 개선 제안 카드가 승인함으로 옵니다 — 조정하면 다시 측정되는 루프입니다.</p>{msg}
+<div class="card"><b>프로젝트 목록</b><table style="width:100%;margin-top:8px">
+<tr><th>프로젝트</th><th>목표</th><th>상태</th><th>생성</th></tr>{trs}</table></div>
+<form method="post" action="/projects/create" class="card" style="max-width:720px">
+  <b>새 프로젝트 정의</b>
+  <p><input name="name" placeholder="프로젝트 이름 (예: 폐기 절감 1차)" style="width:100%"></p>
+  <p><input name="goal" placeholder="경영 목표 한 줄 (예: 월 폐기 20% 절감)" style="width:100%"></p>
+  <p class="sub">요구사항 영역 — 고르면 그 영역의 모듈·알고리즘·KPI가 자동 등재됩니다(목표치는 다음 화면에서):</p>
+  {areas}
+  <button class="btn ok">프로젝트 만들기</button>
+</form>"""
+
+
+@app.get("/projects", response_class=HTMLResponse)
+def projects_page(request: Request):
+    u = _require(request, ("viewer", "steward", "approver"))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "프로젝트", _projects_list(u), "/projects"))
+
+
+@app.post("/projects/create", response_class=HTMLResponse)
+async def projects_create(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import projects
+    form = await request.form()
+    try:
+        p = projects.create(str(form.get("name", "")), str(form.get("goal", "")),
+                            u["username"], [str(a) for a in form.getlist("areas")])
+    except ValueError as e:
+        return HTMLResponse(page(u, "프로젝트", _projects_list(u,
+            f"<div class='card warn'>{html.escape(str(e))}</div>"), "/projects"), 400)
+    return RedirectResponse(f"/projects/{p['project_id']}", status_code=303)
+
+
+def _project_dash(u, pid: int, msg: str = "") -> str:
+    from . import projects
+    p = projects.get(pid)
+    stat_color = {"달성": "#0E8F86", "미달": "#A8493B",
+                  "측정 전": "#76675A", "목표 미설정": "#C07F1E"}
+    cards = []
+    for k in p["kpis"]:
+        st = projects.kpi_status(k)
+        m = projects.latest(k["kpi_id"])
+        ser = [r["value"] for r in projects.series(k["kpi_id"])]
+        _, pending_reason = (None, "") if m else projects.measure(k["kpi_code"])
+        val = (f"{m['value']:g} {html.escape(k['unit'])}" if m
+               else f"<span class='sub'>{html.escape(pending_reason)}</span>")
+        tgt = f"{k['target']:g}" if k["target"] is not None else "—"
+        base = f"{k['baseline']:g}" if k["baseline"] is not None else "—"
+        adjust = f"""<form method="post" action="/projects/{pid}/target" style="margin-top:6px">
+  <input type="hidden" name="kpi_id" value="{k['kpi_id']}">
+  <input name="target" placeholder="목표" style="width:70px" value="{k['target'] if k['target'] is not None else ''}">
+  <input name="note" placeholder="조정 사유" style="width:150px">
+  <button class="btn">목표 조정</button></form>""" if u["role"] == "admin" else ""
+        cards.append(f"""<div class="card" style="display:inline-block;vertical-align:top;width:340px;margin-right:10px">
+  <b>{html.escape(k['kpi_name'])}</b>
+  <span style="color:{stat_color.get(st, '#2E241C')};font-weight:700;float:right">{st}</span>
+  <div class="sub">{html.escape(projects.AREAS[k['area']]['name'])} · {'낮을수록' if k['direction'] == 'down' else '높을수록'} 좋음</div>
+  <div style="font-size:1.5em;margin:6px 0">{val}</div>
+  <div class="sub">기준선 {base} · 목표 {tgt}</div>
+  {_kpi_svg(ser, k['target'], k['direction'])}{adjust}</div>""")
+    mods = "".join(
+        f"<tr><td>{html.escape(projects.AREAS[m['area']]['name'])}</td>"
+        f"<td>{html.escape(m['module'])}</td><td class='sub'>{html.escape(m['algorithm'])}</td></tr>"
+        for m in p["modules"])
+    fb = db.query(
+        "SELECT f.*, k.kpi_name FROM axp_kpi_feedback f "
+        "JOIN axp_project_kpis k ON k.kpi_id=f.kpi_id WHERE k.project_id=? "
+        "ORDER BY f.fb_id DESC LIMIT 10", (pid,))
+    fbs = "".join(
+        f"<tr><td>{html.escape(f['created_at'][:16])}</td><td>{html.escape(f['kpi_name'])}</td>"
+        f"<td>{ {'adjust_target': '목표 조정', 'improve': '개선', 'keep': '유지'}[f['action']] }"
+        f"{(' ' + str(f['old_target']) + '→' + str(f['new_target'])) if f['action'] == 'adjust_target' else ''}</td>"
+        f"<td class='sub'>{html.escape(f['note'] or '')}</td><td>{html.escape(f['decided_by'] or '')}</td></tr>"
+        for f in fb)
+    measure_btn = (f"<form method='post' action='/projects/{pid}/measure' style='display:inline'>"
+                   f"<button class='btn ok'>지금 측정</button></form>"
+                   if u["role"] in ("admin", "steward") else "")
+    return f"""<h2>{html.escape(p['name'])} — KPI 대시보드</h2>
+<p class="sub">{html.escape(p['goal'] or '')} · 담당 {html.escape(p['owner'] or '-')} ·
+측정은 야간 배치가 자동 누적하며, 지금 측정으로 즉시 갱신할 수 있습니다. {measure_btn}</p>{msg}
+<div>{''.join(cards)}</div>
+<div class="card"><b>선택 모듈·알고리즘</b><table style="width:100%;margin-top:8px">
+<tr><th>영역</th><th>모듈</th><th>알고리즘·방식</th></tr>{mods}</table></div>
+<div class="card"><b>피드백·조정 이력 (루프의 기록)</b><table style="width:100%;margin-top:8px">
+<tr><th>시각</th><th>KPI</th><th>행동</th><th>메모</th><th>결정자</th></tr>{fbs}</table></div>
+<p><a href="/projects">← 프로젝트 목록</a></p>"""
+
+
+@app.get("/projects/{pid}", response_class=HTMLResponse)
+def project_dash(request: Request, pid: int):
+    u = _require(request, ("viewer", "steward", "approver"))
+    if isinstance(u, Response):
+        return u
+    from . import projects
+    try:
+        return HTMLResponse(page(u, "프로젝트", _project_dash(u, pid), "/projects"))
+    except ValueError as e:
+        return HTMLResponse(page(u, "프로젝트", f"<div class='card warn'>{html.escape(str(e))}</div>"), 404)
+
+
+@app.post("/projects/{pid}/measure", response_class=HTMLResponse)
+async def project_measure(request: Request, pid: int):
+    u = _require(request, ("steward",))
+    if isinstance(u, Response):
+        return u
+    from . import projects
+    r = projects.measure_all(pid)
+    return HTMLResponse(page(u, "프로젝트", _project_dash(u, pid,
+        f"<div class='card ok'>측정 완료 — 실측 {r['measured']}건, 측정 전 {r['pending']}건</div>"),
+        "/projects"))
+
+
+@app.post("/projects/{pid}/target", response_class=HTMLResponse)
+async def project_target(request: Request, pid: int):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import projects
+    form = await request.form()
+    try:
+        projects.set_target(int(str(form.get("kpi_id", "0"))),
+                            float(str(form.get("target", ""))), u["username"],
+                            note=str(form.get("note", "")))
+    except (ValueError, TypeError) as e:
+        return HTMLResponse(page(u, "프로젝트", _project_dash(u, pid,
+            f"<div class='card warn'>목표값을 확인하세요: {html.escape(str(e))}</div>"), "/projects"), 400)
+    return RedirectResponse(f"/projects/{pid}", status_code=303)
 
 
 # ── P6-2: 체험 신청·발급 — 승인제 기본, 자동 발급은 스위치 ─────────
