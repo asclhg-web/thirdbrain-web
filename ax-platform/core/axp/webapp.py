@@ -480,9 +480,28 @@ def _runs_page(u, msg: str = "") -> str:
   <p><input name="run_date" value="{today}" style="width:160px"> 기준일</p>
   <button class="btn ok">배치 실행</button>
 </form>""")
+    # P5-O: 에이전트 최근 상태 — '학습 전 대기'(P5-N)를 운영자가 화면에서
+    # 보게 한다(crit이 아닌 이유와 시작 조건이 사유에 담긴다).
+    agents_html = ""
+    if db.table_exists("agent_runs"):
+        ag = db.query(
+            "SELECT agent, status, error FROM agent_runs "
+            "WHERE run_id IN (SELECT MAX(run_id) FROM agent_runs GROUP BY agent) "
+            "ORDER BY agent")
+        if ag:
+            lbl = {"ok": "정상", "waiting": "대기(학습 전)",
+                   "error": "실패", "running": "실행 중"}
+            ars = "".join(
+                f"<tr><td>{html.escape(a['agent'])}</td>"
+                f"<td>{lbl.get(a['status'], html.escape(a['status'] or ''))}</td>"
+                f"<td class='sub'>{html.escape((a['error'] or '')[:140])}</td></tr>"
+                for a in ag)
+            agents_html = (f"<div class='card'><b>에이전트 최근 상태</b>"
+                           f"<table style='width:100%;margin-top:8px'>"
+                           f"<tr><th>에이전트</th><th>상태</th><th>사유</th></tr>{ars}</table></div>")
     return f"""<h2>배치 실행 — 판단의 공장을 지금 돌립니다</h2>{msg}{btn}
 <div class="card"><b>최근 실행</b><table style="width:100%;margin-top:8px">
-<tr><th>#</th><th>기준일</th><th>상태</th><th>요청자</th><th>요약</th><th>시각(UTC)</th></tr>{trs}</table></div>"""
+<tr><th>#</th><th>기준일</th><th>상태</th><th>요청자</th><th>요약</th><th>시각(UTC)</th></tr>{trs}</table></div>{agents_html}"""
 
 
 def _run_cycle_bg(run_id: int, run_date: str) -> None:

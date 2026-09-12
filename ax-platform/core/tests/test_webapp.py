@@ -348,6 +348,19 @@ def test_upload_shows_preview_summary(tmp_db):
     assert "매장 2곳" in r.text and "상품 2종" in r.text and "150" in r.text
 
 
+def test_runs_shows_agent_waiting_state(tmp_db):
+    """P5-O: /runs에 에이전트 최근 상태 — '학습 전 대기'와 사유가 보인다."""
+    from axp.agents import five, runtime
+    five.register_all()
+    runtime.run_agent("demand_agent", {"run_date": "2026-09-12"})
+    c = _client()
+    _login(c, "admin")
+    r = c.get("/runs")
+    assert r.status_code == 200
+    assert "에이전트 최근 상태" in r.text and "대기(학습 전)" in r.text
+    assert "demand_forecast 학습 전" in r.text
+
+
 def test_runs_admin_only_and_lifecycle(tmp_db, monkeypatch):
     """P4-12: 수동 배치 — admin 전용, 실행→완료 기록, 동시 실행 차단."""
     import time as _time

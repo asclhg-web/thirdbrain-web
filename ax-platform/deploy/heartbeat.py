@@ -54,8 +54,32 @@ def _alert(level: str, msg: str) -> None:
             pass
 
 
+def _check_recon(st: dict) -> None:
+    """P5-O: 정합 배치 감시 — 최근 recon_log가 실패면 crit 1회(복구 시 info 1회).
+
+    reconcile_prod는 야간 배치 안에서 경보를 내지만, 배치 자체가 안 돌거나
+    운영자가 놓친 실패를 하트비트(5분)가 이중으로 잡는다. 상태 파일의
+    recon_bad(실패 run_at)로 같은 실패의 반복 경보를 억제한다."""
+    try:
+        from axp import db
+        row = db.one("SELECT run_at, ok FROM recon_log ORDER BY run_at DESC LIMIT 1")
+    except Exception:  # noqa: BLE001 — recon 미구성 프로파일(체험 등)은 신호 없음
+        return
+    if not row:
+        return
+    if not row["ok"]:
+        if st.get("recon_bad") != row["run_at"]:
+            _alert("crit", f"정합 배치 실패 감지(run_at={row['run_at']}) — "
+                           "recon_log 확인, 처방: 전량 재동기화")
+            st["recon_bad"] = row["run_at"]
+    elif st.get("recon_bad"):
+        _alert("info", f"정합 배치 복구 — 최근 통과 run_at={row['run_at']}")
+        st["recon_bad"] = ""
+
+
 def check() -> int:
     st = _load()
+    _check_recon(st)
     try:
         with urllib.request.urlopen(URL, timeout=10) as r:
             ok = r.status == 200 and json.loads(r.read()).get("ok") is True
@@ -65,7 +89,7 @@ def check() -> int:
     if ok:
         if st.get("down_since"):
             _alert("info", f"웹앱 복구 — 다운 시작 {st['down_since']} → 복구 {_now()}")
-        _save({"fails": 0, "down_since": ""})
+        _save({**st, "fails": 0, "down_since": ""})
         return 0
 
     st["fails"] = st.get("fails", 0) + 1
