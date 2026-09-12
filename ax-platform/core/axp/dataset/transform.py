@@ -29,6 +29,20 @@ def _store_meta() -> tuple[dict, dict]:
     return profile_rt.store_names(), profile_rt.store_channels()
 
 
+def _vendor_alias() -> dict:
+    """P5-V: 공급사 표시 별칭 — res_partner는 PII(이메일·전화)로 복제하지
+    않는다(P5-D3 결정). 원장 숫자 id를 codemap 사전('vendor' 도메인 —
+    고객사 프로파일 어휘 시드나 스튜어드 확정으로 채워진다)의 별칭으로
+    투영하고, 사전에 없으면 숫자 id 그대로 둔다(격리 큐 미적재 —
+    숫자 id는 오류가 아니라 정직한 폴백이다)."""
+    try:
+        rows = db.query(
+            "SELECT alias, standard_code FROM code_dictionary WHERE domain='vendor'")
+    except Exception:  # noqa: BLE001 — 사전 미초기화 프로파일
+        return {}
+    return {r["alias"]: r["standard_code"] for r in rows}
+
+
 def apply_schema() -> None:
     sql = (Path(__file__).parent / "schema.sql").read_text(encoding="utf-8")
     db.executescript(sql)
@@ -143,6 +157,9 @@ def build_dims() -> dict[str, int]:
     if n_unk:
         common.alert("warn", "transform",
                      f"lot_id 없는 조달 {n_unk}건 — 'LOT-미상' 표식으로 적재(입고 확정 시 재처리 대상)")
+    valias = _vendor_alias()
+    if len(lots) and valias:
+        lots["vendor_id"] = lots["vendor_id"].map(lambda v: valias.get(v, v))
     counts["dim_material_lot"] = _rebuild("dim_material_lot", lots)
 
     sops = db.df("SELECT DISTINCT sop_id FROM staging_mrp")
@@ -196,6 +213,11 @@ def build_facts() -> dict[str, int]:
                COALESCE(lot_id, 'LOT-미상:'||material_id||':'||COALESCE(vendor_id,'')) AS lot_id,
                qty, qty*unit_price AS amount
         FROM staging_purchase""")
+    # P5-V: 공급사 별칭 투영 — 로트 표식(키)은 원장 표기를 유지하고
+    # 표시 속성(vendor_id)만 별칭으로 (dim_material_lot과 같은 규칙)
+    valias = _vendor_alias()
+    if len(proc) and valias:
+        proc["vendor_id"] = proc["vendor_id"].map(lambda v: valias.get(v, v))
     counts["fact_procurement"] = _rebuild("fact_procurement", proc)
 
     moves = db.df("""

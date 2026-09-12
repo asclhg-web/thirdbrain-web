@@ -22,6 +22,32 @@ def test_seed_aliases(tmp_db):
     assert codemap.resolve("store", "본점") == "S-MAIN"
 
 
+def test_vendor_alias_projection(tmp_db):
+    """P5-V: 공급사 숫자 id → codemap 별칭 투영 — res_partner 미복제(PII)
+    결정의 표시 경로. 사전에 없는 id는 숫자 그대로(정직한 폴백, 격리 없음)."""
+    from axp import common
+    from axp.dataset import transform
+    from axp.ingest import staging
+    staging.init()
+    codemap.init()
+    db.execute("INSERT INTO staging_purchase VALUES "
+               "(1,'P1','2026-09-01','2026-09-02','7','M-FLOUR',10,900,'L1','2026-09-01','2026-09-01','t')")
+    db.execute("INSERT INTO staging_purchase VALUES "
+               "(2,'P2','2026-09-01','2026-09-02','3','M-SUGAR',5,700,'L2','2026-09-01','2026-09-01','t')")
+    db.execute("INSERT OR REPLACE INTO code_dictionary "
+               "(domain, alias, standard_code, confirmed_by, confirmed_at) VALUES "
+               "('vendor','7','V-제빵T','steward', ?)", (common.now_iso(),))
+    transform.run_all()
+    vendors = dict(
+        (r["lot_id"], r["vendor_id"])
+        for r in db.query("SELECT lot_id, vendor_id FROM dim_material_lot"))
+    assert vendors["L1"] == "V-제빵T"                 # 별칭 투영
+    assert vendors["L2"] == "3"                       # 미등재 → 숫자 유지
+    assert db.scalar(
+        "SELECT vendor_id FROM fact_procurement WHERE po_ref='P1'") == "V-제빵T"
+    assert not [q for q in codemap.pending() if q["domain"] == "vendor"]
+
+
 def test_contract_rules_generated():
     rules = contracts.quality_rules("fact_sales")
     checks = {(r["column"], r["check"]) for r in rules}
