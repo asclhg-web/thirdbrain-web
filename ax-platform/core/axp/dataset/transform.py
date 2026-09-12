@@ -50,8 +50,17 @@ def build_dims() -> dict[str, int]:
     apply_schema()
     codemap.init()
     counts = {}
-    # 달력 — 판매 기간 전체
-    dates = db.df("SELECT DISTINCT order_date AS d FROM staging_sales ORDER BY d")["d"]
+    # P5-I3: 달력은 판매만이 아니라 전 사실 계열의 일자를 덮어야 한다 —
+    # 실 Odoo에선 미래 착수 MO(생산예정일)가 판매 달력 밖이라 참조 고아가 됐다.
+    dates = db.df("""
+        SELECT DISTINCT d FROM (
+            SELECT order_date AS d FROM staging_sales
+            UNION SELECT prod_date FROM staging_mrp
+            UNION SELECT receipt_date FROM staging_purchase
+            UNION SELECT move_date FROM staging_stock_move
+            UNION SELECT check_date FROM staging_quality
+            UNION SELECT substr(event_date, 1, 10) FROM staging_maintenance
+        ) u WHERE d IS NOT NULL AND d != '' ORDER BY d""")["d"]
     cal = pd.DataFrame({"date_key": dates})
     dt = pd.to_datetime(cal["date_key"])
     cal["dow"] = dt.dt.dayofweek
@@ -64,8 +73,23 @@ def build_dims() -> dict[str, int]:
 
     pnames = _product_names()
     prod = db.df("SELECT product_id, AVG(unit_price) AS unit_price FROM staging_sales GROUP BY product_id")
-    prod["product_name"] = prod["product_id"].map(pnames).fillna(prod["product_id"])
     prod["category"] = "bakery"
+    # P5-I4: 재고 이동·생산에만 나타나는 품목(자재 입고 등)도 차원에 합류 —
+    # 실 Odoo 무브는 판매 품목만이 아니라 자재도 다루므로, 판매만으로 만든
+    # 차원은 fact_inventory_move.product_id 참조 고아를 만든다.
+    extra = db.df("""
+        SELECT DISTINCT product_id FROM (
+            SELECT product_id FROM staging_stock_move
+            UNION SELECT product_id FROM staging_mrp
+        ) u WHERE product_id IS NOT NULL AND product_id != ''
+          AND product_id NOT IN (SELECT product_id FROM staging_sales)""")
+    if len(extra):
+        mats = set(db.df("SELECT DISTINCT material_id FROM staging_purchase")["material_id"])
+        extra["unit_price"] = None
+        extra["category"] = extra["product_id"].map(
+            lambda p: "material" if p in mats else "bakery")
+        prod = pd.concat([prod, extra], ignore_index=True)
+    prod["product_name"] = prod["product_id"].map(pnames).fillna(prod["product_id"])
     counts["dim_product"] = _rebuild("dim_product", prod[["product_id", "product_name", "category", "unit_price"]])
 
     snames, schannels = _store_meta()

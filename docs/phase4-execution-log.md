@@ -406,3 +406,15 @@ SQL 주입·경로 탐색·기타 XSS·pickle 등은 점검 결과 비해당(전
     fact_inventory_move.product_id가 참조 고아(warn). 무브 품목 검증을
     dim_product∪dim_material 합집합 기준으로 바꾸거나 차원 포함 범위를
     재정의할 것(다음 블록).
+
+## P5-I3·I4 해소: 차원 커버리지 격차 (2026-09-12 00:1x)
+
+- **P5-I3 해소**: dim_calendar를 판매 단독 → 판매∪생산∪조달∪재고∪품질∪정비
+  일자 합집합으로 확장. 미래 착수 MO(2026-09-16)의 date_key 참조 고아 소멸.
+- **P5-I4 해소**: 재고 이동·생산에만 나타나는 품목을 dim_product에 합류 —
+  조달 자재 목록에 있으면 category='material', 아니면 'bakery'.
+  prod 실측: dim_product = [M-FLOUR-T(material), P-BREAD-T, P-CAKE-T, P-PIE-T].
+- **prod 품질 게이트 위반 0 달성**(직전 warn 2건 소멸) — daily_report ok=True.
+- 테스트 92+3skip(SQLite)/95(PG), 데모 스냅샷 회귀 30/30 유지
+  (데모 프로파일은 무브 품목이 전부 판매 품목이라 차원 내용 불변).
+- CDC 소크 19사이클 정합(all_ok, mismatch 없음, slot lag 490kB 정상 범위).
