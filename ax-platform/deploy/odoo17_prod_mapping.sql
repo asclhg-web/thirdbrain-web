@@ -140,8 +140,8 @@ FROM public.maintenance_request r
 LEFT JOIN public.maintenance_equipment me ON me.id = r.equipment_id;
 
 -- staging_quality: Odoo Community에는 quality_check 없음(Enterprise 전용).
---   Enterprise 고객: quality_check(id, control_date, production_id, product_id,
---   team_id, user_id, quality_state, measure ...) 기준 뷰를 온사이트에서 추가.
+--   Enterprise 고객: odoo17_enterprise_quality_mapping.sql(★미검증 초안★ —
+--   온사이트 검증 절차 포함)을 검증 통과 후 추가 적용한다(P6-3).
 --   Community 고객: 불량 집계는 stock_scrap + 현장 장표(M1-3)로 대체 —
 --   v_quality_scrap이 그 대체 투영이다.
 DROP VIEW IF EXISTS axp_prod.v_quality_scrap;

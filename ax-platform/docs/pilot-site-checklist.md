@@ -40,6 +40,8 @@
       오차·고아 행 경보 시 처방은 전량 재동기화(cdc_state·staging 삭제 후 sync)
 - [ ] (기존 설치 업그레이드 시) P5-I5 갱신 재수집은 write_date 워터마크가
       생긴 뒤부터만 동작 — 업그레이드 직후 전량 재동기화 1회로 과거 갱신을 따라잡을 것
+- [ ] (Enterprise 고객만) odoo17_enterprise_quality_mapping.sql의 온사이트
+      검증 절차 1~4 통과 후 적용 — ★미검증 초안★ 상태로는 운영 편입 금지
 - [ ] Odoo XML-RPC 쓰기 계정(발주 초안용) + 기본 공급처 ID 확인 — P-06
 
 ## D. 판매 원천 (D0~D7)
