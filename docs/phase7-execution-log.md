@@ -221,3 +221,9 @@
   BIOS VT-x 활성화부터 서비스 기동까지 당일 완료 — 플랫폼이 처음으로
   대표 실장비(서버1 WSL2)에서 가동. 남은 결선: 초기 계정 로그인·프로젝트
   화면 확인 → GPU Ollama 연결(선택) → Cloudflare Tunnel 공개(B6).
+- **서버1 화면 확인 완료 (2026-09-12 밤, 대표 실측)**: admin 로그인
+  (비밀번호 재설정 경유) → 프로젝트 정의 → 대시보드 정상 표시
+  ("프로젝트 화면이 잘 나옴"). BIOS→WSL2→설치→로그인→화면까지 당일
+  완주 — 실설치 적발 결함 7건(I3~I9) 전부 당일 수정·검증·반영.
+  다음 갈림길: (A) GPU 서버 Ollama 연결(192.168.0.5, server-map.md 절차)
+  (B) Cloudflare Tunnel 공개(install-tunnel.sh — odooaierp.com, B6).
