@@ -262,6 +262,7 @@ async def security_middleware(request: Request, call_next):
 
 NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
        ("/upload", "자료 반입", ("steward",)),
+       ("/runs", "배치 실행", ()),           # admin 전용 — _require가 강제 (P7-I11: 메뉴 누락 적발)
        ("/setup", "온보딩 설정", ()),        # steward/admin — _require가 강제
        ("/users", "계정 관리", ()),          # admin 전용 — _require가 강제
        ("/connect", "Odoo 연결", ()),        # admin 전용 — _require가 강제
