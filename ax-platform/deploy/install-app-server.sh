@@ -41,6 +41,10 @@ fi
 sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='axp'" | grep -q 1 \
   || sudo -u postgres psql -c "CREATE USER axp WITH PASSWORD '${PGPW}'"
 sudo -u postgres psql -qc "ALTER ROLE axp WITH PASSWORD '${PGPW}'"
+# P7-I7(서버1 실설치 적발): FK 일시 해제(PRAGMA→session_replication_role)는
+# superuser 전용 파라미터 — 일반 역할 axp에 SET 권한을 위임한다(PG15+).
+# 없으면 야간 재구축(transform)과 PG 테스트 14건이 InsufficientPrivilege로 죽는다.
+sudo -u postgres psql -qc "GRANT SET ON PARAMETER session_replication_role TO axp"
 sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='axp'" | grep -q 1 \
   || sudo -u postgres createdb -O axp axp
 # CDC 수신을 위해 논리 복제 활성화

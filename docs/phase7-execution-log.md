@@ -188,3 +188,13 @@
   거짓 실패(직전 P7-I5 정렬로도 안 풀린 이유). 검증을 정렬된 PGPW로
   DSN을 통째 조립해 전달하도록 교체. systemd 서비스(EnvironmentFile)는
   공백을 보존하므로 실서비스 무영향 — 검증 전용 결함.
+- **P7-I7(서버1 실설치 적발)**: I6 해소 후 잔여 14건 실패의 원인 —
+  FK 일시 해제 번역(`PRAGMA foreign_keys` → `SET session_replication_role`)이
+  superuser 전용 파라미터인데 설치 스크립트가 만드는 axp는 일반 역할
+  (개발 클러스터의 axp는 superuser라 그동안 미발현). 테스트만이 아니라
+  야간 재구축(transform._rebuild)도 같은 경로 — 실서비스 결함이었다.
+  조치 2건: ① 설치 2/7에 `GRANT SET ON PARAMETER session_replication_role
+  TO axp`(PG15+, 멱등) 추가, ② test_mo_lead_by_backend가 PG인데 원장
+  미복제(갓 설치·Odoo 미연결)인 정직한 답("미복제")을 실패로 판정하던
+  환경 가정도 교정. 검증: 클라우드에 일반 역할(axp_plain)로 서버1 조건
+  재현 → GRANT 전 동일 실패, GRANT 후 **PG 128/128 통과**(SQLite 123+5skip).

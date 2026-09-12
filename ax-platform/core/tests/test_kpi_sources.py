@@ -63,7 +63,8 @@ def test_weekly_questions_from_log(tmp_db):
 def test_mo_lead_by_backend(tmp_db):
     v, src = projects.measure("mo_lead_days")
     if db.BACKEND == "postgres":
-        # 이 클러스터엔 실 Odoo 원장이 복제돼 있어 실측이 나온다(또는 완료 MO 없음)
-        assert v is not None or "완료 MO" in src
+        # 원장이 복제된 클러스터(개발)면 실측 또는 '완료 MO 없음',
+        # 갓 설치해 Odoo 미연결인 서버(서버1 초기)면 '미복제' — 셋 다 정직한 답(P7-I7)
+        assert v is not None or "완료 MO" in src or "미복제" in src
     else:
         assert v is None and "미복제" in src             # 원장 없음 — 정직한 측정 전
