@@ -40,6 +40,10 @@ CREATE TABLE IF NOT EXISTS axp_kpi_measurements (
   kpi_id INTEGER NOT NULL, measured_at TEXT NOT NULL,
   value REAL, source TEXT DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS axp_stock_snapshots (   -- P7-5: 결품 KPI의 원천
+  date_key TEXT NOT NULL, product_id TEXT NOT NULL, qty REAL,
+  PRIMARY KEY (date_key, product_id)
+);
 CREATE TABLE IF NOT EXISTS axp_kpi_feedback (
   fb_id INTEGER PRIMARY KEY AUTOINCREMENT,
   kpi_id INTEGER NOT NULL,
@@ -197,6 +201,31 @@ def record_feedback(kpi_id: int, action: str, note: str, by: str) -> None:
         "VALUES (?,?,?,?,?)", (kpi_id, action, note, by, common.now_iso()))
 
 
+def snapshot_stock(date_key: str | None = None) -> dict:
+    """P7-5: 재고 일 스냅샷 — 복제된 stock_quant(내부 위치만)를 일자별로
+    보존한다. 결품 일수 KPI의 원천. 같은 날 재실행은 대체(멱등)."""
+    init()
+    if db.BACKEND != "postgres":
+        return {"skipped": "PG 전용(복제 실테이블 필요)"}
+    have = db.scalar(
+        "SELECT COUNT(*) FROM information_schema.tables "
+        "WHERE table_schema='public' AND table_name IN ('stock_quant','stock_location')")
+    if have < 2:
+        return {"skipped": "stock_quant/stock_location 미복제"}
+    from datetime import date as _date
+    dk = date_key or _date.today().isoformat()
+    rows = db.query(
+        "SELECT COALESCE(pc.code, q.product_id::text) AS pid, SUM(q.quantity) AS qty "
+        "FROM public.stock_quant q "
+        "JOIN public.stock_location l ON l.id = q.location_id AND l.usage = 'internal' "
+        "LEFT JOIN axp_prod.v_product_code pc ON pc.id = q.product_id GROUP BY 1")
+    db.execute("DELETE FROM axp_stock_snapshots WHERE date_key=?", (dk,))
+    for r in rows:
+        db.execute("INSERT INTO axp_stock_snapshots (date_key, product_id, qty) VALUES (?,?,?)",
+                   (dk, r["pid"], float(r["qty"] or 0)))
+    return {"date_key": dk, "products": len(rows)}
+
+
 # ── KPI 실측 엔진 — 사실 테이블에서 계산 가능한 것만, 나머지는 '측정 전' ──
 
 def _m_wape() -> tuple[float | None, str]:
@@ -250,6 +279,73 @@ def _m_promoted_rules() -> tuple[float | None, str]:
     return float(v or 0), "causal_candidates promoted"
 
 
+def _m_stockout_days() -> tuple[float | None, str]:
+    """P7-5: 최근 30일 중 '판매 품목 재고 0 이하가 존재한 날' 수."""
+    from datetime import date, timedelta
+    if not db.table_exists("axp_stock_snapshots") or \
+            not db.scalar("SELECT COUNT(*) FROM axp_stock_snapshots"):
+        return None, "재고 스냅샷 축적 전 — 야간 stock_snapshot 단계가 쌓는다"
+    cutoff = (date.today() - timedelta(days=30)).isoformat()
+    days = db.scalar(
+        "SELECT COUNT(DISTINCT date_key) FROM axp_stock_snapshots "
+        "WHERE date_key >= ? AND qty <= 0 AND product_id IN "
+        "(SELECT product_id FROM dim_product WHERE category='bakery')", (cutoff,)) or 0
+    return float(days), "axp_stock_snapshots 최근 30일(내부 위치)"
+
+
+def _m_mo_lead_days() -> tuple[float | None, str]:
+    """P7-5: 완료 MO의 착수→완료 평균 일수 — 복제 실테이블에서 직접."""
+    if db.BACKEND != "postgres" or not db.scalar(
+            "SELECT COUNT(*) FROM information_schema.tables "
+            "WHERE table_schema='public' AND table_name='mrp_production'"):
+        return None, "MO 원장 미복제(실 Odoo 연결 후 측정)"
+    v = db.scalar(
+        "SELECT AVG(EXTRACT(EPOCH FROM (date_finished - date_start)) / 86400.0) "
+        "FROM public.mrp_production "
+        "WHERE state='done' AND date_finished IS NOT NULL AND date_start IS NOT NULL")
+    if v is None:
+        return None, "완료 MO 없음 — 생산 완료 축적 후 측정"
+    return round(float(v), 2), "mrp_production 착수→완료 평균"
+
+
+def _m_forecast_bias() -> tuple[float | None, str]:
+    """P7-5: 수요 카드의 예측(p50) 대 실판매 편향% — 예측 로그=카드 근거."""
+    from .judge import cards as jcards
+    pairs = []
+    for c in jcards.listing(kind="demand_forecast"):
+        try:
+            ev = json.loads(c["evidence_json"])
+            for d in ev.get("daily", []):
+                pairs.append((d["date_key"], str(ev.get("store_id")),
+                              str(ev.get("product_id")), float(d.get("p50") or 0)))
+        except Exception:  # noqa: BLE001 — 형식 밖 카드는 건너뜀
+            continue
+    if not pairs:
+        return None, "수요예측 카드(예측 로그) 축적 후 측정"
+    matched, biases = 0, []
+    for dk, sid, pid, p50 in pairs:
+        actual = db.scalar(
+            "SELECT SUM(qty) FROM fact_sales WHERE date_key=? AND store_id=? AND product_id=?",
+            (dk, sid, pid))
+        if actual is None or actual <= 0:
+            continue
+        matched += 1
+        biases.append((actual - p50) / actual * 100)
+    if matched < 3:
+        return None, f"예측-실판매 대조 표본 부족({matched}건<3) — 일자 경과 후 측정"
+    return round(sum(biases) / len(biases), 2), f"수요 카드 p50 대 실판매 {matched}건"
+
+
+def _m_weekly_questions() -> tuple[float | None, str]:
+    """P7-5: 최근 7일 질문 수 — 웹앱 질문 로그."""
+    from datetime import date, timedelta
+    if not db.table_exists("question_log"):
+        return None, "질문 로그 축적 전 — 질문 화면 사용 시 자동 기록"
+    cutoff = (date.today() - timedelta(days=7)).isoformat()
+    v = db.scalar("SELECT COUNT(*) FROM question_log WHERE at >= ?", (cutoff,))
+    return float(v or 0), "question_log 최근 7일"
+
+
 _MEASURES = {
     "wape": _m_wape,
     "scrap_rate": _m_scrap_rate,
@@ -258,11 +354,11 @@ _MEASURES = {
     "mttr_min": _m_mttr,
     "corrective_events": _m_corrective_events,
     "promoted_rules": _m_promoted_rules,
-    # 아래는 현재 사실 테이블로 계산 불가 — 필요한 데이터를 정직하게 말한다
-    "forecast_bias": lambda: (None, "예측 로그 축적 후 측정(서빙 예측 대 실판매 대조)"),
-    "stockout_days": lambda: (None, "재고 수준(stock_quant) 스냅샷 축적 후 측정"),
-    "mo_lead_days": lambda: (None, "MO 착수·완료 시각 축적 후 측정(현재 완료일만 보존)"),
-    "weekly_questions": lambda: (None, "질문 로그 집계 결선 후 측정"),
+    # P7-5 결선: '측정 전' 4종이 원천이 생기면 자동으로 측정으로 전환된다
+    "forecast_bias": _m_forecast_bias,
+    "stockout_days": _m_stockout_days,
+    "mo_lead_days": _m_mo_lead_days,
+    "weekly_questions": _m_weekly_questions,
 }
 
 

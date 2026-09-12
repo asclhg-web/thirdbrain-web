@@ -1621,6 +1621,13 @@ async def ask_page(request: Request):
         form = await request.form()
         q = str(form.get("q", "")).strip()
         if q:
+            # P7-5: 질문 활용 KPI의 원천 — 누가 언제 물었는지만(답변은 미보존)
+            db.executescript(
+                "CREATE TABLE IF NOT EXISTS question_log ("
+                "q_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "username TEXT, question TEXT, at TEXT)")
+            db.execute("INSERT INTO question_log (username, question, at) VALUES (?,?,?)",
+                       (u["username"], q[:200], common.now_iso()))
             from .judge import assembler as asm
             retrieved, desc = _route_question(q)
             if retrieved is None:

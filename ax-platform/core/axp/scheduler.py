@@ -73,7 +73,9 @@ def run_cycle(run_date: str, shadow: bool = False) -> dict:
             stage("risk_check", lambda: risk.check_all(run_date))
 
     # P7-3: KPI 자동 측정 — 에이전트 실행 전에 측정해 kpi_agent가 최신을 본다
+    # P7-5: 재고 일 스냅샷을 측정보다 먼저(결품 KPI 원천, PG 아닌 곳은 스킵)
     from . import projects as _projects
+    stage("stock_snapshot", lambda: _projects.snapshot_stock(run_date))
     stage("projects_measure", lambda: _projects.measure_active_all())
 
     from .agents import five, runtime, promotion

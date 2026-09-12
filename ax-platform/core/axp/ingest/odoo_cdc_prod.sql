@@ -16,6 +16,7 @@ DECLARE
     'purchase_order', 'purchase_order_line',
     'stock_move', 'stock_move_line', 'stock_lot',   -- P5-D: 로트 추적
     'stock_quant', 'stock_scrap',
+    'stock_location',                          -- P7-5: 내부 위치 필터(재고 스냅샷)
     'mrp_production', 'mrp_workorder', 'mrp_workcenter',  -- P5-D: 작업장 매핑
     'quality_check', 'quality_alert',          -- Enterprise 전용: 없으면 자동 제외
     'maintenance_request', 'maintenance_equipment'];
