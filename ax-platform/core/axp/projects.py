@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS axp_kpi_feedback (
   fb_id INTEGER PRIMARY KEY AUTOINCREMENT,
   kpi_id INTEGER NOT NULL,
   action TEXT NOT NULL CHECK (action IN ('adjust_target','improve','keep')),
+  measured_m_id INTEGER,                    -- P7-I2: 어느 측정에 대한 행동인지
   note TEXT DEFAULT '', old_target REAL, new_target REAL,
   decided_by TEXT, created_at TEXT
 );
@@ -126,6 +127,10 @@ def init() -> None:
     except Exception:  # noqa: BLE001
         db.executescript("DROP TABLE IF EXISTS axp_kpi_measurements")
         db.executescript(DDL)
+    try:                                     # P7-I2 마이그레이션(멱등)
+        db.execute("ALTER TABLE axp_kpi_feedback ADD COLUMN measured_m_id INTEGER")
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def create(name: str, goal: str, owner: str, areas: list[str],
@@ -192,13 +197,15 @@ def set_target(kpi_id: int, target: float, by: str,
         (kpi_id, "adjust_target", note, k["target"], target, by, common.now_iso()))
 
 
-def record_feedback(kpi_id: int, action: str, note: str, by: str) -> None:
+def record_feedback(kpi_id: int, action: str, note: str, by: str,
+                    measured_m_id: int | None = None) -> None:
     init()
     if action not in ("improve", "keep"):
         raise ValueError("action은 improve|keep")
     db.execute(
-        "INSERT INTO axp_kpi_feedback (kpi_id, action, note, decided_by, created_at) "
-        "VALUES (?,?,?,?,?)", (kpi_id, action, note, by, common.now_iso()))
+        "INSERT INTO axp_kpi_feedback (kpi_id, action, measured_m_id, note, decided_by, created_at) "
+        "VALUES (?,?,?,?,?,?)",
+        (kpi_id, action, measured_m_id, note, by, common.now_iso()))
 
 
 def snapshot_stock(date_key: str | None = None) -> dict:
@@ -414,7 +421,7 @@ def series(kpi_id: int, limit: int = 30) -> list[dict]:
 
 def latest(kpi_id: int) -> dict | None:
     init()
-    return db.one("SELECT measured_at, value, source FROM axp_kpi_measurements "
+    return db.one("SELECT m_id, measured_at, value, source FROM axp_kpi_measurements "
                   "WHERE kpi_id=? ORDER BY m_id DESC LIMIT 1", (kpi_id,))
 
 

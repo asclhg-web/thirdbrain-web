@@ -221,6 +221,13 @@ def kpi_agent(ctx: dict) -> list[int]:
             if projects.kpi_status(k) != "미달":
                 continue
             m = projects.latest(k["kpi_id"])
+            # P7-I2: 이 측정(m_id)에 대한 개선 기록이 이미 있으면 재제안하지
+            # 않는다 — 새 카드는 '다음 측정'이 여전히 미달일 때만.
+            handled = db.one(
+                "SELECT 1 FROM axp_kpi_feedback WHERE kpi_id=? AND action='improve' "
+                "AND measured_m_id = ?", (k["kpi_id"], m["m_id"]))
+            if handled:
+                continue
             area = projects.AREAS[k["area"]]
             lever = " · ".join(mod for mod, _ in area["modules"][:2])
             gap = (f"{m['value']:g}{k['unit']} → 목표 {k['target']:g}{k['unit']} "
@@ -236,7 +243,8 @@ def kpi_agent(ctx: dict) -> list[int]:
                             "unit": k["unit"], "source": m["source"]}],
                 "range": {"target": k["target"]},
                 "evidence": {"kpi_id": k["kpi_id"], "project_id": p["project_id"],
-                             "area": k["area"], "measured_at": m["measured_at"]},
+                             "area": k["area"], "measured_at": m["measured_at"],
+                             "m_id": m["m_id"]},
                 "approver": "card_approver",
             }))
     return out

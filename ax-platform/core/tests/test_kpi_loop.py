@@ -36,6 +36,15 @@ def test_full_improvement_loop(tmp_db):
                   (adh["kpi_id"],))
     assert len(fb) == 1 and "카드" in fb[0]["note"]
 
+    # P7-I2: 승인 직후(같은 측정) 재실행 — 개선 기록이 있으므로 재제안 없음
+    r_after = runtime.run_agent("kpi_agent", {"run_date": "2026-09-12"}, shadow=True)
+    assert len(r_after["cards"]) == 0
+    # 다음 측정에서도 여전히 미달이면 그때 새 카드가 온다
+    projects.measure_all(p["project_id"])
+    r_next = runtime.run_agent("kpi_agent", {"run_date": "2026-09-13"}, shadow=True)
+    assert len(r_next["cards"]) == 1
+    inbox.decide(r_next["cards"][0], "승인자", "card_approver", True)
+
     # ⑤ 개선이 실적으로 나타난 뒤(90 달성) 재측정 — 카드가 더 안 생긴다
     db.execute("UPDATE fact_production SET qty_done=95 WHERE mo_ref='MO1'")
     projects.measure_all(p["project_id"])
