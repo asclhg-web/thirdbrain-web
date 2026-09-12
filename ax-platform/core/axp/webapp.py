@@ -506,9 +506,26 @@ def _runs_page(u, msg: str = "") -> str:
             agents_html = (f"<div class='card'><b>에이전트 최근 상태</b>"
                            f"<table style='width:100%;margin-top:8px'>"
                            f"<tr><th>에이전트</th><th>상태</th><th>사유</th></tr>{ars}</table></div>")
+    # P6-5: 재학습 이력 — 주간 판정(keep/retrain·게이트 승격 여부)을 화면으로.
+    retrain_html = ""
+    if db.table_exists("retrain_log"):
+        rl = db.query("SELECT * FROM retrain_log ORDER BY run_at DESC LIMIT 5")
+        if rl:
+            rrs = "".join(
+                f"<tr><td>{html.escape((r['as_of'] or '')[:10])}</td>"
+                f"<td>{'유지' if r['decision'] == 'keep' else '재학습'}</td>"
+                f"<td class='sub'>{html.escape(r['reason'] or '')}</td>"
+                f"<td>{html.escape(r['old_version'] or '')}"
+                f"{('→' + html.escape(r['new_version'])) if r['new_version'] else ''}</td>"
+                f"<td>{'승격' if r['promoted'] else ('—' if r['decision'] == 'keep' else '게이트 불통과')}</td></tr>"
+                for r in rl)
+            retrain_html = ("<div class='card'><b>모델 재학습 이력(주간)</b>"
+                            "<table style='width:100%;margin-top:8px'>"
+                            "<tr><th>기준일</th><th>판정</th><th>사유</th><th>버전</th><th>결과</th></tr>"
+                            f"{rrs}</table></div>")
     return f"""<h2>배치 실행 — 판단의 공장을 지금 돌립니다</h2>{msg}{btn}
 <div class="card"><b>최근 실행</b><table style="width:100%;margin-top:8px">
-<tr><th>#</th><th>기준일</th><th>상태</th><th>요청자</th><th>요약</th><th>시각(UTC)</th></tr>{trs}</table></div>{agents_html}"""
+<tr><th>#</th><th>기준일</th><th>상태</th><th>요청자</th><th>요약</th><th>시각(UTC)</th></tr>{trs}</table></div>{agents_html}{retrain_html}"""
 
 
 def _run_cycle_bg(run_id: int, run_date: str) -> None:

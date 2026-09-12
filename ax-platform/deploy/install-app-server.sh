@@ -50,6 +50,10 @@ AXP_DATA=${AXP_DATA}
 AXP_SECRET=$(openssl rand -hex 32)
 AXP_API_KEY=$(openssl rand -hex 24)
 AXP_NOTIFY=dryrun
+# P6: 체험 신청 자동 발급 — 승인제가 기본(접수된 결정). 협의 후에만 1로.
+#AXP_AUTO_ISSUE=0
+# P6: 테넌트 업로드 총량 상한(MB) — 기본 500
+#AXP_TENANT_QUOTA_MB=500
 # GPU 서버 연결 시 주석 해제:
 #AXP_LLM=ollama
 #AXP_OLLAMA_URL=http://<GPU서버-내부IP>:11434
