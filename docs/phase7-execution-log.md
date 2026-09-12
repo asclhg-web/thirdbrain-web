@@ -147,3 +147,11 @@
 - docs/server-map.md 신설(서버 정의서) — 배포 가이드의 기준 지도.
 - 후속: WSL2 설치 확인 → clone → install-app-server.sh → Tunnel →
   프로젝트·KPI 화면 개통(대표와 실시간 문답으로 진행 중).
+
+## P7-11: 서버1(WSL2) 설치 대응 (2026-09-12 04:0x)
+
+- install-app-server.sh에 WSL 감지 추가 — systemd 미활성이면 반설치 없이
+  안내 후 중단(wsl.conf 설정법 출력). deploy-server1-wsl.md 신설:
+  프롬프트 구분(PS>/$)·0~6단계·겸용 장비 상시성 주의 포함.
+- 체크인(03:58Z): PG 정상·소크 39사이클 all_ok·git 클린. 대표와 서버1
+  WSL 설치 실시간 진행 중(재부팅 대기 → 이후 이 가이드 순서).

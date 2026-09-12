@@ -10,6 +10,19 @@ AXP_DATA=/var/lib/axp/data
 ENV_FILE=/etc/axp/env
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+# P7: WSL2(서버1=Windows 겸용, server-map.md) 사전 점검 — WSL 우분투는
+# systemd가 꺼진 채 시작될 수 있고, 그러면 아래 systemctl 전부가 실패한다.
+# 켜는 법을 안내하고 여기서 멈춘다(반쯤 설치된 상태를 만들지 않기 위해).
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  if [ "$(ps -p 1 -o comm=)" != "systemd" ]; then
+    echo "!! WSL에서 systemd가 꺼져 있습니다 — 아래 두 명령 후 다시 실행하세요:"
+    echo "   printf '[boot]\nsystemd=true\n' | sudo tee /etc/wsl.conf"
+    echo "   (Windows PowerShell에서)  wsl --shutdown   후 wsl 재진입"
+    exit 1
+  fi
+  echo "== WSL2 감지 — systemd 활성 확인됨 (서버1 겸용 모드)"
+fi
+
 echo "== 1/7 시스템 패키지 =="
 apt-get update -q
 apt-get install -y -q postgresql postgresql-contrib python3-pip python3-venv
