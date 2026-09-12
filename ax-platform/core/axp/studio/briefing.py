@@ -13,14 +13,15 @@ from . import mining
 def build(run_date: str) -> str:
     lines = [f"# 아침 브리핑 — {run_date}", ""]
 
-    # 품질 이상은 최상단 경보
-    q = db.one("SELECT * FROM quality_reports ORDER BY report_date DESC LIMIT 1")
+    # 품질 이상은 최상단 경보 (P7-8: 신규 프로파일엔 테이블이 아직 없다)
+    q = db.one("SELECT * FROM quality_reports ORDER BY report_date DESC LIMIT 1") \
+        if db.table_exists("quality_reports") else None
     if q and not q["ok"]:
         lines += ["> ⚠️ **품질 경보** — 어제 품질 리포트에 위반이 있습니다. "
                   "(원천: quality_reports)", ""]
 
     changes = db.query("SELECT * FROM mining_changes WHERE run_date=? ORDER BY rank",
-                       (run_date,))
+                       (run_date,)) if db.table_exists("mining_changes") else []
     lines.append(f"## 어제의 변화 Top {len(changes)}")
     if not changes:
         lines.append("- 보고할 유의 변화 없음 (기준: ±25% 이상)")
@@ -35,7 +36,7 @@ def build(run_date: str) -> str:
 
     cands = db.query(
         "SELECT * FROM mining_candidates WHERE run_date=? ORDER BY z DESC LIMIT 3",
-        (run_date,))
+        (run_date,)) if db.table_exists("mining_candidates") else []
     if cands:
         lines.append("## 야간 마이닝 — 함께 나타난 조합(원인 아님, 후보)")
         for c in cands:
@@ -55,6 +56,30 @@ def build(run_date: str) -> str:
             lines.append(f"- \"{s['keyword']}\" {int(s['prev'])}→{s['n']}회 — "
                          f"현장 기록 원문은 검색으로 (원천: 메모 말뭉치)")
         lines.append("")
+
+    # P7-8: 프로젝트 KPI 성과 — 대시보드 요약을 아침 5분 안에(루프의 ⑤단계)
+    if db.table_exists("axp_projects"):
+        from .. import projects as prj
+        for pr in prj.listing():
+            if pr["status"] != "active":
+                continue
+            kpis = prj.get(pr["project_id"])["kpis"]
+            if not kpis:
+                continue
+            stats = {"달성": [], "미달": [], "측정 전": [], "목표 미설정": []}
+            for k in kpis:
+                stats.setdefault(prj.kpi_status(k), []).append(k)
+            lines.append(f"## 프로젝트 KPI — {pr['name']}")
+            lines.append(
+                f"- 달성 {len(stats['달성'])} · 미달 {len(stats['미달'])} · "
+                f"측정 전 {len(stats['측정 전'])} · 목표 미설정 {len(stats['목표 미설정'])} "
+                f"(원천: axp_kpi_measurements)")
+            for k in stats["미달"]:
+                m = prj.latest(k["kpi_id"])
+                lines.append(
+                    f"- **미달** {k['kpi_name']}: {m['value']:g}{k['unit']} "
+                    f"(목표 {k['target']:g}{k['unit']}) — 개선 카드가 승인함에 있거나 곧 옵니다")
+            lines.append("")
 
     if db.table_exists("judgment_cards"):
         pend = db.query(

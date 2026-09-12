@@ -50,6 +50,15 @@ def main() -> None:
     s.add_argument("--company", default=None)
     s.add_argument("--template", default=None)
     s.add_argument("--hours", type=float, default=24.0)
+    s = sub.add_parser("projects", help="프로젝트·KPI 센터 — 정의·측정·목표 (P7)")
+    s.add_argument("op", choices=["list", "create", "measure", "status", "target"])
+    s.add_argument("arg", nargs="?",
+                   help="create: 이름 / measure·status: project_id / target: kpi_id")
+    s.add_argument("--goal", default="", help="create: 경영 목표 한 줄")
+    s.add_argument("--areas", default="",
+                   help="create: 쉼표 구분 영역(demand,inventory,production,equipment,knowledge)")
+    s.add_argument("--value", type=float, default=None, help="target: 목표값")
+    s.add_argument("--note", default="", help="target: 조정 사유")
     s = sub.add_parser("billing", help="과금 — 구독·청구·미납 잠금 (P6-1)")
     s.add_argument("op", choices=["status", "set-plan", "issue", "paid", "unlock", "check"])
     s.add_argument("arg", nargs="?", help="set-plan: 플랜명 / paid: 청구번호 / issue: 기간(YYYY-MM)")
@@ -167,6 +176,30 @@ def main() -> None:
             print(_json.dumps(_t.destroy(a.name), ensure_ascii=False))
         elif a.op == "purge-uploads":
             print(_json.dumps(_t.purge_uploads(a.name, hours=a.hours), ensure_ascii=False))
+    elif a.cmd == "projects":
+        import json as _json
+        from . import projects as _p
+        if a.op == "list":
+            for r in _p.listing():
+                print(f"#{r['project_id']} {r['name']} [{r['status']}] — {r['goal']}")
+            if not _p.listing():
+                print("프로젝트 없음 — create로 정의하세요")
+        elif a.op == "create":
+            areas = [x.strip() for x in a.areas.split(",") if x.strip()]
+            r = _p.create(a.arg or "", a.goal, "cli", areas)
+            print(_json.dumps({"project_id": r["project_id"], "kpis": len(r["kpis"])},
+                              ensure_ascii=False))
+        elif a.op == "measure":
+            print(_json.dumps(_p.measure_all(int(a.arg)), ensure_ascii=False))
+        elif a.op == "status":
+            for k in _p.get(int(a.arg))["kpis"]:
+                m = _p.latest(k["kpi_id"])
+                val = f"{m['value']:g}{k['unit']}" if m else "측정 전"
+                tgt = f"{k['target']:g}" if k["target"] is not None else "—"
+                print(f"  [{k['kpi_id']:>3}] {k['kpi_name']:20s} {val:>12s} / 목표 {tgt:>6s} → {_p.kpi_status(k)}")
+        elif a.op == "target":
+            _p.set_target(int(a.arg), a.value, "cli", note=a.note)
+            print("목표 설정 완료")
     elif a.cmd == "billing":
         import json as _json
         from . import billing as _b

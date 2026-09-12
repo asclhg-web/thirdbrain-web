@@ -62,6 +62,19 @@ def test_no_target_no_card(tmp_db):
     assert r["ok"] and len(r["cards"]) == 0               # 목표 미설정은 제안 없음
 
 
+def test_briefing_includes_project_kpis(tmp_db):
+    """P7-8: 아침 브리핑에 프로젝트 KPI 요약·미달 목록이 실린다."""
+    from axp.studio import briefing
+    _seed(qty_done=70)
+    p = projects.create("브리핑 검증", "", "admin", ["production"])
+    adh = next(k for k in p["kpis"] if k["kpi_code"] == "plan_adherence")
+    projects.set_target(adh["kpi_id"], 90.0, "admin")
+    projects.measure_all(p["project_id"])
+    text = briefing.build("2026-09-12")
+    assert "프로젝트 KPI — 브리핑 검증" in text
+    assert "미달 1" in text and "계획 준수율" in text and "목표 90" in text
+
+
 def test_scheduler_measures_active_projects(tmp_db):
     _seed()
     p = projects.create("배치 측정", "", "admin", ["production"])
