@@ -29,9 +29,18 @@ apt-get install -y -q postgresql postgresql-contrib python3-pip python3-venv
 
 echo "== 2/7 PostgreSQL 준비 =="
 systemctl enable --now postgresql
-PGPW="$(openssl rand -hex 16)"
+# P7-I5(서버1 실설치 적발): 중단→재실행 시 '기존 역할은 옛 비밀번호,
+# 새 env는 새 비밀번호'로 어긋나 PG 인증이 전면 실패한다 —
+# env 파일이 이미 있으면 그 비밀번호를 재사용하고, 역할 비밀번호를
+# 항상 env와 같은 값으로 정렬한다(멱등).
+if [ -f "$ENV_FILE" ]; then
+  PGPW="$(grep -oP 'password=\K[^ ]+' "$ENV_FILE")"
+else
+  PGPW="$(openssl rand -hex 16)"
+fi
 sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='axp'" | grep -q 1 \
   || sudo -u postgres psql -c "CREATE USER axp WITH PASSWORD '${PGPW}'"
+sudo -u postgres psql -qc "ALTER ROLE axp WITH PASSWORD '${PGPW}'"
 sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='axp'" | grep -q 1 \
   || sudo -u postgres createdb -O axp axp
 # CDC 수신을 위해 논리 복제 활성화
