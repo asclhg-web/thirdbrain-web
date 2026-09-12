@@ -112,7 +112,10 @@ cp "$AXP_HOME/deploy/systemd/axp-scheduler.service" /etc/systemd/system/
 cp "$AXP_HOME/deploy/systemd/axp-heartbeat.service" /etc/systemd/system/
 cp "$AXP_HOME/deploy/systemd/axp-heartbeat.timer" /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now axp-web axp-scheduler axp-heartbeat.timer
+# P7-I9와 동행 보강: 재설치(코드 갱신) 시에도 새 코드가 반드시 뜨도록
+# enable --now(이미 떠 있으면 무시) 대신 enable + restart(멱등 재기동).
+systemctl enable axp-web axp-scheduler axp-heartbeat.timer
+systemctl restart axp-web axp-scheduler axp-heartbeat.timer
 sleep 2
 systemctl --no-pager -l status axp-web | head -5
 

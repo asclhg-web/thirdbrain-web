@@ -57,3 +57,12 @@ def test_create_validation_message(tmp_db):
     _login(c, "admin")
     r = c.post("/projects/create", data={"name": "", "goal": ""})
     assert r.status_code == 400 and "입력하세요" in r.text
+
+
+def test_dashboard_renders_before_dataset(tmp_db):
+    """P7-I9: 갓 설치(자료 반입 전) 상태에서 대시보드가 500 없이 '측정 전'."""
+    p = projects.create("빈 상태", "", "admin", ["production"])
+    c = _client()
+    _login(c, "admin")
+    r = c.get(f"/projects/{p['project_id']}")
+    assert r.status_code == 200 and "측정 전" in r.text

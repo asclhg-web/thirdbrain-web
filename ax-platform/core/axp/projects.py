@@ -374,11 +374,25 @@ _MEASURES = {
 }
 
 
+def _src_missing(e: Exception) -> bool:
+    """원천 테이블 자체가 없는 오류인가 — PG(UndefinedTable)·SQLite 공용."""
+    n = type(e).__name__
+    return n == "UndefinedTable" or (n == "OperationalError" and "no such table" in str(e))
+
+
 def measure(kpi_code: str) -> tuple[float | None, str]:
     fn = _MEASURES.get(kpi_code)
     if fn is None:
         return None, "측정식 미정의"
-    return fn()
+    # P7-I9(서버1 실설치 적발): 갓 설치돼 표준 데이터셋(fact_*)이 아직 없는
+    # 상태에서 대시보드가 500으로 죽었다 — 원천 부재는 오류가 아니라
+    # '측정 전'이 정직한 답이다(자료 반입·Odoo 연결 후 측정).
+    try:
+        return fn()
+    except Exception as e:  # noqa: BLE001
+        if _src_missing(e):
+            return None, "표준 데이터셋 생성 전(자료 반입 후 측정)"
+        raise
 
 
 def measure_all(project_id: int) -> dict:

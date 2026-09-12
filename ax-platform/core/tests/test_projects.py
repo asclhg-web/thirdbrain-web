@@ -78,3 +78,13 @@ def test_series_accumulates(tmp_db):
     projects.measure_all(p["project_id"])
     adh = next(k for k in p["kpis"] if k["kpi_code"] == "plan_adherence")
     assert len(projects.series(adh["kpi_id"])) == 2
+
+
+def test_measure_before_dataset_is_pending(tmp_db):
+    """P7-I9(서버1 실설치 적발): 표준 데이터셋(fact_*) 생성 전이면 측정은
+    오류가 아니라 '측정 전'이어야 한다 — 갓 설치 상태 재현(apply_schema 없음)."""
+    p = projects.create("설치 직후", "", "a", ["production", "inventory"])
+    r = projects.measure_all(p["project_id"])
+    assert r["measured"] == 0 and r["pending"] >= 1
+    v, src = projects.measure("scrap_rate")
+    assert v is None and "데이터셋 생성 전" in src
