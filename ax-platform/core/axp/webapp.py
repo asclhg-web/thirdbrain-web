@@ -1385,6 +1385,90 @@ def _upload_form(msg: str = "") -> str:
 </form>"""
 
 
+# P7-12(서버1 실사용 적발): '처음 보는 양식'에서 열 매핑 등록이 웹에 없어
+# 관리자 명령이 필요했다 — 화면에서 클릭으로 등록하고 즉시 재반입한다.
+_MAP_FIELD_LABELS = {
+    "": "(무시)", "date": "판매일(날짜)", "store_id": "매장", "product_id": "품목",
+    "qty": "수량", "date_start": "시작일", "date_end": "종료일",
+    "promo_name": "행사명", "discount_pct": "할인율",
+    "vendor_id": "공급사", "material_id": "자재", "unit_price": "단가",
+    "valid_from": "적용 시작일",
+}
+_MAP_GUESS = (("판매일", "date"), ("일자", "date"), ("날짜", "date"),
+              ("매장", "store_id"), ("지점", "store_id"),
+              ("품목", "product_id"), ("제품", "product_id"), ("상품", "product_id"),
+              ("수량", "qty"), ("시작", "date_start"), ("종료", "date_end"),
+              ("행사", "promo_name"), ("할인", "discount_pct"),
+              ("공급", "vendor_id"), ("자재", "material_id"), ("단가", "unit_price"))
+
+
+def _excel_mapping_form(res: dict, src: str) -> str:
+    from .ingest.excel_uploader import STANDARD_FIELDS
+    prof = res.get("profile") or {}
+    kind_opts = "".join(
+        f"<option value='{k}'>{lbl}</option>" for k, lbl in
+        (("sales_summary", "판매 집계"), ("promo_calendar", "프로모션 달력"),
+         ("vendor_price", "단가표")) if k in STANDARD_FIELDS)
+    rows = []
+    for c in prof.get("columns", []):
+        name = c["name"]
+        guess = next((f for kw, f in _MAP_GUESS if kw in name), "")
+        opts = "".join(
+            f"<option value='{f}'{' selected' if f == guess else ''}>{lbl}</option>"
+            for f, lbl in _MAP_FIELD_LABELS.items())
+        sample = " · ".join(c.get("sample", [])[:2])
+        rows.append(
+            f"<tr><td><b>{html.escape(name)}</b><div class='sub'>{html.escape(sample)}</div></td>"
+            f"<td><select name='map__{html.escape(name)}'>{opts}</select></td></tr>")
+    return f"""<div class="card warn"><b>처음 보는 양식</b> — 아래에서 각 열이 무엇인지 지정하면
+등록되고, 이 파일이 바로 반입됩니다(다음부터는 자동).
+<form method="post" action="/upload/mapping" style="margin-top:8px">
+  <input type="hidden" name="fingerprint" value="{html.escape(prof.get('fingerprint', ''))}">
+  <input type="hidden" name="src" value="{html.escape(src)}">
+  <p>양식 종류: <select name="sheet_kind">{kind_opts}</select></p>
+  <table style="width:100%">{''.join(rows)}</table>
+  <button class="btn ok" style="margin-top:8px">등록하고 바로 반입</button>
+</form></div>"""
+
+
+@app.post("/upload/mapping", response_class=HTMLResponse)
+async def upload_mapping(request: Request):
+    u = _require(request, ("steward",))
+    if isinstance(u, Response):
+        return u
+    form = await request.form()
+    from pathlib import Path as _P
+    from .ingest import excel_uploader as xu
+    fp = str(form.get("fingerprint", ""))
+    sheet_kind = str(form.get("sheet_kind", ""))
+    src = _P(str(form.get("src", "")))
+    mapping = {k[len("map__"):]: str(v) for k, v in form.items()
+               if k.startswith("map__") and str(v)}
+    inbox_dir = (config.DATA / "raw" / "webupload").resolve()
+    ok_src = src.is_file() and str(src.resolve()).startswith(str(inbox_dir) + os.sep)
+    if not (fp and sheet_kind in xu.STANDARD_FIELDS and ok_src):
+        return HTMLResponse(page(u, "자료 반입", _upload_form(
+            "<div class='card warn'>매핑 등록 정보가 올바르지 않습니다 — 파일을 다시 업로드하세요.</div>"),
+            "/upload"), 400)
+    try:
+        xu.save_mapping(fp, sheet_kind, mapping, by=u["username"])
+    except ValueError as e:
+        return HTMLResponse(page(u, "자료 반입", _upload_form(
+            f"<div class='card warn'>{html.escape(str(e))} — 필수 열을 지정해 주세요.</div>"),
+            "/upload"), 400)
+    common.alert("info", "webapp",
+                 f"열 매핑 등록: {sheet_kind} {fp} by {u['username']}")
+    res = xu.upload(src, by=u["username"])
+    errs = "".join(f"<div class='ln'>· {html.escape(e)}</div>" for e in res.get("errors", [])[:10])
+    body = (f"<div class='card ok'><b>매핑 등록·반입 완료</b> — {res.get('rows_ok', 0)}행"
+            f" (거절 {res.get('rows_rejected', 0)}행)"
+            + (f"<div style='margin-top:6px'>{errs}</div>" if errs else "")
+            + "<div class='sub' style='margin-top:6px'>같은 양식은 다음부터 자동 반입됩니다. "
+              "미확인 코드는 <a href='/quarantine'>격리 큐</a>에서, 반영은 "
+              "<a href='/runs'>배치 실행</a>에서.</div></div>")
+    return HTMLResponse(page(u, "자료 반입", _upload_form() + body, "/upload"))
+
+
 @app.get("/upload", response_class=HTMLResponse)
 def upload_form(request: Request):
     u = _require(request, ("steward",))
@@ -1441,11 +1525,14 @@ async def upload_post(request: Request):
         return HTMLResponse(page(u, "자료 반입", _upload_form(
             f"<div class='card warn'>반입 실패: {html.escape(str(e)[:300])}</div>"), "/upload"), 500)
     if res.get("status") == "needs_mapping":
-        cols = ", ".join(res.get("columns", [])[:20]) or \
-            ", ".join(c["name"] for c in res.get("profile", {}).get("columns", [])[:20])
-        body = (f"<div class='card warn'><b>처음 보는 양식</b> — {html.escape(res.get('message',''))}"
-                f"<div class='sub'>발견한 열: {html.escape(cols)}</div>"
-                f"<div class='sub'>열 매핑 등록은 관리자에게 요청하세요(다음부터 자동 반입).</div></div>")
+        if kind == "excel" and res.get("profile"):
+            body = _excel_mapping_form(res, str(dst))     # P7-12: 화면에서 바로 등록
+        else:
+            cols = ", ".join(res.get("columns", [])[:20]) or \
+                ", ".join(c["name"] for c in res.get("profile", {}).get("columns", [])[:20])
+            body = (f"<div class='card warn'><b>처음 보는 양식</b> — {html.escape(res.get('message',''))}"
+                    f"<div class='sub'>발견한 열: {html.escape(cols)}</div>"
+                    f"<div class='sub'>열 매핑 등록은 관리자에게 요청하세요(다음부터 자동 반입).</div></div>")
     elif res.get("status") == "duplicate":
         body = f"<div class='card warn'>{html.escape(res.get('message',''))}</div>"
     else:

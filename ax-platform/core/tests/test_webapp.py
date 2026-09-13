@@ -579,3 +579,59 @@ def test_quarantine_drain_self_matches(tmp_db):
     r = c.post("/quarantine/drain")
     assert r.status_code == 303
     assert codemap.resolve("product", "P-PIE") == "P-PIE"
+
+
+def test_upload_mapping_registers_and_ingests(tmp_db):
+    """P7-12: 처음 보는 엑셀 → 화면에서 열 매핑 등록 → 즉시 반입, 이후 자동."""
+    import io
+    import re as _re
+
+    import pandas as pd
+
+    buf = io.BytesIO()
+    pd.DataFrame({"판매일": ["2026-09-01", "2026-09-02"], "매장": ["S-A", "S-A"],
+                  "품목": ["P-1", "P-1"], "수량": [10, 12]}).to_excel(buf, index=False)
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/upload", data={"kind": "excel"},
+               files={"file": ("점포집계.xlsx", buf.getvalue(),
+                               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})
+    assert "처음 보는 양식" in r.text and "map__판매일" in r.text   # 매핑 폼이 떠야 한다
+    fp = _re.search(r"name=\"fingerprint\" value=\"([0-9a-f]+)\"", r.text).group(1)
+    src = _re.search(r"name=\"src\" value=\"([^\"]+)\"", r.text).group(1)
+    r = c.post("/upload/mapping", data={
+        "fingerprint": fp, "sheet_kind": "sales_summary", "src": src,
+        "map__판매일": "date", "map__매장": "store_id",
+        "map__품목": "product_id", "map__수량": "qty"})
+    assert r.status_code == 200 and "매핑 등록·반입 완료" in r.text, r.text[:500]
+    assert "2행" in r.text                                     # 두 행이 실제 반입
+    buf2 = io.BytesIO()
+    pd.DataFrame({"판매일": ["2026-09-03"], "매장": ["S-A"],
+                  "품목": ["P-1"], "수량": [7]}).to_excel(buf2, index=False)
+    r = c.post("/upload", data={"kind": "excel"},
+               files={"file": ("점포집계2.xlsx", buf2.getvalue(),
+                               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})
+    assert "반입 완료" in r.text and "처음 보는 양식" not in r.text   # 이후 자동
+
+
+def test_upload_mapping_rejects_missing_required(tmp_db):
+    """필수 표준 필드(수량 등)를 빼고 등록하면 거부 — 반쪽 매핑 방지."""
+    import io
+    import re as _re
+
+    import pandas as pd
+
+    buf = io.BytesIO()
+    pd.DataFrame({"판매날": ["2026-09-01"], "지점": ["S-A"],
+                  "상품": ["P-1"], "판매개수": [3]}).to_excel(buf, index=False)
+    c = _client()
+    _login(c, "steward")
+    r = c.post("/upload", data={"kind": "excel"},
+               files={"file": ("다른양식.xlsx", buf.getvalue(),
+                               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})
+    fp = _re.search(r"name=\"fingerprint\" value=\"([0-9a-f]+)\"", r.text).group(1)
+    src = _re.search(r"name=\"src\" value=\"([^\"]+)\"", r.text).group(1)
+    r = c.post("/upload/mapping", data={
+        "fingerprint": fp, "sheet_kind": "sales_summary", "src": src,
+        "map__판매날": "date", "map__지점": "store_id"})   # product_id·qty 누락
+    assert r.status_code == 400 and "필수" in r.text
