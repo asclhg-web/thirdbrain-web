@@ -134,9 +134,9 @@ class OllamaBackend:
     결정적 조립기로 폴백한다(파이프라인은 LLM 없이도 완주).
     """
 
-    RETRY_SUFFIX = ("\n\n주의: 직전 응답이 인용 규칙 위반으로 차단되었다. "
-                    "모든 문장을 '[근거: <참조>]'로 끝내고, 검색된 사실에 있는 "
-                    "숫자만 사용해 다시 답하라.")
+    RETRY_SUFFIX = ("\n\n주의: 직전 응답이 규칙 위반으로 차단되었다. 오직 한국어로만, "
+                    "부연·번역·해설 없이, 모든 문장을 '[근거: <참조>]'로 끝내고 "
+                    "검색된 사실에 있는 숫자만 사용해 다시 답하라.")
 
     def __init__(self, url: str | None = None, model: str | None = None):
         import os
@@ -161,11 +161,17 @@ class OllamaBackend:
         raise PermissionError(
             f"반출 게이트: LLM 호스트 {host}는 사설망도 허용 목록도 아니다")
 
+    # P8-I2(서버1 실측): qwen2.5는 한국어 프롬프트에도 중국어 부연·메타설명을
+    # 덧붙이는 경향이 있다 — system으로 한국어만·부연 금지를 강제한다.
+    SYSTEM = ("당신은 한국어로만 답합니다. 다른 언어(중국어·영어)나 번역·해설·"
+              "메타설명을 절대 넣지 않습니다. 주어진 사실만 근거로 간결히 답하고, "
+              "각 문장은 반드시 '[근거: <참조>]' 형식으로 끝냅니다.")
+
     def _generate(self, prompt: str) -> str:
         import urllib.request
         req = urllib.request.Request(
             f"{self.url}/api/generate",
-            json.dumps({"model": self.model, "prompt": prompt,
+            json.dumps({"model": self.model, "prompt": prompt, "system": self.SYSTEM,
                         "stream": False, "options": {"temperature": 0.1}}).encode(),
             {"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=120) as r:
@@ -173,15 +179,18 @@ class OllamaBackend:
 
     def answer(self, question: str, retrieved: dict) -> str:
         prompt = (
-            "다음 '검색된 사실'만으로 질문에 답하라. 사실 밖 내용·새 숫자 생성 금지. "
-            "모든 문장은 '[근거: <참조>]'로 끝나야 한다.\n"
+            "다음 '검색된 사실'만으로 한국어로 답하라. 사실 밖 내용·새 숫자 생성 금지, "
+            "부연·번역·해설 금지. 모든 문장은 '[근거: <참조>]'로 끝나야 한다.\n"
             f"질문: {question}\n검색된 사실: {json.dumps(retrieved, ensure_ascii=False)}")
         text = self._generate(prompt)
-        try:
-            verify_citations(text, retrieved)
-            return text
-        except CitationError:
-            return self._generate(prompt + self.RETRY_SUFFIX)  # 1회 재생성
+        for _ in range(2):                       # 최대 2회 재생성 후 폴백에 맡긴다
+            try:
+                verify_citations(text, retrieved)
+                return text
+            except CitationError:
+                text = self._generate(prompt + self.RETRY_SUFFIX)
+        verify_citations(text, retrieved)         # 마지막도 실패면 CitationError→폴백
+        return text
 
 
 def make_backend():

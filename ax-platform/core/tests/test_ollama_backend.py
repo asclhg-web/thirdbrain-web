@@ -65,6 +65,19 @@ def test_ollama_retry_then_good(mock_ollama):
     assert _Mock.calls == 2 and "RULE-0001" in out
 
 
+# P8-I2(서버1 실측): qwen이 한국어 답 끝에 중국어 부연 줄을 덧붙인 사례 —
+# 그 줄은 인용이 없어 차단되고 재생성으로 깨끗한 답이 나와야 한다.
+CN = ("OVEN-2 설비 문제입니다 [근거: Rule:RULE-0001].\n"
+      "看起來您的要求格式中包含了一些需要調整的地方。")
+
+
+def test_ollama_chinese_filler_retried(mock_ollama):
+    _Mock.responses = [CN, GOOD]
+    b = assembler.OllamaBackend(url=mock_ollama, model="test")
+    out = b.answer("규칙?", RETRIEVED)
+    assert _Mock.calls == 2 and "看" not in out and "RULE-0001" in out
+
+
 def test_ollama_down_falls_back(tmp_db):
     assembler.set_backend(assembler.OllamaBackend(url="http://127.0.0.1:9", model="t"))
     try:
