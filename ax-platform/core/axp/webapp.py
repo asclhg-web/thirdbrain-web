@@ -224,6 +224,10 @@ th{background:#6E3A1C;color:#fff;font-size:12.5px}
 .note{background:#FDF3E0;border:1px solid #DCCDBB;border-radius:9px;
 padding:10px 14px;font-size:13px;margin-bottom:16px}
 form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.subnav{padding:6px 0 8px}
+.subnav a{color:#D8C9B4;text-decoration:none;font-size:13px;margin-right:14px;
+  padding:2px 8px;border-radius:10px}
+.subnav a.on{background:#4A3521;color:#fff}
 @media(max-width:640px){header nav a{margin-right:9px;font-size:13px}}
 </style>"""
 
@@ -260,27 +264,40 @@ async def security_middleware(request: Request, call_next):
     return resp
 
 
-NAV = [("/inbox", "승인함", ("approver", "viewer", "steward")),
-       ("/upload", "자료 반입", ("steward",)),
-       ("/runs", "배치 실행", ()),           # admin 전용 — _require가 강제 (P7-I11: 메뉴 누락 적발)
-       ("/setup", "온보딩 설정", ()),        # steward/admin — _require가 강제
-       ("/users", "계정 관리", ()),          # admin 전용 — _require가 강제
-       ("/connect", "Odoo 연결", ()),        # admin 전용 — _require가 강제
-       ("/quarantine", "격리 큐", ("steward", "viewer", "approver")),
-       ("/briefing", "브리핑", ("viewer", "steward", "approver")),
-       ("/ask", "질문", ("viewer", "steward", "approver")),
-       ("/rules", "규칙", ("viewer", "steward", "approver")),
-       ("/projects", "프로젝트", ("viewer", "steward", "approver")),
-       ("/warroom", "War Room", ("viewer", "steward", "approver")),
-       ("/audit", "감사 로그", ("viewer", "steward", "approver")),
-       ("/promotions", "자동실행", ("approver", "viewer")),
-       ("/assets", "자산 대장", ("steward", "viewer"))]
+# P8-1: 정보구조 — 기능 목록(14개 평면 메뉴)에서 '일' 중심 4허브+관리로 재편.
+# 기존 주소는 전부 보존(화면은 그대로, 묶음과 이름만 사용자 말로 바꾼다).
+# 관리 허브는 admin에게만 노출되고, 접근 권한은 종전대로 각 라우트의
+# _require가 강제한다(메뉴 숨김은 정리이지 보안이 아니다).
+HUBS = [
+    ("오늘", "/today", (), [("/today", "오늘 할 일"), ("/briefing", "아침 브리핑"),
+                            ("/ask", "질문")]),
+    ("데이터", "/upload", (), [("/upload", "자료 반입"), ("/connect", "Odoo 연결"),
+                               ("/quarantine", "확인할 이름(격리)"),
+                               ("/runs", "지금 반영(배치)"), ("/assets", "자산 대장")]),
+    ("판단", "/inbox", (), [("/inbox", "승인함"), ("/promotions", "자동실행 위임"),
+                            ("/rules", "규칙"), ("/warroom", "War Room")]),
+    ("성과", "/projects", (), [("/projects", "프로젝트·KPI"), ("/audit", "감사 로그")]),
+    ("관리", "/users", ("admin",), [("/users", "계정"), ("/setup", "온보딩 설정"),
+                                    ("/billing", "과금"), ("/signups", "체험 신청")]),
+]
+
+# P8-1: 역할이 홈을 결정한다 — 대표는 성과부터, 승인자는 결정부터.
+HOME_BY_ROLE = {"admin": "/today", "steward": "/upload",
+                "approver": "/inbox", "viewer": "/projects"}
 
 
 def page(user: dict | None, title: str, body: str, active: str = "") -> str:
+    # P8-1: 2단 내비 — 윗줄은 허브 4+관리, 아랫줄은 현재 허브의 화면들.
+    role = (user or {}).get("role", "")
+    cur_hub = next((h for h in HUBS if any(p == active for p, _ in h[3])), None)
     nav = "".join(
-        f"<a href='{p}' class='{'on' if p == active else ''}'>{t}</a>"
-        for p, t, _ in NAV)
+        f"<a href='{h[1]}' class='{'on' if cur_hub is h else ''}'>{h[0]}</a>"
+        for h in HUBS if not h[2] or role in h[2])
+    subnav = ""
+    if cur_hub and (not cur_hub[2] or role in cur_hub[2]):
+        subnav = ("<div class='wrap subnav'>" + "".join(
+            f"<a href='{p}' class='{'on' if p == active else ''}'>{t}</a>"
+            for p, t in cur_hub[3]) + "</div>")
     who = (f"<span class='who'>{html.escape(user['display'])} ({user['role']}) · "
            f"<a href='/password' style='color:#B9A78F'>비밀번호</a> · "
            f"<form method='post' action='/logout' style='display:inline'>"
@@ -301,7 +318,7 @@ def page(user: dict | None, title: str, body: str, active: str = "") -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)} — AX 플랫폼</title>{STYLE}
 <header><div class="wrap bar"><span class="mark">AX</span><b>AX 플랫폼</b>{brand_html}
-<nav>{nav}</nav>{who}</div></header>
+<nav>{nav}</nav>{who}</div>{subnav}</header>
 <main><div class="wrap">{warn}{body}</div></main>"""
     if user is not None:
         # P5-S3: 모든 POST 폼에 CSRF 토큰 자동 주입 — 폼을 새로 만들어도 자동 방어
@@ -342,7 +359,8 @@ def login(username: str = Form(...), password: str = Form(...)):
         return HTMLResponse(page(None, "이용 정지",
             "<div class='card warn'><b>구독 미납으로 이용이 잠시 정지되었습니다.</b><br>"
             "데이터는 안전하게 보존 중입니다 — 관리자(계약 담당)에게 문의해 주세요.</div>"), 402)
-    r = RedirectResponse("/inbox", status_code=303)
+    # P8-1: 역할별 홈 — 대표는 성과, 승인자는 판단, 실무는 데이터, admin은 오늘
+    r = RedirectResponse(HOME_BY_ROLE.get(u["role"], "/inbox"), status_code=303)
     r.set_cookie("axp_session", _session_token(username),
                  httponly=True, samesite="lax",
                  secure=os.environ.get("AXP_MODE") == "prod",
@@ -405,6 +423,66 @@ def _fmt_narr(text: str) -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
+def root_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    return RedirectResponse(HOME_BY_ROLE.get(u["role"], "/inbox"), status_code=303)
+
+
+# ── P8-2: '오늘' 홈 — 브리핑·할 일·질문이 한 화면에 ────────────────
+def _today_body(u: dict) -> str:
+    from . import projects
+    todos: list[tuple[str, str, str]] = []
+    if db.table_exists("judgment_cards"):
+        n = db.scalar("SELECT COUNT(*) FROM judgment_cards WHERE status='proposed'") or 0
+        if n:
+            todos.append((f"승인 대기 카드 {n}건", "/inbox", "AI 제안이 결정을 기다립니다"))
+    if db.table_exists("quarantine_queue"):
+        n = db.scalar("SELECT COUNT(*) FROM quarantine_queue WHERE status='pending'") or 0
+        if n:
+            todos.append((f"확인할 이름 {n}건", "/quarantine",
+                          "처음 본 매장·품목 이름 — 확정해야 반입이 완성됩니다"))
+    try:
+        miss = projects.underachieving()
+    except Exception:  # noqa: BLE001 — 프로젝트 미사용 프로파일에서도 홈은 뜬다
+        miss = []
+    if miss:
+        names = " · ".join(f"{m['project']}: {m['kpi_name']}" for m in miss[:4])
+        todos.append((f"목표 미달 KPI {len(miss)}건", f"/projects/{miss[0]['project_id']}",
+                      names))
+    cards = "".join(
+        f"<a href='{href}' style='text-decoration:none;color:inherit'><div class='card'>"
+        f"<b style='color:#A8493B'>{html.escape(head)} →</b>"
+        f"<div class='sub'>{html.escape(sub)}</div></div></a>"
+        for head, href, sub in todos)
+    if not todos:
+        cards = ("<div class='card'><b style='color:#0E8F86'>오늘 처리할 일이 없습니다 ✓</b>"
+                 "<div class='sub'>새 자료가 들어오거나 KPI가 미달로 바뀌면 여기에 나타납니다.</div></div>")
+    admin_line = ""
+    if u["role"] == "admin":
+        admin_line = ("<p class='sub'>시스템: <a href='/status'>상태 페이지</a> · "
+                      "<a href='/runs'>배치·재학습 이력</a></p>")
+    return f"""<h2>오늘 — {html.escape(common.now_iso()[:10])}</h2>
+<p class="sub">할 일을 하나씩 누르면 바로 그 화면으로 갑니다. 자세한 어제 이야기는
+<a href='/briefing'>아침 브리핑</a>에.</p>
+{cards}
+<form method="post" action="/ask" class="card" style="max-width:640px">
+  <b>무엇이든 물어보세요</b>
+  <p style="display:flex;gap:6px"><input name="q" placeholder="예: 이번 주 폐기율 왜 올랐어?"
+     style="flex:1"><button class="btn ok">질문</button></p>
+</form>
+{admin_line}"""
+
+
+@app.get("/today", response_class=HTMLResponse)
+def today_page(request: Request):
+    u = _require(request)
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "오늘", _today_body(u), "/today"))
+
+
 @app.get("/inbox", response_class=HTMLResponse)
 def inbox_page(request: Request):
     u = _require(request)

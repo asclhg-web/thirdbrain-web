@@ -439,6 +439,19 @@ def latest(kpi_id: int) -> dict | None:
                   "WHERE kpi_id=? ORDER BY m_id DESC LIMIT 1", (kpi_id,))
 
 
+def underachieving() -> list[dict]:
+    """P8-2: 활성 프로젝트의 미달 KPI 목록 — '오늘' 홈의 할 일 원천."""
+    init()
+    out = []
+    for prj in db.query("SELECT project_id, name FROM axp_projects WHERE status='active'"):
+        for k in db.query("SELECT * FROM axp_project_kpis WHERE project_id=? AND status='active'",
+                          (prj["project_id"],)):
+            if k["target"] is not None and kpi_status(k) == "미달":
+                out.append({"project_id": prj["project_id"], "project": prj["name"],
+                            "kpi_id": k["kpi_id"], "kpi_name": k["kpi_name"]})
+    return out
+
+
 def kpi_status(k: dict) -> str:
     """달성 판정 — 목표 없음/측정 전/달성/미달."""
     m = latest(k["kpi_id"])
