@@ -89,3 +89,9 @@ qwen2.5의 중국어 혼입(P8-I2)을 방금 확인한 터라 품질 면에서�
 - G4 수용 시험: 6/6 영역 통과.
 - 웹 데모 워크스루(P8 새 화면, Playwright): 역할별 홈·4허브·오늘·프로젝트/KPI·측정·상태·질문(근거 인용 완벽)·반입 파이프라인 정상.
 - P8-I3(데모가 적발한 실제 버그): 웹 승인함 카드 승인 시 card_decide가 inbox.decide(내부 apply_feedback→executed) 뒤 apply_feedback을 재호출 → 승인 전 환류 금지 500. 중복 호출 제거+회귀 테스트. PG 149/149, SQLite 144+5skip.
+
+## 서버1 재반영 — P8-I3·Claude·구SDK 호환 (2026-09-13 16:06 KST, 대표 실측)
+git pull → 재설치: 검증 144+5skip / 149 통과, axp-web active(running) 재시작.
+오늘 커밋(P8-I3 승인 500 수정·P8-I2 중국어 방어·ClaudeBackend·idna/구SDK 호환)
+전부 서버1 반영. 승인함 카드 승인 500 리스크 해소. 남은 확인: 승인 클릭
+무오류·질문 Claude 서술.
