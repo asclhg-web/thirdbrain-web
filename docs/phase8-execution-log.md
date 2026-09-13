@@ -95,3 +95,31 @@ git pull → 재설치: 검증 144+5skip / 149 통과, axp-web active(running) �
 오늘 커밋(P8-I3 승인 500 수정·P8-I2 중국어 방어·ClaudeBackend·idna/구SDK 호환)
 전부 서버1 반영. 승인함 카드 승인 500 리스크 해소. 남은 확인: 승인 클릭
 무오류·질문 Claude 서술.
+
+## P9-1 — 시각 디자인 폴리시 (2026-09-13, 대표 지시 "더 쉽고 아름답게")
+
+- webapp STYLE 전면 재작성: :root 디자인 토큰(따뜻한 배경 #FAF6EF·brand
+  #6E3A1C·teal #0E8F86·gold #D98B2B·그림자 2단·라운드 14px), 헤더 그라디언트,
+  gold 활성 탭, 카드 그림자+호버, 버튼 그라디언트+호버, 입력 포커스 링,
+  라운드 테이블 행 호버. 클래스명 불변 — 전 화면 자동 적용.
+- 검수: Playwright로 /today·/inbox·/projects·KPI 대시보드 재촬영 —
+  헤더 그라디언트·gold 탭·부드러운 카드·teal 버튼 확인. SQLite 144+5skip 통과.
+
+## 발표 산출물 4종 (2026-09-13, 대표 지시)
+
+지시: "미완성 작업 완료 + 최종종합보고서·문제점 벤치마킹 + 더 쉽고 아름다운
+플랫폼 + 발표 PPT + 데모 영상(아나운서 부드럽게 편집)."
+
+- ① 디자인: P9-1(위) — 벤치마킹 기반 시각 폴리시.
+- ② 최종 종합보고서: docs/presentations/AX_Final_Comprehensive_Report.docx —
+  M0~M7 코어·P2~P9 여정·문제 대장(P7-I3~I9·P8-I1~I3)·벤치마킹 재비교
+  (Odoo/더존/삼성SDS/Palantir/Power BI)·현재 상태와 남은 일.
+- ③ 발표 PPT: docs/presentations/AX_구축_플랫폼_발표자료.pptx (16장) —
+  P9 UI 실캡처(오늘·승인함·KPI·질문·업로드) 편입, 실운영 현황 슬라이드.
+  빌더 build_ax_deck.js 동봉.
+- ④ 발표 데모 영상: docs/presentations/AX_Platform_Presentation.mp4
+  (1080p·6분30초) — PPT 16장을 sherpa-onnx 한국어 TTS로 내레이션.
+  아나운서 톤을 위해 문장별 합성 + 쉼표 미세 쉼(0.16s)·문장 간격(0.42s)·
+  경계 페이드, 슬라이드 0.5s 크로스페이드, loudnorm -16 LUFS. 빌더 동봉.
+- 정직성: KPI 화면은 데이터 미도달 지표를 '측정 전'으로 그대로 노출 —
+  합성/실측을 구분해 보여주는 원칙 유지. 영상은 실 캡처 화면만 사용.
