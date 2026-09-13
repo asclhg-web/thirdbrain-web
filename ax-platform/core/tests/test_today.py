@@ -70,3 +70,44 @@ def test_today_empty_state(tmp_db):
     _login(c, "approver")
     body = c.get("/today").text
     assert "오늘 처리할 일이 없습니다" in body
+
+
+def test_journey_card_progresses_and_disappears(tmp_db):
+    """P8-3: 시작 여정 5단계 — 미완이면 표시, 5단계 완료 후 사라진다."""
+    c = _client()
+    _login(c, "admin")
+    body = c.get("/today").text
+    assert "시작 여정" in body and "→ 프로젝트 정의" in body
+    import json as _json
+    from axp import config as _config
+    from axp.dataset import transform
+    (_config.DATA / "profile.json").write_text(
+        _json.dumps({"company": "여정사"}, ensure_ascii=False), encoding="utf-8")
+    transform.apply_schema()
+    with db.conn() as c0:
+        c0.execute("PRAGMA foreign_keys=OFF")
+        c0.execute("INSERT INTO fact_sales VALUES ('2026-09-01','S','P',5,5000,'r',0)")
+        c0.execute("INSERT INTO fact_production (mo_ref, date_key, shift, product_id, qty_planned, qty_done) "
+                   "VALUES ('MO1','2026-09-01','미상','P',100,90)")
+        c0.execute("PRAGMA foreign_keys=ON")
+    p = projects.create("여정", "", "admin", ["production"])
+    adh = next(k for k in p["kpis"] if k["kpi_code"] == "plan_adherence")
+    projects.set_target(adh["kpi_id"], 80.0, "admin")
+    projects.measure_all(p["project_id"])
+    body = c.get("/today").text
+    assert "시작 여정" not in body                       # 완주 → 카드 소멸
+
+
+def test_upload_pipeline_strip(tmp_db):
+    """P8-3: 자료 반입 화면에 파이프라인 진행줄 — 격리 건수·마지막 반영 표시."""
+    c = _client()
+    _login(c, "steward")
+    body = c.get("/upload").text
+    assert "① 업로드" in body and "지금 반영" in body and "아직 반영 전" in body
+
+
+def test_projects_empty_state_guides(tmp_db):
+    c = _client()
+    _login(c, "admin")
+    body = c.get("/projects").text
+    assert "아직 프로젝트가 없습니다" in body

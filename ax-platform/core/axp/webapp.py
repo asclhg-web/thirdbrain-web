@@ -430,6 +430,37 @@ def root_page(request: Request):
     return RedirectResponse(HOME_BY_ROLE.get(u["role"], "/inbox"), status_code=303)
 
 
+# ── P8-3: 시작 여정 5단계 — 전부 끝나면 사라진다 ──────────────────
+def _journey_card() -> str:
+    from . import profile_rt
+    from . import projects as _pj
+    prof = profile_rt.load()
+    _pj.init()
+    has_data = any(
+        db.table_exists(t) and (db.scalar(f"SELECT COUNT(*) FROM {t}") or 0)
+        for t in ("staging_sales", "fact_sales"))
+    steps = [
+        ("회사 설정", bool(prof.get("company")), "/setup"),
+        ("자료 반입", has_data, "/upload"),
+        ("프로젝트 정의", (db.scalar("SELECT COUNT(*) FROM axp_projects") or 0) > 0, "/projects"),
+        ("KPI 목표 설정", (db.scalar(
+            "SELECT COUNT(*) FROM axp_project_kpis WHERE target IS NOT NULL") or 0) > 0, "/projects"),
+        ("첫 측정", (db.scalar("SELECT COUNT(*) FROM axp_kpi_measurements") or 0) > 0, "/projects"),
+    ]
+    done = sum(1 for _, ok, _2 in steps if ok)
+    if done == len(steps):
+        return ""
+    items = " ".join(
+        (f"<span style='color:#0E8F86'>✓ {name}</span>" if ok
+         else f"<a href='{href}'><b>→ {name}</b></a>")
+        for name, ok, href in steps)
+    return (f"<div class='card' style='border-left:4px solid #C07F1E'>"
+            f"<b>시작 여정 {done}/{len(steps)}</b>"
+            f"<div class='sub' style='margin-top:4px'>{items}</div>"
+            f"<div class='sub'>화살표가 붙은 다음 단계를 누르면 그 화면으로 갑니다 — "
+            f"5단계가 끝나면 이 카드는 사라집니다.</div></div>")
+
+
 # ── P8-2: '오늘' 홈 — 브리핑·할 일·질문이 한 화면에 ────────────────
 def _today_body(u: dict) -> str:
     from . import projects
@@ -466,6 +497,7 @@ def _today_body(u: dict) -> str:
     return f"""<h2>오늘 — {html.escape(common.now_iso()[:10])}</h2>
 <p class="sub">할 일을 하나씩 누르면 바로 그 화면으로 갑니다. 자세한 어제 이야기는
 <a href='/briefing'>아침 브리핑</a>에.</p>
+{_journey_card()}
 {cards}
 <form method="post" action="/ask" class="card" style="max-width:640px">
   <b>무엇이든 물어보세요</b>
@@ -744,6 +776,10 @@ def _projects_list(u, msg: str = "") -> str:
         f"<td class='sub'>{html.escape(r['goal'] or '')}</td>"
         f"<td>{html.escape(r['status'])}</td><td>{html.escape(r['created_at'][:10])}</td></tr>"
         for r in rows)
+    if not rows:   # P8-3: 빈 상태에도 다음 행동을 안내한다
+        trs = ("<tr><td colspan='4' class='sub'>아직 프로젝트가 없습니다 — "
+               "아래 <b>새 프로젝트 정의</b>에서 첫 프로젝트를 만들면 "
+               "그 영역의 모듈·KPI가 자동 등재됩니다.</td></tr>")
     areas = "".join(
         f"<label style='display:block;margin:4px 0'><input type='checkbox' name='areas' "
         f"value='{code}'> <b>{html.escape(a['name'])}</b> "
@@ -849,12 +885,16 @@ def _project_dash(u, pid: int, msg: str = "") -> str:
         f"{(' ' + str(f['old_target']) + '→' + str(f['new_target'])) if f['action'] == 'adjust_target' else ''}</td>"
         f"<td class='sub'>{html.escape(f['note'] or '')}</td><td>{html.escape(f['decided_by'] or '')}</td></tr>"
         for f in fb)
+    # P8-3(대표 실사용 적발): 주 행동 버튼이 캡션 속에 묻혀 못 찾았다 —
+    # 제목 옆의 큰 버튼으로 승격.
     measure_btn = (f"<form method='post' action='/projects/{pid}/measure' style='display:inline'>"
-                   f"<button class='btn ok'>지금 측정</button></form>"
+                   f"<button class='btn ok' style='font-size:15px;padding:8px 18px'>"
+                   f"지금 측정</button></form>"
                    if u["role"] in ("admin", "steward") else "")
-    return f"""<h2>{html.escape(p['name'])} — KPI 대시보드</h2>
+    return f"""<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+<h2 style="margin:0 0 4px">{html.escape(p['name'])} — KPI 대시보드</h2>{measure_btn}</div>
 <p class="sub">{html.escape(p['goal'] or '')} · 담당 {html.escape(p['owner'] or '-')} ·
-측정은 야간 배치가 자동 누적하며, 지금 측정으로 즉시 갱신할 수 있습니다. {measure_btn}</p>{msg}
+측정은 야간 배치가 자동 누적하고, [지금 측정]은 즉시 갱신합니다.</p>{msg}
 <div>{''.join(cards)}</div>
 <div class="card"><b>선택 모듈·알고리즘</b><table style="width:100%;margin-top:8px">
 <tr><th>영역</th><th>모듈</th><th>알고리즘·방식</th></tr>{mods}</table></div>
@@ -1450,11 +1490,26 @@ UPLOAD_KINDS = {
 MAX_UPLOAD_MB = int(os.environ.get("AXP_MAX_UPLOAD_MB", "20"))
 
 
+def _pipeline_strip() -> str:
+    """P8-3: 반입 파이프라인 한 줄 — 지금 어디까지 왔는지 보여준다."""
+    quar = (db.scalar("SELECT COUNT(*) FROM quarantine_queue WHERE status='pending'") or 0) \
+        if db.table_exists("quarantine_queue") else 0
+    last = db.one("SELECT run_date, status FROM batch_runs ORDER BY run_id DESC LIMIT 1") \
+        if db.table_exists("batch_runs") else None
+    last_txt = f"마지막 반영 {last['run_date']} ({last['status']})" if last else "아직 반영 전"
+    q_txt = (f"<a href='/quarantine'><b style='color:#A8493B'>확인할 이름 {quar}건</b></a>"
+             if quar else "확인할 이름 없음 ✓")
+    return (f"<div class='card' style='padding:8px 14px'><span class='sub'>"
+            f"<b>① 업로드</b>(이 화면) → <b>② 열 매핑</b>(모르는 양식이면 화면에서 지정) → "
+            f"<b>③ {q_txt}</b> → <b>④ <a href='/runs'>지금 반영</a></b> · {last_txt}"
+            f"</span></div>")
+
+
 def _upload_form(msg: str = "") -> str:
     opts = "".join(f"<option value='{k}'>{v[0]}</option>" for k, v in UPLOAD_KINDS.items())
     return f"""<h2>자료 반입 — 가져와서 정리합니다</h2>
 <p class="sub">개인정보 컬럼(연락처·주소 등)은 반입 시점에 자동 차단되고, 원본은 불변 보존됩니다.
-같은 파일을 두 번 올려도 중복 반입되지 않습니다.</p>{msg}
+같은 파일을 두 번 올려도 중복 반입되지 않습니다.</p>{_pipeline_strip()}{msg}
 <form method="post" enctype="multipart/form-data" class="card" style="max-width:560px">
   <p><select name="kind" style="width:100%">{opts}</select></p>
   <p><input type="file" name="file" required accept=".csv,.xlsx,.xls" style="width:100%"></p>
