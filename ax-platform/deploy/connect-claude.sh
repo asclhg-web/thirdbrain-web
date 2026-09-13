@@ -22,7 +22,9 @@ fi
 echo "== 1/4 anthropic SDK 확인"
 if ! sudo -u axp python3 -c "import anthropic" 2>/dev/null; then
   echo "   설치 중(pip)…"
-  pip3 install -q --break-system-packages anthropic
+  # 우분투 24.04 기본 idna(deb)를 pip이 못 지워 멈추는 유형(P7-I3와 동형) —
+  # --ignore-installed로 우회한다.
+  pip3 install -q --break-system-packages --ignore-installed anthropic
 fi
 sudo -u axp python3 -c "import anthropic; print('   anthropic', anthropic.__version__)"
 
