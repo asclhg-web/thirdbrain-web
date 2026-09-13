@@ -228,7 +228,14 @@ form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 .subnav a{color:#D8C9B4;text-decoration:none;font-size:13px;margin-right:14px;
   padding:2px 8px;border-radius:10px}
 .subnav a.on{background:#4A3521;color:#fff}
-@media(max-width:640px){header nav a{margin-right:9px;font-size:13px}}
+/* P8-4: 휴대폰에서 승인·브리핑이 그대로 쓰이도록 — 탭 타깃 확대,
+   표는 가로 스크롤, 입력은 16px(iOS 자동 확대 방지) */
+@media(max-width:640px){header nav a{margin-right:9px;font-size:13px}
+main{padding:16px 0 44px}
+.btn{padding:10px 16px;font-size:14px}
+input,select{font-size:16px}
+table{display:block;overflow-x:auto}
+.subnav{overflow-x:auto;white-space:nowrap}}
 </style>"""
 
 # P5-S3/S4: CSRF 중앙 강제(로그인 제외 전 POST) + 보안 헤더.
