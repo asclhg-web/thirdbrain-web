@@ -124,3 +124,21 @@ def test_tenants_screen_admin_only(tmp_db):
     assert "체험 테넌트" in body and "서버 명령으로만" in body
     r = c2.post("/tenants/ghost/reset")
     assert r.status_code == 404
+
+
+def test_quarantine_confirm_empty_code_friendly(tmp_db):
+    """P8-I1: 코드 칸을 비운 채 확정하면 원시 JSON이 아니라 화면 안내(400)."""
+    from axp.dataset import codemap
+    codemap.init()
+    db.execute(
+        "INSERT INTO quarantine_queue (domain, alias, context, n_rows, status, created_at) "
+        "VALUES ('product','빈코드','excel',2,'pending','2026-09-13')")
+    q_id = db.scalar("SELECT MAX(q_id) FROM quarantine_queue")
+    c = _client()
+    _login(c, "steward")
+    r = c.post(f"/quarantine/{q_id}/confirm", data={"code": ""})
+    assert r.status_code == 400 and "표준 코드를 입력" in r.text
+    assert "detail" not in r.text[:200]                    # 원시 JSON 아님
+    r2 = c.post(f"/quarantine/{q_id}/confirm", data={"code": "P-OK"})
+    assert r2.status_code == 303
+    assert codemap.resolve("product", "빈코드") == "P-OK"

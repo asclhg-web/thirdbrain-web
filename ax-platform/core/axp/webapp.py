@@ -1850,10 +1850,19 @@ def quarantine_drain(request: Request):
 
 
 @app.post("/quarantine/{q_id}/confirm")
-def quarantine_confirm(q_id: int, request: Request, code: str = Form(...)):
+def quarantine_confirm(q_id: int, request: Request, code: str = Form("")):
     u = _require(request, roles=("steward",))
     if isinstance(u, Response):
         return u
+    # P8-I1(서버1 실사용 적발): 코드 칸을 비운 채 확정하면 원시 JSON 오류가
+    # 떴다 — 화면 안내로 바꾸고, 별칭과 같게 넣으라는 힌트를 준다.
+    if not code.strip():
+        resp = quarantine_page(request)
+        note = ("<div class='card warn'>표준 코드를 입력한 뒤 확정하세요 — "
+                "샘플처럼 별칭이 곧 코드이면 별칭과 똑같이 입력하거나, 아래 "
+                "<b>‘표준 코드와 똑같은 별칭 자동 확정’</b> 버튼을 쓰세요.</div>")
+        return HTMLResponse(resp.body.decode().replace(
+            "(격리 큐)</span></h2>", f"(격리 큐)</span></h2>{note}", 1), 400)
     codemap.confirm(q_id, code.strip(), by=u["display"])
     return RedirectResponse("/quarantine", status_code=303)
 
