@@ -3,8 +3,14 @@
 #
 # 전제: ① 이 서버에 axp-web이 127.0.0.1:8900으로 떠 있다(axp-web.service)
 #       ② Cloudflare 계정이 odooaierp.com 존을 관리한다(asc.kr과 같은 계정)
-# 결과: try.odooaierp.com(체험)·app.odooaierp.com(고객)·status.odooaierp.com(상태)
-#       가 이 서버의 웹앱으로 연결된다. 공인 IP·포트 개방 불필요.
+# 결과(메인=플랫폼): odooaierp.com(=apex, 메인)·www·app(고객)·try(체험)·
+#       status(상태) 가 이 서버의 웹앱으로 연결된다. 공인 IP·포트 개방 불필요.
+#       데모(정적 Netlify 사이트)는 서브 demo.odooaierp.com 으로 옮긴다.
+#
+# ⚠ apex(odooaierp.com) 사전 조건 — Cloudflare DNS에서 apex가 Netlify를
+#    가리키던 기존 레코드(A/CNAME)를 먼저 지워야 이 스크립트의 route dns가
+#    apex를 터널로 연결할 수 있다. 데모는 Netlify 커스텀 도메인을
+#    demo.odooaierp.com 으로 바꾸고, Cloudflare에 demo CNAME→Netlify를 둔다.
 #
 # 사용: sudo bash install-tunnel.sh
 #       (중간에 브라우저 로그인 URL이 나오면 Cloudflare 계정으로 승인)
@@ -57,17 +63,27 @@ cat > /etc/cloudflared/config.yml <<EOF
 tunnel: ${TUNNEL_ID}
 credentials-file: /root/.cloudflared/${TUNNEL_ID}.json
 ingress:
-  - hostname: try.${ZONE}
+  # 메인 = 실제 AX 플랫폼 (apex + www)
+  - hostname: ${ZONE}
     service: ${LOCAL}
+  - hostname: www.${ZONE}
+    service: ${LOCAL}
+  # 고객·체험 별칭 (같은 플랫폼)
   - hostname: app.${ZONE}
     service: ${LOCAL}
+  - hostname: try.${ZONE}
+    service: ${LOCAL}
+  # 상태 페이지
   - hostname: status.${ZONE}
     service: ${LOCAL}
     path: ^/status.*|^/health$
   - service: http_status:404
 EOF
-for sub in try app status; do
-  cloudflared tunnel route dns "${TUNNEL_NAME}" "${sub}.${ZONE}" || true
+# apex는 CNAME 플래트닝으로 터널에 붙는다. apex에 Netlify 잔여 레코드가
+# 남아 있으면 route dns가 실패하므로, 실패해도 나머지는 계속 진행(|| true).
+for host in "${ZONE}" "www.${ZONE}" "app.${ZONE}" "try.${ZONE}" "status.${ZONE}"; do
+  cloudflared tunnel route dns "${TUNNEL_NAME}" "${host}" \
+    || echo "  !! route dns 실패: ${host} — Cloudflare DNS에서 기존(Netlify) 레코드 제거 후 재실행"
 done
 
 echo "── 5/5 systemd 상시 기동"
@@ -77,9 +93,13 @@ sleep 3
 systemctl --no-pager --lines=5 status cloudflared || true
 
 echo
-echo "완료 — 확인:"
-echo "  curl -s https://try.${ZONE}/health   → {\"ok\": true}"
+echo "완료 — 확인 (메인=플랫폼):"
+echo "  curl -s https://${ZONE}/health       → {\"ok\": true}   (apex=플랫폼)"
+echo "  브라우저: https://${ZONE}  → P9 로그인 화면이 떠야 함"
 echo "  curl -s https://status.${ZONE}/status | grep 정상"
+echo
+echo "데모(서브)는 Netlify에서 커스텀 도메인을 demo.${ZONE} 으로 바꾸고,"
+echo "Cloudflare DNS에 demo CNAME→<네 사이트>.netlify.app 를 추가하세요."
 echo "주의: 체험 테넌트는 tenant create 로 만들고, axp-web의 AXP_DATA를"
 echo "      해당 테넌트로 지정하세요. 매일 0시 리셋은 크론에:"
 echo "      0 0 * * * cd /opt/ax-platform/core && python3 -m axp.cli tenant reset trial-demo"
