@@ -193,49 +193,83 @@ def _require(request: Request, roles: tuple[str, ...] = ()) -> dict | Response:
 
 # ── 레이아웃 ─────────────────────────────────────────────
 STYLE = """<style>
-*{box-sizing:border-box}body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
-margin:0;background:#F8F2EA;color:#2E241C;line-height:1.6}
+/* P9-1: 시각 디자인 폴리시 — 벤치마킹(Linear·Stripe·Notion)의 부드러운
+   그림자·여백·타이포 위계를 브랜드 색(베이킹 갈색·틸)에 입힘. 클래스명은
+   그대로라 전 화면이 자동 적용. 기능 불변. */
+:root{
+  --bg:#FAF6EF; --panel:#FFFFFF; --ink:#2B231C; --muted:#8A7A6A;
+  --line:#EAE0D3; --brand:#6E3A1C; --brand-2:#9C5227; --gold:#D98B2B;
+  --teal:#0E8F86; --red:#B04A3B;
+  --sh-1:0 1px 2px rgba(60,40,20,.06),0 1px 3px rgba(60,40,20,.05);
+  --sh-2:0 4px 14px rgba(60,40,20,.09),0 2px 6px rgba(60,40,20,.05);
+  --r:14px;
+}
+*{box-sizing:border-box}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;margin:0;
+  background:var(--bg);color:var(--ink);line-height:1.62;
+  -webkit-font-smoothing:antialiased;letter-spacing:-.01em}
 a{color:inherit;text-decoration:none}
-header{background:#2B1D12;color:#EDE3D5;padding:10px 0;position:sticky;top:0;z-index:9}
-.wrap{max-width:1060px;margin:0 auto;padding:0 18px}
+header{background:linear-gradient(180deg,#2E2016 0%,#241812 100%);color:#EDE3D5;
+  padding:11px 0;position:sticky;top:0;z-index:9;box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
 header .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.mark{background:#6E3A1C;color:#E8A33D;border-radius:7px;padding:3px 9px;font-weight:900}
-header nav a{margin-right:14px;font-size:14px;color:#C9B8A2}
-header nav a.on{color:#E8A33D;font-weight:700}
-header .who{margin-left:auto;font-size:13px;color:#B9A78F}
-main{padding:26px 0 60px}
-h2{color:#6E3A1C;margin:0 0 6px}
-p.sub{color:#76675A;font-size:14px;margin:0 0 18px}
-.card{background:#fff;border:1px solid #DCCDBB;border-left:7px solid #9C5227;
-border-radius:12px;padding:16px 20px;margin-bottom:14px}
-.card.ok{border-left-color:#0E8F86}.card.warn{border-left-color:#A8493B}
-.chip{display:inline-block;color:#fff;border-radius:11px;padding:1px 10px;
-font-size:12px;font-weight:700;margin-right:8px;background:#C07F1E}
-.ln{font-size:13.5px;margin:3px 0}.ln small{color:#76675A;font-size:11.5px}
-.btn{border:none;border-radius:7px;padding:7px 16px;font-size:13px;font-weight:700;
-cursor:pointer;font-family:inherit}
-.btn.ok{background:#0E8F86;color:#fff}.btn.no{background:#A8493B;color:#fff}
-.btn.why{background:#E8A33D;color:#2B1D12}.btn.plain{background:#EFE5D8;color:#6E3A1C}
-input,select{border:1px solid #DCCDBB;border-radius:7px;padding:7px 10px;
-font-family:inherit;font-size:13px}
-table{border-collapse:collapse;width:100%;background:#fff;font-size:13px;margin-bottom:16px}
-td,th{border:1px solid #DCCDBB;padding:7px 10px;text-align:left}
-th{background:#6E3A1C;color:#fff;font-size:12.5px}
-.note{background:#FDF3E0;border:1px solid #DCCDBB;border-radius:9px;
-padding:10px 14px;font-size:13px;margin-bottom:16px}
+.mark{background:linear-gradient(135deg,#7A3F1D,#5E3016);color:#F0B15A;
+  border-radius:9px;padding:4px 10px;font-weight:900;letter-spacing:.02em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+header nav a{margin-right:6px;font-size:14px;color:#C9B8A2;padding:5px 11px;
+  border-radius:9px;transition:background .15s,color .15s}
+header nav a:hover{background:rgba(255,255,255,.07);color:#EDE3D5}
+header nav a.on{color:#241812;background:var(--gold);font-weight:700}
+header .who{margin-left:auto;font-size:12.5px;color:#B9A78F}
+main{padding:30px 0 72px}
+h2{color:var(--brand);margin:0 0 6px;font-size:22px;font-weight:800;letter-spacing:-.02em}
+p.sub{color:var(--muted);font-size:14px;margin:0 0 20px}
+.card{background:var(--panel);border:1px solid var(--line);
+  border-left:5px solid var(--brand-2);border-radius:var(--r);
+  padding:18px 22px;margin-bottom:16px;box-shadow:var(--sh-1);
+  transition:box-shadow .18s,transform .18s}
+a > .card:hover{box-shadow:var(--sh-2);transform:translateY(-1px)}
+.card.ok{border-left-color:var(--teal)}
+.card.warn{border-left-color:var(--red)}
+.chip{display:inline-block;color:#fff;border-radius:999px;padding:2px 11px;
+  font-size:12px;font-weight:700;margin-right:8px;background:var(--gold)}
+.ln{font-size:13.5px;margin:3px 0}.ln small{color:var(--muted);font-size:11.5px}
+.btn{border:none;border-radius:10px;padding:9px 18px;font-size:13.5px;font-weight:700;
+  cursor:pointer;font-family:inherit;box-shadow:var(--sh-1);
+  transition:filter .15s,box-shadow .15s,transform .05s}
+.btn:hover{filter:brightness(1.06);box-shadow:var(--sh-2)}
+.btn:active{transform:translateY(1px)}
+.btn.ok{background:linear-gradient(180deg,#12A197,#0E8F86);color:#fff}
+.btn.no{background:linear-gradient(180deg,#BE5344,#B04A3B);color:#fff}
+.btn.why{background:linear-gradient(180deg,#E8A33D,#D98B2B);color:#2B1D12}
+.btn.plain{background:#F1E8DB;color:var(--brand);box-shadow:none;border:1px solid var(--line)}
+input,select,textarea{border:1px solid #D9CBBB;border-radius:10px;padding:9px 12px;
+  font-family:inherit;font-size:14px;background:#fff;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(217,139,43,.18)}
+table{border-collapse:separate;border-spacing:0;width:100%;background:var(--panel);
+  font-size:13.5px;margin-bottom:18px;border-radius:12px;overflow:hidden;box-shadow:var(--sh-1)}
+td,th{border-bottom:1px solid var(--line);padding:10px 13px;text-align:left}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FBF6EE}
+th{background:var(--brand);color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.01em}
+.note{background:linear-gradient(180deg,#FEF6E6,#FDF0DC);border:1px solid #F0DFC2;
+  border-radius:12px;padding:12px 16px;font-size:13.5px;margin-bottom:18px}
 form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
-.subnav{padding:6px 0 8px}
-.subnav a{color:#D8C9B4;text-decoration:none;font-size:13px;margin-right:14px;
-  padding:2px 8px;border-radius:10px}
-.subnav a.on{background:#4A3521;color:#fff}
-/* P8-4: 휴대폰에서 승인·브리핑이 그대로 쓰이도록 — 탭 타깃 확대,
-   표는 가로 스크롤, 입력은 16px(iOS 자동 확대 방지) */
-@media(max-width:640px){header nav a{margin-right:9px;font-size:13px}
-main{padding:16px 0 44px}
-.btn{padding:10px 16px;font-size:14px}
-input,select{font-size:16px}
+.subnav{padding:8px 0 10px;display:flex;gap:4px;flex-wrap:wrap}
+.subnav a{color:#D8C9B4;text-decoration:none;font-size:13px;
+  padding:4px 12px;border-radius:999px;transition:background .15s,color .15s}
+.subnav a:hover{background:rgba(255,255,255,.08);color:#F0E6D6}
+.subnav a.on{background:var(--gold);color:#241812;font-weight:700}
+/* P8-4: 휴대폰 — 탭 타깃 확대, 표 가로 스크롤, 입력 16px(iOS 확대 방지) */
+@media(max-width:640px){header nav a{margin-right:2px;font-size:13px;padding:5px 9px}
+main{padding:18px 0 52px}
+.wrap{padding:0 16px}
+.card{padding:15px 17px}
+.btn{padding:11px 17px;font-size:14px}
+input,select,textarea{font-size:16px}
 table{display:block;overflow-x:auto}
-.subnav{overflow-x:auto;white-space:nowrap}}
+.subnav{overflow-x:auto;white-space:nowrap;flex-wrap:nowrap}}
 </style>"""
 
 # P5-S3/S4: CSRF 중앙 강제(로그인 제외 전 POST) + 보안 헤더.
