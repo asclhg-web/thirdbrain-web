@@ -91,3 +91,65 @@ def test_gate_blocks_public_host(monkeypatch):
     monkeypatch.setattr(config, "EXPORT_ALLOWED_HOSTS", [])
     with pytest.raises(PermissionError):
         assembler.OllamaBackend(url="http://8.8.8.8:11434", model="t")
+
+
+# ── P8-GPU2: Claude 백엔드(Anthropic SDK) — SDK를 모의로 스텁해 검증 ──
+class _FakeBlock:
+    def __init__(self, text):
+        self.type = "text"
+        self.text = text
+
+
+class _FakeMsg:
+    def __init__(self, text):
+        self.content = [_FakeBlock(text)]
+
+
+def _install_fake_anthropic(monkeypatch, responses):
+    """anthropic.Anthropic를 스텁 — responses를 순서대로 반환."""
+    import types
+    state = {"calls": 0}
+
+    class _Messages:
+        def create(self, **kw):
+            i = min(state["calls"], len(responses) - 1)
+            state["calls"] += 1
+            return _FakeMsg(responses[i])
+
+    class _Client:
+        def __init__(self, *a, **k):
+            self.messages = _Messages()
+
+    fake = types.ModuleType("anthropic")
+    fake.Anthropic = _Client
+    fake.__version__ = "test"
+    monkeypatch.setitem(sys.modules, "anthropic", fake)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    return state
+
+
+def test_claude_backend_good_answer(monkeypatch):
+    st = _install_fake_anthropic(monkeypatch, [GOOD])
+    b = assembler.ClaudeBackend(model="claude-haiku-4-5")
+    out = b.answer("규칙?", RETRIEVED)
+    assert "RULE-0001" in out and "[근거:" in out and st["calls"] == 1
+
+
+def test_claude_backend_chinese_filler_retried(monkeypatch):
+    _install_fake_anthropic(monkeypatch, [CN, GOOD])
+    b = assembler.ClaudeBackend(model="claude-haiku-4-5")
+    out = b.answer("규칙?", RETRIEVED)
+    assert "看" not in out and "RULE-0001" in out
+
+
+def test_claude_backend_selected_by_env(monkeypatch):
+    _install_fake_anthropic(monkeypatch, [GOOD])
+    monkeypatch.setenv("AXP_LLM", "claude")
+    assert type(assembler.make_backend()).__name__ == "ClaudeBackend"
+
+
+def test_claude_missing_key_falls_back(monkeypatch):
+    monkeypatch.setenv("AXP_LLM", "claude")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    assert type(assembler.make_backend()).__name__ == "DeterministicBackend"

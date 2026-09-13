@@ -64,3 +64,21 @@
   (verify_citations)이 인용 없는 중국어 줄을 이미 차단하므로 이중 방어.
 - 테스트: 중국어 부연 응답→재생성→깨끗한 답 케이스 추가(모의 Ollama).
   PG 143/143, SQLite 138+5skip. 서버1 반영은 git pull+재설치 필요.
+
+## P8-GPU2 — 서술 백엔드에 Claude(Anthropic) 추가 (2026-09-13, 대표 지시)
+
+지시: "주식예측시스템도 LLM을 클로드로 바꿨으니 이 시스템도 클로드로."
+qwen2.5의 중국어 혼입(P8-I2)을 방금 확인한 터라 품질 면에서도 합당.
+
+- ClaudeBackend(judge/assembler.py): OllamaBackend와 같은 answer 인터페이스.
+  공식 anthropic Python SDK 사용, system으로 한국어·인용·수치금지 강제,
+  인용 검증 실패 시 2회 재생성 후 결정적 조립기 폴백. AXP_LLM=claude 로 선택,
+  모델은 AXP_CLAUDE_MODEL(기본 claude-opus-5, 저비용은 claude-haiku-4-5).
+- **정직 고지(반출 트레이드오프)**: Claude는 외부 api.anthropic.com — 프롬프트의
+  '검색된 사실'(그래프 근거)이 외부로 전송된다. 사설망 반출 게이트(_check_gate)를
+  적용하지 않는 유일한 백엔드라, 명시적 옵트인일 때만 활성. 사내망 격리가
+  중요하면 Ollama(GPU 서버)가 대안. 회사 방침(주식시스템 동일 전환)으로 채택.
+- 결선: deploy/connect-claude.sh(키·모델 1회 반영→재시작→백엔드 실측),
+  install-app-server.sh에 anthropic SDK·env 옵션 추가.
+- 테스트 4건(SDK 스텁): 정상·중국어 재생성·env 선택·키 없음 폴백.
+  PG 147/147, SQLite 142+5skip. 서버1 적용: git pull+재설치 후 connect-claude.sh.

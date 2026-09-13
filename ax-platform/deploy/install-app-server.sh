@@ -68,7 +68,7 @@ echo "== 4/7 파이썬 의존성 =="
 pip3 install -q --break-system-packages --ignore-installed typing_extensions
 pip3 install -q --break-system-packages \
   pandas scikit-learn matplotlib pyarrow fastapi "uvicorn[standard]" \
-  python-multipart openpyxl defusedxml lxml pytest "psycopg[binary]" httpx
+  python-multipart openpyxl defusedxml lxml pytest "psycopg[binary]" httpx anthropic
 
 echo "== 5/7 환경 파일 =="
 mkdir -p /etc/axp
@@ -89,10 +89,16 @@ AXP_NOTIFY=dryrun
 #AXP_AUTO_ISSUE=0
 # P6: 테넌트 업로드 총량 상한(MB) — 기본 500
 #AXP_TENANT_QUOTA_MB=500
-# GPU 서버 연결 시 주석 해제:
+# LLM 서술 백엔드(택1) — 미설정이면 결정적 조립기(외부 전송 없음).
+# (A) GPU 서버 Ollama(사내망, 반출 없음): connect-gpu.sh 가 채워준다
 #AXP_LLM=ollama
 #AXP_OLLAMA_URL=http://<GPU서버-내부IP>:11434
 #AXP_OLLAMA_MODEL=qwen2.5:14b-instruct
+# (B) Anthropic Claude(외부 API — '검색된 사실'이 api.anthropic.com로 전송됨):
+#     connect-claude.sh 가 채워준다. 서술 비용을 낮추려면 모델을 haiku로.
+#AXP_LLM=claude
+#ANTHROPIC_API_KEY=sk-ant-...
+#AXP_CLAUDE_MODEL=claude-opus-5   # 저비용: claude-haiku-4-5
 EOF
   chmod 600 "$ENV_FILE"
   echo "  생성: $ENV_FILE (PG 비밀번호·세션 키 무작위)"

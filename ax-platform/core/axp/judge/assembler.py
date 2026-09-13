@@ -193,10 +193,67 @@ class OllamaBackend:
         return text
 
 
+class ClaudeBackend:
+    """Anthropic Claude 어댑터 (P8-GPU2) — Ollama 대신 클라우드 LLM으로 서술.
+
+    같은 인터페이스(answer)로 OllamaBackend를 대체한다. 한국어 강제·인용 강제·
+    수치 생성 금지 원칙은 동일하며, 인용 검증 실패 시 2회 재생성 후 폴백.
+
+    반출 주의(정직 고지): Claude는 외부(api.anthropic.com)이므로 프롬프트에
+    담기는 '검색된 사실'(그래프에서 뽑은 근거)이 Anthropic API로 전송된다 —
+    사설망 반출 게이트(_check_gate)를 적용하지 않는 유일한 백엔드다. 그래서
+    명시적 옵트인(AXP_LLM=claude + ANTHROPIC_API_KEY)일 때만 활성화된다.
+    모델은 AXP_CLAUDE_MODEL(기본 claude-opus-5) — 서술은 가벼운 작업이라
+    비용을 낮추려면 claude-haiku-4-5로 지정할 수 있다.
+    """
+
+    SYSTEM = ("당신은 한국어로만 답합니다. 다른 언어나 번역·해설·메타설명을 넣지 "
+              "않습니다. 주어진 '검색된 사실'만 근거로 간결히 답하고, 사실에 없는 "
+              "새 숫자를 만들지 않으며, 각 문장은 반드시 '[근거: <참조>]'로 끝냅니다.")
+
+    def __init__(self, model: str | None = None):
+        import os
+        from anthropic import Anthropic   # 미설치면 make_backend가 폴백 처리
+        if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+            raise RuntimeError("ANTHROPIC_API_KEY 미설정 — Claude 백엔드 사용 불가")
+        self.model = model or os.environ.get("AXP_CLAUDE_MODEL", "claude-opus-5")
+        self.client = Anthropic()
+
+    def _generate(self, prompt: str) -> str:
+        msg = self.client.messages.create(
+            model=self.model, max_tokens=1024, system=self.SYSTEM,
+            output_config={"effort": "low"},          # 서술은 가벼운 작업
+            messages=[{"role": "user", "content": prompt}])
+        return "".join(b.text for b in msg.content if b.type == "text")
+
+    def answer(self, question: str, retrieved: dict) -> str:
+        prompt = (
+            "다음 '검색된 사실'만으로 한국어로 답하라. 사실 밖 내용·새 숫자 생성 금지, "
+            "부연·번역·해설 금지. 모든 문장은 '[근거: <참조>]'로 끝나야 한다.\n"
+            f"질문: {question}\n검색된 사실: {json.dumps(retrieved, ensure_ascii=False)}")
+        text = self._generate(prompt)
+        for _ in range(2):
+            try:
+                verify_citations(text, retrieved)
+                return text
+            except CitationError:
+                text = self._generate(
+                    prompt + "\n\n주의: 직전 응답이 규칙 위반으로 차단되었다. "
+                    "오직 한국어로만, 부연 없이, 모든 문장을 '[근거: <참조>]'로 끝내라.")
+        verify_citations(text, retrieved)
+        return text
+
+
 def make_backend():
-    """환경변수로 백엔드 선택 — AXP_LLM=ollama | deterministic(기본)."""
+    """환경변수로 백엔드 선택 — AXP_LLM=claude | ollama | deterministic(기본)."""
     import os
-    if os.environ.get("AXP_LLM", "deterministic").lower() == "ollama":
+    mode = os.environ.get("AXP_LLM", "deterministic").lower()
+    if mode == "claude":
+        try:
+            return ClaudeBackend()
+        except Exception as e:  # noqa: BLE001 — 키 없음·SDK 미설치 등: 판단은 계속된다
+            print(f"[M6] Claude 백엔드 사용 불가({e}) — 결정적 조립기로 폴백")
+    elif mode == "ollama":
         try:
             return OllamaBackend()
         except Exception as e:  # noqa: BLE001 — LLM 불가여도 판단은 계속된다
