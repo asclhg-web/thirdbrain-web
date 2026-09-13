@@ -20,12 +20,11 @@ fi
 [ -f "$ENV_FILE" ] || { echo "!! $ENV_FILE 없음 — 먼저 install-app-server.sh 실행"; exit 1; }
 
 echo "== 1/4 anthropic SDK 확인"
-if ! sudo -u axp python3 -c "import anthropic" 2>/dev/null; then
-  echo "   설치 중(pip)…"
-  # 우분투 24.04 기본 idna(deb)를 pip이 못 지워 멈추는 유형(P7-I3와 동형) —
-  # --ignore-installed로 우회한다.
+# 최신으로 설치/갱신 — 구버전 SDK는 최신 모델·파라미터를 모를 수 있다.
+# idna(deb) 충돌은 --ignore-installed로 우회(P7-I3 동형).
+echo "   설치/갱신 중(pip)…"
+pip3 install -q --break-system-packages --ignore-installed -U anthropic || \
   pip3 install -q --break-system-packages --ignore-installed anthropic
-fi
 sudo -u axp python3 -c "import anthropic; print('   anthropic', anthropic.__version__)"
 
 echo "== 2/4 /etc/axp/env에 반영(멱등)"

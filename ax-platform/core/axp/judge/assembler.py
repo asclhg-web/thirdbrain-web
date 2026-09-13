@@ -220,11 +220,13 @@ class ClaudeBackend:
         self.client = Anthropic()
 
     def _generate(self, prompt: str) -> str:
-        msg = self.client.messages.create(
-            model=self.model, max_tokens=1024, system=self.SYSTEM,
-            output_config={"effort": "low"},          # 서술은 가벼운 작업
-            messages=[{"role": "user", "content": prompt}])
-        return "".join(b.text for b in msg.content if b.type == "text")
+        kw = dict(model=self.model, max_tokens=2048, system=self.SYSTEM,
+                  messages=[{"role": "user", "content": prompt}])
+        try:                                           # 서술은 가벼운 작업 → effort low
+            msg = self.client.messages.create(output_config={"effort": "low"}, **kw)
+        except TypeError:                              # 구 SDK는 output_config 모름 → 생략
+            msg = self.client.messages.create(**kw)
+        return "".join(b.text for b in msg.content if getattr(b, "type", None) == "text")
 
     def answer(self, question: str, retrieved: dict) -> str:
         prompt = (

@@ -153,3 +153,30 @@ def test_claude_missing_key_falls_back(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
     assert type(assembler.make_backend()).__name__ == "DeterministicBackend"
+
+
+def test_claude_backend_old_sdk_no_output_config(monkeypatch):
+    """P8-GPU2: 구 SDK(output_config 미지원)면 TypeError→생략 재호출로 동작."""
+    import types
+    calls = {"with_oc": 0, "without_oc": 0}
+
+    class _Messages:
+        def create(self, **kw):
+            if "output_config" in kw:
+                calls["with_oc"] += 1
+                raise TypeError("unexpected keyword argument 'output_config'")
+            calls["without_oc"] += 1
+            return _FakeMsg(GOOD)
+
+    class _Client:
+        def __init__(self, *a, **k):
+            self.messages = _Messages()
+
+    fake = types.ModuleType("anthropic")
+    fake.Anthropic = _Client
+    fake.__version__ = "1.5.0"
+    monkeypatch.setitem(sys.modules, "anthropic", fake)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    b = assembler.ClaudeBackend(model="claude-opus-5")
+    out = b.answer("규칙?", RETRIEVED)
+    assert "RULE-0001" in out and calls["with_oc"] >= 1 and calls["without_oc"] >= 1
