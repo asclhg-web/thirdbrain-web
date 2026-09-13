@@ -995,23 +995,38 @@ def _projects_list(u, msg: str = "") -> str:
         trs = ("<tr><td colspan='4' class='sub'>아직 프로젝트가 없습니다 — "
                "아래 <b>새 프로젝트 정의</b>에서 첫 프로젝트를 만들면 "
                "그 영역의 모듈·KPI가 자동 등재됩니다.</td></tr>")
+    # KPI 정의(대표 지시) — 4대 경영 목표 + 목표치 %
+    objectives = "".join(
+        f"<label style='display:block;margin:7px 0'>"
+        f"<input type='checkbox' name='obj' value='{key}'> "
+        f"<b>{html.escape(oname)}</b> &nbsp;목표 "
+        f"<input name='obj_{key}_target' inputmode='decimal' style='width:66px' placeholder='예: 30'> "
+        f"{html.escape(unit)} "
+        f"<span class='sub'>({'높을수록' if direction == 'up' else '낮을수록'} 좋음)</span></label>"
+        for key, (oname, unit, direction) in projects.OBJECTIVES.items())
     areas = "".join(
         f"<label style='display:block;margin:4px 0'><input type='checkbox' name='areas' "
         f"value='{code}'> <b>{html.escape(a['name'])}</b> "
         f"<span class='sub'>— {html.escape(' · '.join(m for m, _ in a['modules']))}</span></label>"
         for code, a in projects.AREAS.items())
     return f"""<h2>프로젝트 — 정의에서 성과까지</h2>
-<p class="sub">프로젝트를 정의하고 5대 지능화 요구사항에서 우리 회사에 맞는 모듈·알고리즘·KPI를 고르면,
-대시보드가 성과를 보여주고 미달 KPI에는 개선 제안 카드가 승인함으로 옵니다 — 조정하면 다시 측정되는 루프입니다.</p>{msg}
+<p class="sub">프로젝트명과 경영 목표를 적고, <b>KPI 정의</b>에서 달성할 경영 목표를 골라
+목표치를 적으면 성과 대시보드가 달성/미달을 추적합니다 — 미달이면 개선 제안이 오고,
+조정하면 다시 측정되는 루프입니다.</p>{msg}
 <div class="card"><b>프로젝트 목록</b><table style="width:100%;margin-top:8px">
 <tr><th>프로젝트</th><th>목표</th><th>상태</th><th>생성</th></tr>{trs}</table></div>
 <form method="post" action="/projects/create" class="card" style="max-width:720px">
   <b>새 프로젝트 정의</b>
-  <p><input name="name" placeholder="프로젝트 이름 (예: 폐기 절감 1차)" style="width:100%"></p>
-  <p><input name="goal" placeholder="경영 목표 한 줄 (예: 월 폐기 20% 절감)" style="width:100%"></p>
-  <p class="sub">요구사항 영역 — 고르면 그 영역의 모듈·알고리즘·KPI가 자동 등재됩니다(목표치는 다음 화면에서):</p>
-  {areas}
-  <button class="btn ok">프로젝트 만들기</button>
+  <p><input name="name" placeholder="프로젝트 이름 (예: 생산성 향상 1차)" style="width:100%"></p>
+  <p><input name="goal" placeholder="경영 목표 한 줄 (예: 올해 생산성 30% 향상)" style="width:100%"></p>
+  <div style="margin:14px 0 6px;font-weight:700;color:var(--brand)">KPI 정의</div>
+  <p class="sub" style="margin:0 0 6px">달성할 경영 목표를 고르고 목표치를 적으세요 (예: 생산성 향상 30%). 실적은 성과 화면에서 기록·추적됩니다.</p>
+  <div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 16px">{objectives}</div>
+  <details style="margin-top:12px">
+    <summary class="sub" style="cursor:pointer">고급(선택): 기술 지능화 영역 — 데이터로 자동 측정되는 KPI 자동 등재</summary>
+    <div style="margin-top:8px">{areas}</div>
+  </details>
+  <p style="margin-top:14px"><button class="btn ok">프로젝트 만들기</button></p>
 </form>"""
 
 
@@ -1030,9 +1045,21 @@ async def projects_create(request: Request):
         return u
     from . import projects
     form = await request.form()
+    # KPI 정의: 체크한 경영 목표 + 각 목표치(빈 값은 목표 미설정으로 허용)
+    objectives = []
+    for key in form.getlist("obj"):
+        raw = str(form.get(f"obj_{key}_target", "")).strip().rstrip("%").strip()
+        try:
+            tgt = float(raw) if raw else None
+        except ValueError:
+            return HTMLResponse(page(u, "프로젝트", _projects_list(u,
+                f"<div class='card warn'>'{html.escape(str(key))}' 목표치는 숫자로 적어주세요 "
+                f"(예: 30).</div>"), "/projects"), 400)
+        objectives.append({"key": str(key), "target": tgt})
     try:
         p = projects.create(str(form.get("name", "")), str(form.get("goal", "")),
-                            u["username"], [str(a) for a in form.getlist("areas")])
+                            u["username"], [str(a) for a in form.getlist("areas")],
+                            objectives=objectives)
     except ValueError as e:
         return HTMLResponse(page(u, "프로젝트", _projects_list(u,
             f"<div class='card warn'>{html.escape(str(e))}</div>"), "/projects"), 400)
@@ -1053,8 +1080,14 @@ def _project_dash(u, pid: int, msg: str = "") -> str:
     for k in p["kpis"]:
         st = projects.kpi_status(k)
         m = projects.latest(k["kpi_id"])
+        is_obj = k["area"] == projects.OBJ_AREA
         ser = [r["value"] for r in projects.series(k["kpi_id"])]
-        _, pending_reason = (None, "") if m else projects.measure(k["kpi_code"])
+        if m:
+            pending_reason = ""
+        elif is_obj:                       # 경영 목표는 수기 실적 — 아래에서 기록
+            pending_reason = "실적 미입력 — 아래에 기록"
+        else:
+            _, pending_reason = projects.measure(k["kpi_code"])
         val = (f"{m['value']:g} {html.escape(k['unit'])}" if m
                else f"<span class='sub'>{html.escape(pending_reason)}</span>")
         tgt = f"{k['target']:g}" if k["target"] is not None else "—"
@@ -1079,13 +1112,19 @@ def _project_dash(u, pid: int, msg: str = "") -> str:
   <input name="target" placeholder="목표" style="width:70px" value="{k['target'] if k['target'] is not None else ''}">
   <input name="note" placeholder="조정 사유" style="width:150px">
   <button class="btn">목표 조정</button></form>""" if u["role"] == "admin" else ""
+        # 경영 목표 KPI — 수기 실적 기록(성과관리 연계)
+        record = (f"""<form method="post" action="/projects/{pid}/record" style="margin-top:6px">
+  <input type="hidden" name="kpi_id" value="{k['kpi_id']}">
+  <input name="value" inputmode="decimal" placeholder="실적 입력 ({html.escape(k['unit'])})" style="width:120px">
+  <button class="btn ok">실적 기록</button></form>"""
+                  if is_obj and u["role"] in ("admin", "steward") else "")
         cards.append(f"""<div class="card" style="display:inline-block;vertical-align:top;width:340px;margin-right:10px">
   <b>{html.escape(k['kpi_name'])}</b>
   <span style="color:{stat_color.get(st, '#2E241C')};font-weight:700;float:right">{st}</span>
-  <div class="sub">{html.escape(projects.AREAS[k['area']]['name'])} · {'낮을수록' if k['direction'] == 'down' else '높을수록'} 좋음</div>
+  <div class="sub">{html.escape(projects.area_label(k['area']))} · {'낮을수록' if k['direction'] == 'down' else '높을수록'} 좋음</div>
   <div style="font-size:1.5em;margin:6px 0">{val}</div>
   <div class="sub">기준선 {base} · 목표 {tgt}</div>
-  {_kpi_svg(ser, k['target'], k['direction'])}{loop_line}{adjust}</div>""")
+  {_kpi_svg(ser, k['target'], k['direction'])}{loop_line}{record}{adjust}</div>""")
     mods = "".join(
         f"<tr><td>{html.escape(projects.AREAS[m['area']]['name'])}</td>"
         f"<td>{html.escape(m['module'])}</td><td class='sub'>{html.escape(m['algorithm'])}</td></tr>"
@@ -1156,6 +1195,24 @@ async def project_target(request: Request, pid: int):
     except (ValueError, TypeError) as e:
         return HTMLResponse(page(u, "프로젝트", _project_dash(u, pid,
             f"<div class='card warn'>목표값을 확인하세요: {html.escape(str(e))}</div>"), "/projects"), 400)
+    return RedirectResponse(f"/projects/{pid}", status_code=303)
+
+
+@app.post("/projects/{pid}/record", response_class=HTMLResponse)
+async def project_record_value(request: Request, pid: int):
+    """경영 목표 KPI의 수기 실적 기록 — 성과관리 연계(측정 이력에 누적)."""
+    u = _require(request, ("steward",))
+    if isinstance(u, Response):
+        return u
+    from . import projects
+    form = await request.form()
+    try:
+        projects.record_value(int(str(form.get("kpi_id", "0"))),
+                              float(str(form.get("value", ""))), by=u["username"])
+    except (ValueError, TypeError) as e:
+        return HTMLResponse(page(u, "프로젝트", _project_dash(u, pid,
+            f"<div class='card warn'>실적값을 숫자로 입력하세요: {html.escape(str(e))}</div>"),
+            "/projects"), 400)
     return RedirectResponse(f"/projects/{pid}", status_code=303)
 
 

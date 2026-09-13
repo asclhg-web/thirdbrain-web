@@ -173,3 +173,57 @@ def test_root_redirects_logged_in(tmp_db):
     r = c.get("/", follow_redirects=False)
     assert r.status_code == 303
     assert r.headers["location"] in ("/today", "/inbox", "/upload", "/projects")
+
+
+# ── KPI 정의(경영 목표) — 대표 지시: 4대 목표 선택 + 목표치 + 수기 실적 ──
+def test_project_create_with_objectives(tmp_db):
+    """KPI 정의로 경영 목표를 고르고 목표치를 적으면 목표까지 등재된다."""
+    from axp import projects
+    c = _client()
+    _login(c, "admin")
+    form = c.get("/projects").text
+    assert "KPI 정의" in form and "생산성 향상" in form
+    r = c.post("/projects/create", data={
+        "name": "생산성 향상 1차", "goal": "올해 생산성 30% 향상",
+        "obj": ["productivity", "quality"],
+        "obj_productivity_target": "30", "obj_quality_target": "5"},
+        follow_redirects=False)
+    assert r.status_code == 303
+    pid = int(r.headers["location"].split("/")[-1])
+    p = projects.get(pid)
+    kpis = {k["kpi_code"]: k for k in p["kpis"]}
+    assert kpis["productivity"]["target"] == 30
+    assert kpis["productivity"]["kpi_name"] == "생산성 향상"
+    assert kpis["quality"]["target"] == 5
+    # 대시보드가 '경영 목표' 라벨과 실적 기록 폼을 보여준다
+    dash = c.get(f"/projects/{pid}").text
+    assert "경영 목표" in dash and "실적 기록" in dash
+
+
+def test_project_record_actual_links_to_performance(tmp_db):
+    """수기 실적 기록이 측정 이력에 쌓여 달성/미달이 판정된다(성과관리 연계)."""
+    from axp import projects
+    c = _client()
+    _login(c, "admin")
+    r = c.post("/projects/create", data={
+        "name": "원가 절감", "goal": "원가 10% 절감",
+        "obj": ["cost"], "obj_cost_target": "10"}, follow_redirects=False)
+    pid = int(r.headers["location"].split("/")[-1])
+    kid = projects.get(pid)["kpis"][0]["kpi_id"]
+    r = c.post(f"/projects/{pid}/record", data={"kpi_id": str(kid), "value": "12"},
+               follow_redirects=False)
+    assert r.status_code == 303
+    m = projects.latest(kid)
+    assert m and m["value"] == 12
+    # 목표 10, 실적 12, 높을수록 좋음 → 달성
+    assert projects.kpi_status(projects.get(pid)["kpis"][0]) == "달성"
+
+
+def test_project_create_requires_at_least_one_kpi(tmp_db):
+    """경영 목표도 기술 영역도 없으면 생성 거부(친절한 안내)."""
+    c = _client()
+    _login(c, "admin")
+    r = c.post("/projects/create", data={"name": "빈 프로젝트", "goal": ""},
+               follow_redirects=False)
+    assert r.status_code == 400
+    assert "하나 이상" in r.text

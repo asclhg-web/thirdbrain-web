@@ -118,6 +118,28 @@ AREAS: dict[str, dict] = {
 }
 
 
+# ── 경영 목표 KPI (대표 지시: 현장 친화 KPI 정의) ──────────────────
+# 기술 지표(WAPE 등) 대신, 4대 경영 목표를 고르고 목표치를 %로 적는다.
+# 예: '생산성 향상' 선택 + 목표 30 → "생산성 향상 30%". 측정은 수기 실적
+# 기록(성과관리 연계)으로 누적되어 대시보드가 달성/미달을 판정한다.
+OBJECTIVES: dict[str, tuple[str, str, str]] = {
+    "productivity": ("생산성 향상", "%", "up"),
+    "cost":         ("원가 절감",   "%", "up"),
+    "delivery":     ("납기 단축",   "%", "up"),
+    "quality":      ("품질 향상",   "%", "up"),
+}
+OBJ_AREA = "objective"   # 경영 목표 KPI의 area 값(수기 측정)
+
+
+def area_label(area: str) -> str:
+    """대시보드 라벨 — 기술 영역이면 그 이름, 경영 목표면 '경영 목표'."""
+    if area in AREAS:
+        return AREAS[area]["name"]
+    if area == OBJ_AREA:
+        return "경영 목표"
+    return area
+
+
 def init() -> None:
     db.executescript(DDL)
     # P7-1 직후 하루 사이 스키마 교정(m_id 추가): 측정치는 재계산 가능한
@@ -134,15 +156,24 @@ def init() -> None:
 
 
 def create(name: str, goal: str, owner: str, areas: list[str],
-           modules: list[dict] | None = None) -> dict:
-    """프로젝트 정의 — 선택 영역의 카탈로그 KPI가 자동 등재된다(목표는 비움)."""
+           modules: list[dict] | None = None,
+           objectives: list[dict] | None = None) -> dict:
+    """프로젝트 정의 — 경영 목표 KPI(objectives)와/또는 기술 영역(areas)을
+    등재한다. objectives는 [{key, target}] (예: {'key':'productivity',
+    'target':30}). 선택 영역의 카탈로그 KPI는 자동 등재(목표는 비움)."""
     init()
     name = (name or "").strip()
     if not name:
         raise ValueError("프로젝트 이름을 입력하세요.")
+    objectives = objectives or []
     bad = [a for a in areas if a not in AREAS]
-    if bad or not areas:
-        raise ValueError(f"요구사항 영역을 확인하세요: {bad or '선택 없음'}")
+    if bad:
+        raise ValueError(f"요구사항 영역을 확인하세요: {bad}")
+    bad_obj = [o.get("key") for o in objectives if o.get("key") not in OBJECTIVES]
+    if bad_obj:
+        raise ValueError(f"KPI(경영 목표)를 확인하세요: {bad_obj}")
+    if not areas and not objectives:
+        raise ValueError("KPI(경영 목표)를 하나 이상 선택하세요.")
     if modules is None:                     # 기본: 선택 영역의 카탈로그 전 모듈
         modules = [{"area": a, "module": m, "algorithm": alg}
                    for a in areas for m, alg in AREAS[a]["modules"]]
@@ -154,13 +185,34 @@ def create(name: str, goal: str, owner: str, areas: list[str],
             (name, goal.strip(), owner, json.dumps(areas),
              json.dumps(modules, ensure_ascii=False), now, now))
         pid = cur.lastrowid
+    # ⓐ 경영 목표 KPI — 목표치까지 즉시 등재(수기 측정)
+    for o in objectives:
+        oname, unit, direction = OBJECTIVES[o["key"]]
+        tgt = o.get("target")
+        db.execute(
+            "INSERT INTO axp_project_kpis "
+            "(project_id, area, kpi_code, kpi_name, unit, direction, target, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (pid, OBJ_AREA, o["key"], oname, unit, direction, tgt, now))
+    # ⓑ 기술 영역 KPI — 카탈로그 자동 등재(목표는 다음 화면에서)
     for a in areas:
         for code, kname, unit, direction in AREAS[a]["kpis"]:
             db.execute(
                 "INSERT INTO axp_project_kpis (project_id, area, kpi_code, kpi_name, unit, direction, created_at) "
                 "VALUES (?,?,?,?,?,?,?)", (pid, a, code, kname, unit, direction, now))
-    common.alert("info", "M0-P", f"프로젝트 정의: {name} (영역 {len(areas)}·KPI 자동 등재)")
+    common.alert("info", "M0-P",
+                 f"프로젝트 정의: {name} (경영목표 {len(objectives)}·영역 {len(areas)})")
     return get(pid)
+
+
+def record_value(kpi_id: int, value: float, by: str = "") -> None:
+    """수기 실적 기록 — 경영 목표 KPI의 측정치를 성과관리에 누적한다."""
+    init()
+    k = db.one("SELECT kpi_id FROM axp_project_kpis WHERE kpi_id=?", (kpi_id,))
+    if not k:
+        raise ValueError(f"KPI {kpi_id} 없음")
+    db.execute("INSERT INTO axp_kpi_measurements (kpi_id, measured_at, value, source) "
+               "VALUES (?,?,?,?)", (kpi_id, common.now_iso(), float(value), f"수기:{by}"))
 
 
 def get(project_id: int) -> dict:
@@ -401,6 +453,8 @@ def measure_all(project_id: int) -> dict:
     now = common.now_iso()
     out = {"measured": 0, "pending": 0}
     for k in p["kpis"]:
+        if k["area"] == OBJ_AREA:      # 경영 목표는 수기 실적 — 자동 측정 제외
+            continue
         value, source = measure(k["kpi_code"])
         if value is None:
             out["pending"] += 1
