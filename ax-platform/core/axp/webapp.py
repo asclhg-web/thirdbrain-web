@@ -567,10 +567,11 @@ def card_decide(card_id: int, request: Request,
     if not ok and reason not in inbox.REJECT_REASONS:
         return HTMLResponse(page(u, "반려",
             f"<div class='card warn'>사유는 목록에서 선택하세요: {', '.join(inbox.REJECT_REASONS)}</div>"), 400)
+    # P8-I3(데모 시나리오 테스트 적발): decide()가 승인 시 내부에서 이미
+    # apply_feedback을 호출하고 카드를 'executed'로 만든다 — 여기서 또
+    # 부르면 '승인 전 환류 금지'로 500. 환류는 decide에 일임한다.
     inbox.decide(card_id, actor=u["display"], role="card_approver",
                  approve=ok, reason_code=reason[:20], reason_text=reason)
-    if ok:
-        inbox.apply_feedback(card_id, actor=u["display"])
     return RedirectResponse("/inbox", status_code=303)
 
 

@@ -82,3 +82,10 @@ qwen2.5의 중국어 혼입(P8-I2)을 방금 확인한 터라 품질 면에서�
   install-app-server.sh에 anthropic SDK·env 옵션 추가.
 - 테스트 4건(SDK 스텁): 정상·중국어 재생성·env 선택·키 없음 폴백.
   PG 147/147, SQLite 142+5skip. 서버1 적용: git pull+재설치 후 connect-claude.sh.
+
+## 데모 시나리오 전체 시스템 테스트 (2026-09-13, 클라우드 검증)
+
+- M1→M7 수직 완주(demo.run_e2e): 81.3s — WAPE 8.2%, 이상탐지 13일 선행, 회귀 30/30, Rule 승격 2건.
+- G4 수용 시험: 6/6 영역 통과.
+- 웹 데모 워크스루(P8 새 화면, Playwright): 역할별 홈·4허브·오늘·프로젝트/KPI·측정·상태·질문(근거 인용 완벽)·반입 파이프라인 정상.
+- P8-I3(데모가 적발한 실제 버그): 웹 승인함 카드 승인 시 card_decide가 inbox.decide(내부 apply_feedback→executed) 뒤 apply_feedback을 재호출 → 승인 전 환류 금지 500. 중복 호출 제거+회귀 테스트. PG 149/149, SQLite 144+5skip.

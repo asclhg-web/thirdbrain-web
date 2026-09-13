@@ -635,3 +635,22 @@ def test_upload_mapping_rejects_missing_required(tmp_db):
         "fingerprint": fp, "sheet_kind": "sales_summary", "src": src,
         "map__판매날": "date", "map__지점": "store_id"})   # product_id·qty 누락
     assert r.status_code == 400 and "필수" in r.text
+
+
+def test_card_approve_via_web_no_double_feedback(tmp_db):
+    """P8-I3: 웹 승인함에서 카드 승인 — decide 내부 환류와 중복 호출로 500이
+    나지 않고, 카드가 executed로 정상 반영돼야 한다(데모 시나리오 적발)."""
+    from axp.judge import cards as jcards
+    db.executescript(jcards.DDL)
+    db.execute(
+        "INSERT INTO judgment_cards (kind, agent, proposal, narrative, values_json, "
+        "range_json, evidence_json, alternatives_json, approver, status, created_at) "
+        "VALUES ('replenish','replenish_agent','발주 정책','n [근거: x]','[]','{}',"
+        "?,'[]','card_approver','proposed','2026-09-13')",
+        ('{"policy": {"rop": 120, "eoq": 400}}',))
+    cid = db.scalar("SELECT MAX(card_id) FROM judgment_cards")
+    c = _client()
+    _login(c, "approver")
+    r = c.post(f"/cards/{cid}/decide", data={"approve": "1", "reason": ""})
+    assert r.status_code == 303 and r.headers["location"] == "/inbox", r.text[:300]
+    assert db.one("SELECT status FROM judgment_cards WHERE card_id=?", (cid,))["status"] == "executed"
