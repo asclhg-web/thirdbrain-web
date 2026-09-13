@@ -111,3 +111,16 @@ def test_projects_empty_state_guides(tmp_db):
     _login(c, "admin")
     body = c.get("/projects").text
     assert "아직 프로젝트가 없습니다" in body
+
+
+def test_tenants_screen_admin_only(tmp_db):
+    """P8-5b: 체험 테넌트 화면 — admin 전용, 빈 상태 안내, 없는 테넌트 404."""
+    c = _client()
+    _login(c, "approver")
+    assert c.get("/tenants").status_code == 403
+    c2 = _client()
+    _login(c2, "admin")
+    body = c2.get("/tenants").text
+    assert "체험 테넌트" in body and "서버 명령으로만" in body
+    r = c2.post("/tenants/ghost/reset")
+    assert r.status_code == 404

@@ -285,7 +285,8 @@ HUBS = [
                             ("/rules", "규칙"), ("/warroom", "War Room")]),
     ("성과", "/projects", (), [("/projects", "프로젝트·KPI"), ("/audit", "감사 로그")]),
     ("관리", "/users", ("admin",), [("/users", "계정"), ("/setup", "온보딩 설정"),
-                                    ("/billing", "과금"), ("/signups", "체험 신청")]),
+                                    ("/billing", "과금"), ("/signups", "체험 신청"),
+                                    ("/tenants", "체험 테넌트")]),
 ]
 
 # P8-1: 역할이 홈을 결정한다 — 대표는 성과부터, 승인자는 결정부터.
@@ -1099,6 +1100,70 @@ def _billing_page(u, msg: str = "") -> str:
 </form>
 <div class="card"><b>청구 이력</b><table style="width:100%;margin-top:8px">
 <tr><th>#</th><th>기간</th><th>금액</th><th>상태</th><th>납기</th><th></th></tr>{ivs}</table></div>"""
+
+
+# ── P8-5b: 체험 테넌트 관리 — 명령줄(tenant CLI)의 웹 화면화 ────────
+def _tenants_body(msg: str = "") -> str:
+    from . import tenant
+    rows = tenant.listing()
+    trs = "".join(
+        f"<tr><td><b>{html.escape(m['name'])}</b></td>"
+        f"<td>{html.escape(m.get('company', '') or '')}</td>"
+        f"<td>{'체험' if m.get('trial') else '정식'}</td>"
+        f"<td>{m.get('size_mb', 0)}MB</td>"
+        f"<td>{html.escape(str(m.get('last_reset_at') or m.get('created_at') or ''))[:16]}</td>"
+        f"<td><form class='inline' method='post' action='/tenants/{html.escape(m['name'])}/reset'>"
+        f"<button class='btn plain'>리셋(템플릿 재생성)</button></form> "
+        f"<form class='inline' method='post' action='/tenants/{html.escape(m['name'])}/purge'>"
+        f"<button class='btn plain'>업로드 파기(24h 경과분)</button></form></td></tr>"
+        for m in rows)
+    if not rows:
+        trs = ("<tr><td colspan='6' class='sub'>테넌트가 없습니다 — 생성은 보안상 "
+               "서버 명령으로만: <code>python3 -m axp.cli tenant create 이름 --company 회사명</code></td></tr>")
+    return f"""<h2>체험 테넌트 — 손님용 데이터 방</h2>
+<p class="sub">테넌트마다 독립 데이터 루트를 가집니다. 리셋은 합성 템플릿으로 되돌리고(체험 운영의 일과),
+업로드 파기는 24시간 지난 손님 원본 파일을 지웁니다(정직 조항). 생성·완전 파기는 보안상 서버 명령 전용.</p>{msg}
+<div class="card"><table style="width:100%">
+<tr><th>이름</th><th>회사</th><th>유형</th><th>용량</th><th>마지막 리셋/생성</th><th>동작</th></tr>{trs}</table></div>"""
+
+
+@app.get("/tenants", response_class=HTMLResponse)
+def tenants_page(request: Request):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    return HTMLResponse(page(u, "체험 테넌트", _tenants_body(), "/tenants"))
+
+
+def _tenant_op(request: Request, name: str, op: str):
+    u = _require(request, ("admin",))
+    if isinstance(u, Response):
+        return u
+    from . import tenant
+    if name not in {m["name"] for m in tenant.listing()}:
+        return HTMLResponse(page(u, "체험 테넌트", _tenants_body(
+            "<div class='card warn'>해당 테넌트가 없습니다.</div>"), "/tenants"), 404)
+    try:
+        if op == "reset":
+            r = tenant.reset(name)
+            msg = f"<div class='card ok'>리셋 완료 — {html.escape(name)} ({html.escape(str(r.get('reset_at', '')))[:16]})</div>"
+        else:
+            r = tenant.purge_uploads(name)
+            msg = f"<div class='card ok'>업로드 파기 완료 — {html.escape(name)} ({r.get('purged', 0)}개 파일)</div>"
+    except Exception as e:  # noqa: BLE001
+        msg = f"<div class='card warn'>실패: {html.escape(str(e)[:200])}</div>"
+    common.alert("info", "tenant", f"{op} {name} by {u['username']}")
+    return HTMLResponse(page(u, "체험 테넌트", _tenants_body(msg), "/tenants"))
+
+
+@app.post("/tenants/{name}/reset", response_class=HTMLResponse)
+async def tenant_reset(request: Request, name: str):
+    return _tenant_op(request, name, "reset")
+
+
+@app.post("/tenants/{name}/purge", response_class=HTMLResponse)
+async def tenant_purge(request: Request, name: str):
+    return _tenant_op(request, name, "purge")
 
 
 @app.get("/billing", response_class=HTMLResponse)
