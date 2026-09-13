@@ -1604,7 +1604,7 @@ async def upload_mapping(request: Request):
             f" (거절 {res.get('rows_rejected', 0)}행)"
             + (f"<div style='margin-top:6px'>{errs}</div>" if errs else "")
             + "<div class='sub' style='margin-top:6px'>같은 양식은 다음부터 자동 반입됩니다. "
-              "미확인 코드는 <a href='/quarantine'>격리 큐</a>에서, 반영은 "
+              "처음 본 이름은 <a href='/quarantine'>확인할 이름</a>에서, 반영은 "
               "<a href='/runs'>배치 실행</a>에서.</div></div>")
     return HTMLResponse(page(u, "자료 반입", _upload_form() + body, "/upload"))
 
@@ -1700,7 +1700,7 @@ async def upload_post(request: Request):
                 f" (거절 {res.get('rows_rejected', 0)}행)" + preview
                 + (f"<div style='margin-top:6px'>{errs}</div>" if errs else "")
                 + (f"<div style='margin-top:6px'>{warns}</div>" if warns else "")
-                + "<div class='sub' style='margin-top:6px'>미확인 코드는 <a href='/quarantine'>격리 큐</a>에서 확정하세요. "
+                + "<div class='sub' style='margin-top:6px'>처음 본 이름은 <a href='/quarantine'>확인할 이름</a>에서 확정하세요. "
                   "브리핑 반영은 다음 야간 배치(또는 관리자 수동 실행) 후입니다.</div></div>")
     return HTMLResponse(page(u, "자료 반입", _upload_form() + body, "/upload"))
 
@@ -1726,7 +1726,7 @@ def quarantine_page(request: Request):
 {f'''<form class="inline" method="post" action="/quarantine/{q['q_id']}/undo">
 <button class="btn no">확정 취소</button></form>''' if can else '-'}</td></tr>"""
         for q in recent)
-    body = f"""<h2>격리 큐</h2>
+    body = f"""<h2>확인할 이름 <span class="sub" style="font-size:15px">(격리 큐)</span></h2>
 <p class="sub">처음 보는 현장 어휘 — 확신 없으면 추측하지 말고 현장에 물어보세요 (I-09 교훈)</p>
 <table><tr><th>#</th><th>영역</th><th>별칭</th><th>행수</th><th>확정</th></tr>{rows or '<tr><td colspan=5>대기 없음 ✔</td></tr>'}</table>
 {f'''<div class="card"><b>일괄 처리 (P5-U2)</b>
@@ -1741,7 +1741,7 @@ def quarantine_page(request: Request):
 <h2 style="font-size:17px">최근 확정 — 잘못 확정했다면 취소하세요</h2>
 <p class="sub">취소하면 다음 야간 배치의 전량 재구축이 소급 반영합니다</p>
 <table><tr><th>#</th><th>별칭</th><th>확정 코드</th><th>확정자</th><th>취소</th></tr>{undo or '<tr><td colspan=5>기록 없음</td></tr>'}</table>"""
-    return HTMLResponse(page(u, "격리 큐", body, "/quarantine"))
+    return HTMLResponse(page(u, "확인할 이름", body, "/quarantine"))
 
 
 @app.post("/quarantine/bulk")
@@ -1770,7 +1770,7 @@ async def quarantine_bulk(request: Request):
             + "</div>")
     common.alert("info", "quarantine", f"일괄 확정 {done}건·거절 {len(errors)}건 by {u['username']}")
     resp = quarantine_page(request)
-    return HTMLResponse(resp.body.decode().replace("<h2>격리 큐</h2>", f"<h2>격리 큐</h2>{note}", 1))
+    return HTMLResponse(resp.body.decode().replace("(격리 큐)</span></h2>", f"(격리 큐)</span></h2>{note}", 1))
 
 
 @app.post("/quarantine/drain")
