@@ -332,9 +332,14 @@ def page(user: dict | None, title: str, body: str, active: str = "") -> str:
     # P8-1: 2단 내비 — 윗줄은 허브 4+관리, 아랫줄은 현재 허브의 화면들.
     role = (user or {}).get("role", "")
     cur_hub = next((h for h in HUBS if any(p == active for p, _ in h[3])), None)
-    nav = "".join(
-        f"<a href='{h[1]}' class='{'on' if cur_hub is h else ''}'>{h[0]}</a>"
-        for h in HUBS if not h[2] or role in h[2])
+    if user is None:
+        # P9-2: 익명 방문자 헤더 — 앱 허브 대신 공개 링크(데모·로그인)만.
+        nav = (f"<a href='/demo' class=\"{'on' if active == '/demo' else ''}\">데모</a>"
+               "<a href='/login'>로그인</a>")
+    else:
+        nav = "".join(
+            f"<a href='{h[1]}' class='{'on' if cur_hub is h else ''}'>{h[0]}</a>"
+            for h in HUBS if not h[2] or role in h[2])
     subnav = ""
     if cur_hub and (not cur_hub[2] or role in cur_hub[2]):
         subnav = ("<div class='wrap subnav'>" + "".join(
@@ -466,10 +471,177 @@ def _fmt_narr(text: str) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 def root_page(request: Request):
-    u = _require(request)
-    if isinstance(u, Response):
-        return u
+    # P9-2: 익명 방문자는 공개 메인 랜딩을 본다(로그인/데모로 진입).
+    #   로그인 사용자는 예전처럼 역할 홈으로.
+    u = current_user(request)
+    if u is None:
+        return HTMLResponse(page(None, "AX 플랫폼 — Odoo AI ERP", _landing_body()))
+    if u.get("must_change"):
+        return RedirectResponse("/password", status_code=303)
     return RedirectResponse(HOME_BY_ROLE.get(u["role"], "/inbox"), status_code=303)
+
+
+def _landing_body() -> str:
+    return """
+<style>
+.hero{text-align:center;padding:44px 0 8px}
+.hero .kick{color:var(--gold-d,#C07F1E);font-weight:700;letter-spacing:3px;font-size:13px}
+.hero h1{font-size:42px;color:var(--brand);margin:12px 0 8px;line-height:1.2}
+.hero .lead{font-size:18px;color:var(--sub,#76675A);max-width:700px;margin:0 auto;line-height:1.6}
+.cta{margin-top:26px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta .btn{font-size:16px;padding:13px 30px}
+.feats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:34px 0 8px}
+.feat h3{margin:0 0 6px;color:var(--brand);font-size:17px}
+.feat p{margin:0;color:var(--sub,#76675A);font-size:14px;line-height:1.55}
+.flow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin:26px 0 6px}
+.flow .step{background:linear-gradient(180deg,#7A3F1D,#5E3016);color:#F0E4D2;border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:700}
+.flow .step.last{background:linear-gradient(180deg,#12A197,#0E8F86)}
+.flow .ar{color:var(--gold-d,#C07F1E);font-weight:700}
+@media(max-width:720px){.feats{grid-template-columns:1fr}.hero h1{font-size:32px}}
+</style>
+<section class="hero">
+  <div class="kick">ODOO AI ERP PLATFORM</div>
+  <h1>제안은 AI가, 결정은 사람이</h1>
+  <p class="lead">근거 없는 문장은 만들지 못하는 지능형 운영 체계 — 데이터가 모이고,
+     AI가 근거와 함께 제안하고, 사람이 승인하면, 시스템이 그대로 기록합니다.</p>
+  <div class="cta">
+    <a class="btn ok" href="/login">플랫폼 로그인</a>
+    <a class="btn why" href="/demo">데모 보기 →</a>
+  </div>
+</section>
+<div class="flow">
+  <span class="step">엑셀·장부·Odoo</span><span class="ar">▶</span>
+  <span class="step">표준 데이터셋</span><span class="ar">▶</span>
+  <span class="step">분석·예측</span><span class="ar">▶</span>
+  <span class="step">지식그래프</span><span class="ar">▶</span>
+  <span class="step">판단 카드</span><span class="ar">▶</span>
+  <span class="step last">사람의 승인</span>
+</div>
+<div class="feats">
+  <div class="card feat"><h3>판단 카드 승인함</h3><p>수요예측·발주·생산계획을 수치+구간+근거+대안이 담긴 카드로 — 결정은 언제나 사람이.</p></div>
+  <div class="card feat"><h3>근거의 사다리</h3><p>모든 수치에 출처가 붙고, 규칙에서 원장 기록까지 클릭 한 번에 역추적. 환각 원천 차단.</p></div>
+  <div class="card feat"><h3>무한 개선 루프</h3><p>프로젝트·KPI를 목표로 삼아 야간 배치가 측정을 누적 — 성과를 숫자로 증명합니다.</p></div>
+</div>
+<p class="sub" style="text-align:center;margin-top:22px">
+  처음이시면 <a href="/demo" style="color:var(--teal);font-weight:700">데모</a>로 흐름을 먼저 보시고,
+  체험 계정은 <a href="mailto:asclhg@gmail.com?subject=[AX 플랫폼] 체험 계정 신청">여기로 신청</a>하세요.</p>
+"""
+
+
+@app.get("/demo", response_class=HTMLResponse)
+def demo_page(request: Request):
+    # P9-2: 로그인 없이 볼 수 있는 데모 서브페이지 — 합성 샘플로 승인함 흐름 체험.
+    return HTMLResponse(page(current_user(request), "데모 — 판단 카드 승인함",
+                             _demo_body(), active="/demo"))
+
+
+def _demo_body() -> str:
+    return """
+<style>
+.demo-note{background:linear-gradient(180deg,#FEF6E6,#FDF0DC);border:1px solid #F0DFC2;border-radius:12px;padding:12px 18px;font-size:13.5px;margin-bottom:16px}
+.demo-note b{color:var(--gold-d,#C07F1E)}
+.jc{background:var(--panel,#fff);border:1px solid var(--line,#E7DAC7);border-left:7px solid var(--brand,#6E3A1C);border-radius:14px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--sh-1,0 1px 3px rgba(60,40,20,.06))}
+.jc.done{opacity:.6;border-left-color:var(--teal,#0E8F86)}
+.jc.rej{opacity:.6;border-left-color:#A8493B}
+.jc .h{font-size:16px;font-weight:700;margin-bottom:6px}
+.jc .rng{color:var(--teal,#0E8F86);font-weight:700;font-size:13px;margin:4px 0}
+.jc .l{font-size:14px;margin:3px 0}.jc .l small{color:var(--sub,#76675A)}
+.jc .bts{margin-top:11px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.jc select{border:1px solid var(--line,#E7DAC7);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px}
+.stamp{font-size:13px;font-weight:700;margin-top:9px}.stamp.ok{color:var(--teal,#0E8F86)}.stamp.rej{color:#A8493B}
+#alog{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;background:var(--panel,#fff)}
+#alog td,#alog th{border:1px solid var(--line,#E7DAC7);padding:7px 11px;text-align:left}
+#alog th{background:var(--brand,#6E3A1C);color:#fff}
+#alog tr.new td{background:#FDF3E0;font-weight:700}
+.mback{position:fixed;inset:0;background:rgba(33,21,8,.5);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:60;overflow-y:auto}
+.mback.on{display:flex}
+.modal{background:var(--bg,#FAF6EF);border-radius:16px;max-width:680px;width:100%;padding:26px 28px}
+.step2{background:var(--panel,#fff);border:1px solid var(--line,#E7DAC7);border-left:7px solid var(--brand);border-radius:10px;padding:11px 16px;margin-bottom:4px}
+.step2 .t{font-size:12px;font-weight:700;letter-spacing:.5px}.step2 .b{font-size:14px;margin-top:2px}.step2 .s{font-size:12px;color:var(--sub,#76675A)}
+.dar{color:var(--gold-d,#C07F1E);font-weight:700;font-size:13px;margin:2px 0 6px 18px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#2B1D12;color:#F8F2EA;border-radius:12px;padding:12px 22px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none;z-index:70;max-width:92vw}
+#toast b{color:var(--gold,#E8A33D)}
+</style>
+<h2>데모 — 판단 카드 승인함</h2>
+<p class="sub">오늘의 제안 — 카드마다 수치 + 구간 + 근거 + 대안 · 결정은 언제나 사람이 합니다</p>
+<div class="demo-note"><b>합성 샘플 데모입니다.</b> 아래 카드는 실제 플랫폼과 같은 구조로 동작합니다 —
+  <b>왜?</b>로 근거를 원장까지 따라가고, <b>승인/반려</b>하면 아래 감사 로그에 즉시 기록됩니다.
+  실제 데이터로 쓰시려면 <a href="/login" style="color:var(--teal);font-weight:700">플랫폼 로그인</a>.</div>
+<div id="cards"></div>
+<h3 style="color:var(--brand);font-size:16px;margin:22px 0 6px">감사 로그 — 누가 · 언제 · 무엇을 (이번 데모 기록은 노란 행)</h3>
+<table id="alog"><thead><tr><th>시각</th><th>행위</th><th>담당</th><th>내용</th></tr></thead><tbody id="alogb"></tbody></table>
+<p style="margin-top:20px"><a class="btn ok" href="/login">직접 써보기 · 플랫폼 로그인</a>
+  <a class="btn plain" href="/">← 메인으로</a></p>
+<div class="mback" id="mb" onclick="if(event.target===this)cls()"><div class="modal" id="mbody"></div></div>
+<div id="toast"></div>
+<script>
+const CARDS=[
+ {id:2571,kind:["수요예측","#C07F1E"],prop:"내일 파이만쥬 420개 생산 발주 권고",
+  rng:"구간 P10 360 · P50 420 · P90 500",agent:"demand",
+  narr:["최근 4주 동일 요일 평균 대비 +12% 수요 상승 [근거: fact_sales:2026-08]",
+        "명절 선물 수요가 초량 본점에 집중 [근거: feature:holiday_lift]",
+        "폐기 여유 5% 반영한 안전재고 포함 [근거: policy:scrap_buffer]"],
+  alt:[["350개 보수 발주","결품 위험 상승으로 기각"]]},
+ {id:2572,kind:["생산계획","#9C5227"],prop:"OVEN-2 라인 정기 점검 후 투입 권고",
+  rng:"불량률 3.1% → 예상 1.4%",agent:"equip_alert",
+  narr:["OVEN-2 × 공급사 V2 조합에서 불량률 유의하게 높음 [근거: Rule:RULE-0001]",
+        "최근 3주 3회 독립 확인 후 규칙 승격 [근거: confidence:0.88]"],
+  alt:[["즉시 투입","불량 손실이 점검 비용을 초과해 기각"]]},
+ {id:2573,kind:["재고 정책","#0E8F86"],prop:"단팥빵 안전재고 하향(-15%) 권고",
+  rng:"절감 예상 12%",agent:"replenish",
+  narr:["최근 8주 수요 변동성 하락 [근거: fact_sales:var]",
+        "결품 0건 유지 구간 확인 [근거: kpi:stockout_days=0]"],
+  alt:[["현행 유지","재고 비용 절감 기회 상실"]]}];
+const LADDER=[
+ ["① 규칙","설비 OVEN-2 × 공급사 V2 조합에서 불량률이 유의하게 높다","확신도 88% · Rule:RULE-0001","#9C5227"],
+ ["② 조합","equipment_id = OVEN-2 × vendor = V2","이 규칙이 가리키는 4M 조합","#C07F1E"],
+ ["③ 사실","불량 이벤트 1,470건 · 불량 12,992개","집계 2024-09 ~ 2026-08","#0E8F86"],
+ ["④ 원장","불량ID #2898 · 제조오더 MO-003295 · 2025-08-03 · 탄화","원본 기록까지 응답 7.6ms","#6E3A1C"]];
+const REJ=["현장 사정(행사·날씨)","시점 부적절","수치 의문 — 재검토","기타"];
+let dec={}, alog=[{t:"08:02",a:"승인",w:"김승인",n:"#2570 초량 본점 발주 320개"}];
+function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function fmt(l){return esc(l).replace(/\\[근거: ([^\\]]+)\\]/g,'<small>〔근거: $1〕</small>');}
+function now(){return new Date().toTimeString().slice(0,5);}
+function toast(h){const t=document.getElementById("toast");t.innerHTML=h;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",4200);}
+function render(){
+ document.getElementById("cards").innerHTML=CARDS.map(c=>{
+  const d=dec[c.id];let tail;
+  if(!d){tail=`<div class="bts">
+     <button class="btn why" onclick="why(${c.id})">왜? (근거)</button>
+     <button class="btn ok" onclick="ok(${c.id})">승인 → 환류</button>
+     <button class="btn no" onclick="no(${c.id})">반려</button>
+     <select id="r${c.id}"><option value="">반려 사유…</option>${REJ.map(r=>`<option>${r}</option>`).join("")}</select></div>`;}
+  else if(d.s==="ok"){tail=`<div class="stamp ok">✔ ${d.t} ${esc(d.w)} 승인 — 감사 로그·파라미터 기록됨</div>`;}
+  else{tail=`<div class="stamp rej">✖ ${d.t} ${esc(d.w)} 반려 — ${esc(d.r)}</div>`;}
+  return `<div class="jc ${d?(d.s==="ok"?"done":"rej"):""}">
+    <div class="h"><span class="chip" style="background:${c.kind[1]}">${c.kind[0]}</span> #${c.id} ${esc(c.prop)}</div>
+    <div class="rng">${c.rng} · 에이전트 ${c.agent}</div>
+    ${c.narr.map(l=>`<div class="l">${fmt(l)}</div>`).join("")}${tail}</div>`;}).join("");
+ document.getElementById("alogb").innerHTML=alog.map((a,i)=>
+   `<tr class="${i<alog.length-1&&a._n?'new':(a._n?'new':'')}"><td>${esc(a.t)}</td><td>${esc(a.a)}</td><td>${esc(a.w)}</td><td>${esc(a.n)}</td></tr>`).join("");
+}
+function ok(id){const c=CARDS.find(x=>x.id===id);const t=now();dec[id]={s:"ok",w:"김승인",t};
+ alog.unshift({t,a:"승인",w:"김승인",n:`#${id} ${c.prop}`,_n:1});
+ alog.unshift({t,a:"환류",w:"system",n:`${c.agent}:#${id} 값 기록 · 이전 값 보존`,_n:1});
+ render();toast("<b>승인 → 환류 완료.</b> 감사 로그 기록 · 파라미터 반영 · 이전 값 보존이 동시에 일어났습니다.");}
+function no(id){const s=document.getElementById("r"+id);if(!s.value){s.style.borderColor="#A8493B";toast("<b>반려에는 사유가 필수입니다</b> — 사유는 벌점이 아니라 다음 학습의 재료입니다.");return;}
+ const c=CARDS.find(x=>x.id===id);const t=now();dec[id]={s:"rej",w:"김승인",t,r:s.value};
+ alog.unshift({t,a:"반려",w:"김승인",n:`#${id} — 사유: ${s.value}`,_n:1});
+ render();toast("<b>반려 기록 완료.</b> 사유가 구조화되어 다음 학습·리뷰의 재료가 됩니다.");}
+function why(id){const c=CARDS.find(x=>x.id===id);
+ let h=`<h3 style="color:var(--brand);margin-bottom:2px">왜? — #${id} 근거 역추적</h3>
+  <p class="sub" style="margin-bottom:14px">이 카드의 모든 문장에는 출처가 있고, 규칙은 원장까지 내려갑니다</p>`;
+ h+=c.narr.map(l=>`<div class="l" style="margin:5px 0">${fmt(l)}</div>`).join("");
+ if(c.alt&&c.alt.length){h+=`<h4 style="margin:14px 0 6px;color:var(--brand)">기각된 대안</h4>`+
+   c.alt.map(a=>`<div class="l">· <b>${esc(a[0])}</b> — <span style="color:var(--sub,#76675A)">${esc(a[1])}</span></div>`).join("");}
+ h+=`<h4 style="margin:16px 0 8px;color:var(--brand)">참고 규칙의 근거 사다리 (RULE-0001)</h4>`;
+ LADDER.forEach((s,i)=>{h+=`<div class="step2" style="border-left-color:${s[3]}"><div class="t" style="color:${s[3]}">${s[0]}</div><div class="b">${s[1]}</div><div class="s">${s[2]}</div></div>`;if(i<3)h+=`<div class="dar">↓ 어디서 왔나</div>`;});
+ h+=`<p style="text-align:right;margin-top:14px"><button class="btn why" onclick="cls()">닫기</button></p>`;
+ document.getElementById("mbody").innerHTML=h;document.getElementById("mb").classList.add("on");}
+function cls(){document.getElementById("mb").classList.remove("on");}
+render();
+</script>
+"""
 
 
 # ── P8-3: 시작 여정 5단계 — 전부 끝나면 사라진다 ──────────────────

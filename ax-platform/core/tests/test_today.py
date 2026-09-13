@@ -142,3 +142,34 @@ def test_quarantine_confirm_empty_code_friendly(tmp_db):
     r2 = c.post(f"/quarantine/{q_id}/confirm", data={"code": "P-OK"})
     assert r2.status_code == 303
     assert codemap.resolve("product", "빈코드") == "P-OK"
+
+
+# ── P9-2: 공개 메인 랜딩 + 데모 서브페이지 ──────────────────────
+def test_landing_public_for_anon(tmp_db):
+    """익명 방문자는 '/'에서 공개 메인 랜딩(로그인·데모 진입)을 본다."""
+    c = _client()
+    r = c.get("/", follow_redirects=False)
+    assert r.status_code == 200
+    body = r.text
+    assert "제안은 AI가" in body           # 히어로 카피
+    assert 'href="/demo"' in body          # 데모 진입
+    assert 'href="/login"' in body         # 로그인 진입
+
+
+def test_demo_page_public(tmp_db):
+    """/demo는 로그인 없이 열리고, 판단 카드·근거 사다리를 보여준다."""
+    c = _client()
+    r = c.get("/demo")
+    assert r.status_code == 200
+    assert "판단 카드 승인함" in r.text
+    assert "RULE-0001" in r.text            # 근거 사다리
+    assert 'href="/login"' in r.text        # 실사용 유도
+
+
+def test_root_redirects_logged_in(tmp_db):
+    """로그인 사용자는 '/'에서 역할 홈으로 이동(랜딩 아님)."""
+    c = _client()
+    _login(c, "admin")
+    r = c.get("/", follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] in ("/today", "/inbox", "/upload", "/projects")
