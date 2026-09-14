@@ -12,7 +12,17 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"          # .../ax-platform/deploy
 AXROOT="$(cd "$HERE/.." && pwd)"               # .../ax-platform (repo 체크아웃; demo/ 포함)
-[ -f /etc/axp/env ] && source /etc/axp/env || true
+# /etc/axp/env는 systemd EnvironmentFile 형식 — 값에 공백이 있어(AXP_PG_DSN=
+# host=.. port=.. password=.. dbname=..) bash `source`로 읽으면 단어 분리되어
+# 비밀번호가 유실된다. 첫 '='만 기준으로 안전하게 파싱해 export.
+if [ -f /etc/axp/env ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|\#*) continue;; esac
+    line="${line#export }"
+    key="${line%%=*}"; val="${line#*=}"
+    case "$key" in AXP_*|PG*) export "$key=$val";; esac
+  done < /etc/axp/env
+fi
 : "${AXP_DATA:=/var/lib/axp/data}"
 : "${AXP_DB:=postgres}"
 : "${AXP_PROFILE:=taesungdang}"
