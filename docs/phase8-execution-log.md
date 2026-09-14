@@ -194,3 +194,21 @@ git pull → 재설치: 검증 144+5skip / 149 통과, axp-web active(running) �
 - 사용: git pull → sudo bash ax-platform/deploy/seed-demo.sh → app.odooaierp.com
   로그인 admin/Demo!2026 → 오늘·판단(승인함)·성과(KPI)·질문.
 - 안전: 데모 서버 전용(run_e2e가 데이터 디렉토리 재생성). 실행 전 자동 백업.
+
+## P9-6 — 최종 발표 세트(PPT·대본·영상) (2026-09-14, 대표 지시)
+
+지시: 업로드된 제안 덱을 현재까지 개발 내용 포함해 최종 발표자료 PPT +
+아나운서 동영상 + 대본(워드)으로. 무한루프 자율.
+
+- 업로드 파일 = AX_Platform_Proposal_Deck.pptx(제안 덱, md5 동일) 확인.
+  python-pptx로 14슬라이드 구조 분석, 아키텍처·알고리즘·판단카드 다이어그램
+  3종 추출·재사용.
+- AX_플랫폼_최종_발표자료.pptx (20장): 제안 계승 + 구축완료·실운영 —
+  개요·벤치마크·아키텍처(재사용)·M0~M7(실측 WAPE7%·OVEN-2 13일·규칙승격)·
+  알고리즘지도(재사용)·판단카드(재사용)·3대차별점·UI 4화면 실캡처·데모결과·
+  P2~P9 여정·실행계획·살아있는 시스템·로드맵·클로징.
+- AX_플랫폼_최종_발표대본.docx: 슬라이드 20 내레이션(영상과 동일 대본)+발표팁.
+- AX_Platform_Final_Presentation.mp4 (1080p·9분18초): final_narration.json →
+  sherpa-onnx 한국어 TTS(문장별·쉼표 미세 쉼 0.16s·문장 0.42s·경계 페이드)→
+  슬라이드별 seg→0.5s 크로스페이드 단일 패스→loudnorm -16 LUFS. 빌더 동봉.
+- 정직성 유지: 합성 샘플 고지, 측정 불가 지표 '측정 전'. 실캡처만 사용.
