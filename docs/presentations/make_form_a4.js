@@ -90,7 +90,7 @@ kids.push(p([t(CHK,{bold:true,size:22}),t("위 개인정보 수집·이용에 �
 kids.push(p([t("작성일 :   ",{size:22}),t("20        년          월          일",{size:22,color:SUB})],
   {align:AlignmentType.RIGHT,after:80,before:80}));
 kids.push(p([t("신청기업 :  ",{size:22}),t("                                         ",{size:22}),
-  t("   대표자 :  ",{size:22}),t("                        ",{size:22}),t("(서명 또는 인)",{size:16,color:SUB})],
+  t("   신청자 :  ",{size:22}),t("                        ",{size:22}),t("(서명 또는 인)",{size:16,color:SUB})],
   {align:AlignmentType.RIGHT,after:260}));
 
 // 접수처
