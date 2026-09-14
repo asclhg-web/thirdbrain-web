@@ -321,18 +321,20 @@ def _m_plan_adherence() -> tuple[float | None, str]:
 
 
 def _m_mttr() -> tuple[float | None, str]:
+    # 정비 유형 라벨은 소스에 따라 영문('corrective')·국문('고장 수리')이 섞인다
+    # (합성 프로파일은 국문, 실 Odoo maintenance는 영문) — 둘 다 인정한다.
     v = db.scalar("SELECT AVG(duration_min) FROM fact_equipment_event "
-                  "WHERE event_type='corrective' AND duration_min > 0")
+                  "WHERE event_type IN ('corrective','고장 수리') AND duration_min > 0")
     if v is None:
         return None, "고장 정비 이력 없음 — 정비 기록 축적 후 측정"
-    return round(float(v), 1), "fact_equipment_event corrective 평균"
+    return round(float(v), 1), "fact_equipment_event 고장 정비 평균"
 
 
 def _m_corrective_events() -> tuple[float | None, str]:
     from datetime import date, timedelta
     cutoff = (date.today() - timedelta(days=30)).isoformat()
     cnt = db.scalar("SELECT COUNT(*) FROM fact_equipment_event "
-                    "WHERE event_type='corrective' AND date_key >= ?", (cutoff,))
+                    "WHERE event_type IN ('corrective','고장 수리') AND date_key >= ?", (cutoff,))
     return float(cnt or 0), "fact_equipment_event 최근 30일"
 
 

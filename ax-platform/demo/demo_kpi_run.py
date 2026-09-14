@@ -20,6 +20,12 @@ TECH_TARGETS = {"plan_adherence": 95.0, "forecast_bias": 3.0, "scrap_rate": 2.0,
                 "defect_rate": 3.0, "corrective_events": 2.0, "wape": 12.0,
                 "stockout_days": 3.0, "mo_lead_days": 2.0, "mttr_min": 60.0}
 
+# 수기 데모 표본 — 자동 원천(서빙 모델·재고 스냅샷·실 MO 원장)이 아직 없는
+# 지표는 '측정 전'으로 비어 보인다. 대표 지침("일단 수기방식으로 셋팅")에 따라
+# 현장 보고 가정의 표본값을 넣어 성과 화면을 채운다. 원천이 연결되면
+# measure_all 이 실측을 덮어써(이력 최신값 우선) 자동 전환된다.
+DEMO_TECH_SAMPLES = {"wape": 7.0, "stockout_days": 2.0, "mo_lead_days": 1.8}
+
 
 def main() -> dict:
     projects.init()
@@ -35,6 +41,12 @@ def main() -> dict:
         pid = p["project_id"]
         print(f"프로젝트 생성 #{pid} — 경영목표 4 · 기술영역 4")
 
+    # 재고 일 스냅샷 — 서버1(PG)에 stock_quant가 복제돼 있으면 결품 일수를
+    # 실측으로 잡는다(sqlite·미복제 환경은 skip → 아래 수기 표본이 채움).
+    snap = projects.snapshot_stock()
+    if snap.get("products"):
+        print(f"재고 스냅샷: {snap['products']}품목 @ {snap['date_key']}")
+
     # 기술 KPI 자동 측정(fact_*에서) + 목표 설정
     r = projects.measure_all(pid)
     print(f"자동 측정: 실측 {r['measured']}건 · 측정 전 {r['pending']}건")
@@ -48,6 +60,15 @@ def main() -> dict:
         if k["area"] == projects.OBJ_AREA and k["kpi_code"] in OBJECTIVE_ACTUALS \
                 and not projects.latest(k["kpi_id"]):
             projects.record_value(k["kpi_id"], OBJECTIVE_ACTUALS[k["kpi_code"]], by="현장보고")
+
+    # 기술 KPI 중 자동 원천이 아직 없어 '측정 전'인 지표는 수기 표본으로 채운다
+    # (달성도 화면이 비지 않도록) — 목표도 함께 고정한다.
+    for k in projects.get(pid)["kpis"]:
+        if k["kpi_code"] in DEMO_TECH_SAMPLES and not projects.latest(k["kpi_id"]):
+            if k["target"] is None and k["kpi_code"] in TECH_TARGETS:
+                projects.set_target(k["kpi_id"], TECH_TARGETS[k["kpi_code"]], "이형근")
+            projects.record_value(k["kpi_id"], DEMO_TECH_SAMPLES[k["kpi_code"]],
+                                  by="현장보고(데모 표본)")
 
     print("\n=== KPI 달성도 ===")
     done = 0
