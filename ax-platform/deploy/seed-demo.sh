@@ -24,15 +24,21 @@ ts=$(date +%Y%m%d-%H%M%S)
 BK=/var/lib/axp
 
 echo "── 0/5 백업 (복원용)"
+DB=axp
+case "${AXP_PG_DSN:-}" in *dbname=*) DB=$(printf '%s\n' "$AXP_PG_DSN" | sed -n 's/.*dbname=\([^ ]*\).*/\1/p');; esac
+: "${DB:=axp}"
+# 백업은 실패해도 시딩을 막지 않는다(가동 중 데이터 디렉토리 tar 경고 등) — errexit 일시 해제
+set +e
 if [ "$AXP_DB" = "postgres" ]; then
-  DB=$(printf '%s\n' "${AXP_PG_DSN:-dbname=axp}" | grep -oE 'dbname=[^ ]+' | cut -d= -f2); DB=${DB:-axp}
   sudo -u postgres pg_dump "$DB" 2>/dev/null | gzip > "$BK/pg-backup-$ts.sql.gz" \
-    && echo "  PG($DB) 백업 → $BK/pg-backup-$ts.sql.gz" || echo "  (PG 백업 건너뜀)"
+    && echo "  PG($DB) 백업 → $BK/pg-backup-$ts.sql.gz" || echo "  (PG 백업 건너뜀 — 계속 진행)"
 fi
 if [ -d "$AXP_DATA" ]; then
-  tar czf "$BK/data-backup-$ts.tgz" -C "$(dirname "$AXP_DATA")" "$(basename "$AXP_DATA")" 2>/dev/null \
-    && echo "  데이터 백업 → $BK/data-backup-$ts.tgz"
+  tar czf "$BK/data-backup-$ts.tgz" --warning=no-file-changed \
+    -C "$(dirname "$AXP_DATA")" "$(basename "$AXP_DATA")" 2>/dev/null \
+    && echo "  데이터 백업 → $BK/data-backup-$ts.tgz" || echo "  (데이터 백업 건너뜀 — 계속 진행)"
 fi
+set -e
 
 echo "── 1/5 전 파이프라인 시딩 (demo.run_e2e · 약 1분)"
 cd "$AXROOT"
