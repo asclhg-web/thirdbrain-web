@@ -176,3 +176,21 @@ git pull → 재설치: 검증 144+5skip / 149 통과, axp-web active(running) �
 - 보고서: docs/presentations/AX_데이터·성과_시연보고서.docx (KPI 대시보드
   실캡처·온보딩 요청서 포함). 빌더 build_data_run_report.js.
 - 정직성: 합성 샘플임을 명시, 측정 불가 지표는 '측정 전' 유지.
+
+## P9-5 — 데모 시딩(서버1 실 DB) 준비 (2026-09-14, 대표 지시)
+
+지시: "데모는 내일 — 오늘까지 샘플데이터를 만들어 먼저 DB에 저장한 후
+데모에서 뷰로 display하는 것 준비해줘."
+
+- 서버1 웹앱은 PostgreSQL(AXP_DB=postgres·/var/lib/axp/data). run_e2e가 PG에서
+  정상 완주함을 스로어웨이 DB로 검증(41.9s) — 성과/승인함/오늘 화면이 실DB를
+  읽어 그대로 표시됨을 헤드리스 렌더로 확인(로그인 Demo!2026→303, 카드 11건,
+  KPI 달성 8건).
+- deploy/seed-demo.sh 신설: /etc/axp/env 소싱 → PG·데이터 백업(복원 힌트) →
+  demo.run_e2e(전 파이프라인) → demo.demo_kpi_run(프로젝트·KPI 달성도) →
+  데모 계정 비밀번호 고정(Demo!2026·must_change 해제) → 재시작 → 헬스 확인.
+  demo/는 /opt 미설치이므로 repo 체크아웃에서 실행(PYTHONPATH=repo/core:repo).
+- demo/demo_kpi_run.py: 하드코딩 경로 제거, 환경변수 기반·멱등으로 재작성.
+- 사용: git pull → sudo bash ax-platform/deploy/seed-demo.sh → app.odooaierp.com
+  로그인 admin/Demo!2026 → 오늘·판단(승인함)·성과(KPI)·질문.
+- 안전: 데모 서버 전용(run_e2e가 데이터 디렉토리 재생성). 실행 전 자동 백업.
