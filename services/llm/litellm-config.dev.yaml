@@ -1,0 +1,33 @@
+# LiteLLM Gateway — dev (local Ollama on GPU server)
+#
+# 실행 (GPU 서버 PowerShell):
+#   pip install "litellm[proxy]"
+#   $env:LITELLM_MASTER_KEY = "<직접 생성한 키>"   # 시크릿: 커밋 금지
+#   $env:OLLAMA_BASE = "http://localhost:11434"
+#   litellm --config services/llm/litellm-config.dev.yaml --port 4000
+#
+# 사전 준비:
+#   ollama pull qwen2.5:7b
+#   ollama pull bge-m3
+#
+# 시크릿(LITELLM_MASTER_KEY)은 환경변수로만 주입하며 절대 커밋하지 않습니다.
+
+model_list:
+  # 채팅/생성 모델 — curl의 "model":"openbrain-llm" 별칭
+  - model_name: openbrain-llm
+    litellm_params:
+      model: ollama/qwen2.5:7b
+      api_base: os.environ/OLLAMA_BASE # http://localhost:11434
+
+  # 임베딩 모델 — curl의 "model":"openbrain-embed" 별칭
+  - model_name: openbrain-embed
+    litellm_params:
+      model: ollama/bge-m3
+      api_base: os.environ/OLLAMA_BASE
+
+litellm_settings:
+  drop_params: true # 모델이 지원하지 않는 파라미터는 조용히 제거
+  request_timeout: 600
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY # Bearer 토큰 검증용
